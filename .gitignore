@@ -1,0 +1,20 @@
+# Local-only documentation and notes
+docs/*.md
+CLAUDE.md
+notes/*
+
+# Rust
+src/compute/target/
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Experiment artifacts (configs and plots are committed)
+data/experiments/**/artifacts/
+
+# MNIST is downloaded locally
+data/datasets/mnist/*
+!data/datasets/mnist/README.md

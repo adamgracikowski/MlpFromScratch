@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rust:
+    name: Rust (compute)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/compute
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain from rust-toolchain.toml
+        run: rustup show
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/compute
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Test
+        run: cargo test
+
+  python:
+    name: Python (analysis)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/analysis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: src/analysis/uv.lock
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check
+      - name: Format
+        run: uv run ruff format --check
+      - name: Test
+        run: uv run pytest
