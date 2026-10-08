@@ -10,7 +10,7 @@ use toml::de::{DeTable, DeValue};
 use super::{Issue, Key};
 
 /// An [`Issue`] together with the location of the offending value.
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 #[error("{issue}")]
 pub struct IssueDiagnostic {
     issue: Issue,

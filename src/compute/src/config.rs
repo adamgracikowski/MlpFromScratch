@@ -35,5 +35,9 @@ pub use output::OutputConfig;
 pub use training::{Loss, TrainingConfig};
 pub use validate::{MAX_HIDDEN_LAYERS, validate};
 
+/// A valid classification config used as the base of tests in other modules.
+#[cfg(test)]
+pub(crate) use experiment::tests::CLASSIFICATION;
+
 /// Name of the configuration file inside an experiment directory.
 pub const CONFIG_FILE_NAME: &str = "config.toml";
