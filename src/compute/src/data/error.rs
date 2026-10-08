@@ -53,4 +53,34 @@ pub enum DataError {
         column: String,
         value: String,
     },
+
+    /// A class label is not an integer.
+    #[error("{}:{line}: class label `{value}` is not an integer", path.display())]
+    #[diagnostic(
+        code(data::non_integer_label),
+        help("classification targets must be integer labels")
+    )]
+    NonIntegerLabel {
+        path: PathBuf,
+        line: u64,
+        value: f64,
+    },
+
+    /// The training set has fewer than two classes.
+    #[error("`{}` has fewer than two classes (found: {classes})", path.display())]
+    #[diagnostic(
+        code(data::too_few_classes),
+        help("classification needs at least two classes")
+    )]
+    TooFewClasses { path: PathBuf, classes: String },
+
+    /// A label of the test set does not occur in the training set.
+    #[error("{}:{line}: class label `{label}` does not occur in the training set", path.display())]
+    #[diagnostic(code(data::unknown_label), help("training classes: {classes}"))]
+    UnknownLabel {
+        path: PathBuf,
+        line: u64,
+        label: i64,
+        classes: String,
+    },
 }

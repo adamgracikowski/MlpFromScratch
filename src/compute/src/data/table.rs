@@ -1,7 +1,7 @@
 //! Reading CSV files into a feature matrix and a target column.
 
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use csv::{Reader, ReaderBuilder, StringRecord, Trim};
 use ndarray::Array2;
@@ -11,6 +11,8 @@ use super::DataError;
 /// Contents of a CSV dataset: input features and the target column.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Table {
+    /// File the table was read from, for error messages.
+    pub path: PathBuf,
     /// Names of the feature columns, in file order.
     pub feature_names: Vec<String>,
     /// Input features, one row per sample (`n × d`).
@@ -109,6 +111,7 @@ pub fn read_table(path: &Path, target: &str) -> Result<Table, DataError> {
     let features = Array2::from_shape_vec((targets.len(), feature_names.len()), features)
         .expect("every record has as many fields as the header");
     Ok(Table {
+        path: path.to_owned(),
         feature_names,
         features,
         target: targets,
@@ -124,7 +127,6 @@ fn parse_value(field: &str) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::path::PathBuf;
 
     use ndarray::array;
     use tempfile::TempDir;
