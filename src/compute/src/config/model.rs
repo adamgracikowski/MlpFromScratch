@@ -1,8 +1,7 @@
 //! Network architecture, activations and weight initialization.
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 /// Network architecture and weight initialization.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -21,21 +20,24 @@ pub struct ModelConfig {
 }
 
 /// Activation function of the hidden layers.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Display)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum HiddenActivation {
     Sigmoid,
     Tanh,
     Relu,
     /// ReLU with slope `alpha` for negative inputs.
+    #[strum(to_string = "leaky_relu(alpha={alpha})")]
     LeakyRelu {
         alpha: f64,
     },
 }
 
 /// Activation function of the output layer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum OutputActivation {
     Identity,
     Sigmoid,
@@ -43,46 +45,17 @@ pub enum OutputActivation {
 }
 
 /// Weight initialization scheme. Biases always start at zero.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Display)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum Init {
     /// Glorot/Xavier uniform, suited to sigmoid and tanh.
     Xavier,
     /// He/Kaiming normal, suited to ReLU and leaky ReLU.
     He,
     /// Uniform on `[-limit, limit]`.
+    #[strum(to_string = "uniform(limit={limit})")]
     Uniform { limit: f64 },
-}
-
-impl fmt::Display for HiddenActivation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            HiddenActivation::Sigmoid => f.write_str("sigmoid"),
-            HiddenActivation::Tanh => f.write_str("tanh"),
-            HiddenActivation::Relu => f.write_str("relu"),
-            HiddenActivation::LeakyRelu { alpha } => write!(f, "leaky_relu(alpha={alpha})"),
-        }
-    }
-}
-
-impl fmt::Display for OutputActivation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            OutputActivation::Identity => "identity",
-            OutputActivation::Sigmoid => "sigmoid",
-            OutputActivation::Softmax => "softmax",
-        })
-    }
-}
-
-impl fmt::Display for Init {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Init::Xavier => f.write_str("xavier"),
-            Init::He => f.write_str("he"),
-            Init::Uniform { limit } => write!(f, "uniform(limit={limit})"),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -149,5 +122,30 @@ mod tests {
             r#"{ kind = "he" }"#,
         );
         assert!(parse(&text).is_err());
+    }
+
+    #[test]
+    fn displays_activations_and_init() {
+        let hidden = [
+            HiddenActivation::Sigmoid,
+            HiddenActivation::Tanh,
+            HiddenActivation::Relu,
+            HiddenActivation::LeakyRelu { alpha: 0.01 },
+        ]
+        .map(|activation| activation.to_string());
+        assert_eq!(
+            hidden,
+            ["sigmoid", "tanh", "relu", "leaky_relu(alpha=0.01)"]
+        );
+        let output = [
+            OutputActivation::Identity,
+            OutputActivation::Sigmoid,
+            OutputActivation::Softmax,
+        ]
+        .map(|activation| activation.to_string());
+        assert_eq!(output, ["identity", "sigmoid", "softmax"]);
+        let init =
+            [Init::Xavier, Init::He, Init::Uniform { limit: 0.5 }].map(|init| init.to_string());
+        assert_eq!(init, ["xavier", "he", "uniform(limit=0.5)"]);
     }
 }

@@ -1,8 +1,7 @@
 //! Loss function, training length and RNG seed.
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 /// Loss function, training length and RNG seed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -19,8 +18,9 @@ pub struct TrainingConfig {
 }
 
 /// Loss function minimized during training.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum Loss {
     /// Categorical cross-entropy (classification, softmax output).
     CrossEntropy,
@@ -28,16 +28,6 @@ pub enum Loss {
     Mse,
     /// Mean absolute error (regression).
     Mae,
-}
-
-impl fmt::Display for Loss {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Loss::CrossEntropy => "cross_entropy",
-            Loss::Mse => "mse",
-            Loss::Mae => "mae",
-        })
-    }
 }
 
 #[cfg(test)]
@@ -48,5 +38,11 @@ mod tests {
     fn rejects_negative_epochs() {
         let text = "loss = \"mae\"\nepochs = -1\nbatch_size = 32\nseed = 1\n";
         assert!(toml::from_str::<TrainingConfig>(text).is_err());
+    }
+
+    #[test]
+    fn displays_loss_like_config() {
+        let names = [Loss::CrossEntropy, Loss::Mse, Loss::Mae].map(|loss| loss.to_string());
+        assert_eq!(names, ["cross_entropy", "mse", "mae"]);
     }
 }

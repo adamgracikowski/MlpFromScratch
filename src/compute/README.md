@@ -10,7 +10,7 @@ Every command takes an experiment directory that contains `config.toml`:
 
 ```bash
 compute validate <experiment-dir>   # check the config and dataset files, print a summary
-compute train <experiment-dir>      # train the network (not implemented yet)
+compute train <experiment-dir>      # prepare the data and train the network (training not implemented yet)
 ```
 
 Relative paths, both of the experiment directory and of the datasets in the config, are resolved against the current working directory. Run the binary from the repository root:
@@ -44,6 +44,17 @@ Invalid configs are rejected with diagnostics that point at the offending line o
 | `logging.loss_every`, `logging.weights_every` | intervals in iterations (batches) |
 | `logging.max_weights_per_layer` | upper bound on recorded weights per layer |
 | `output.grid_resolution`, `output.grid_margin` | prediction grid for 1D and 2D inputs |
+
+## Data preparation
+
+`compute train` loads the datasets before training:
+
+1. Both CSV files are read whole. The header names the columns; every value must be a finite number.
+2. Classification: labels must be integers. The classes are the distinct labels of the whole training file, sorted, so labels `1, 2, 3` map to network outputs `0, 1, 2` and MNIST labels `0..=9` map to themselves. A test label missing from the training file is an error. Targets become one-hot vectors.
+3. `train_subset` samples are drawn from the training file, then `validation_fraction` of them is held out for validation (rounded to the nearest sample count). For classification both draws are stratified: every class keeps its share of samples. Both use a random stream derived from `training.seed`, separate from other random choices, so the split does not change when e.g. the network changes.
+4. Normalization statistics are computed per column on the remaining training samples only, then applied to the training, validation and test sets. `standard` subtracts the mean and divides by the standard deviation, `min_max` maps the training range to `[0, 1]`. A constant column is only shifted to 0.
+
+A `train_subset` larger than the training set, or a `validation_fraction` that leaves the validation or training set empty, is reported at its line in `config.toml`.
 
 ## Commands
 

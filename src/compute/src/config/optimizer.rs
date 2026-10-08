@@ -1,18 +1,22 @@
 //! Weight update rule and its hyperparameters.
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 /// Weight update rule and its hyperparameters.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Display)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Optimizer {
     /// Plain mini-batch stochastic gradient descent.
+    #[strum(to_string = "sgd(lr={learning_rate})")]
     Sgd { learning_rate: f64 },
     /// SGD with classical momentum.
+    #[strum(to_string = "momentum(lr={learning_rate}, momentum={momentum})")]
     Momentum { learning_rate: f64, momentum: f64 },
     /// Adam with bias-corrected moment estimates.
+    #[strum(
+        to_string = "adam(lr={learning_rate}, beta1={beta1}, beta2={beta2}, epsilon={epsilon:e})"
+    )]
     Adam {
         learning_rate: f64,
         #[serde(default = "default_beta1")]
@@ -34,27 +38,6 @@ fn default_beta2() -> f64 {
 
 fn default_epsilon() -> f64 {
     1e-8
-}
-
-impl fmt::Display for Optimizer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Optimizer::Sgd { learning_rate } => write!(f, "sgd(lr={learning_rate})"),
-            Optimizer::Momentum {
-                learning_rate,
-                momentum,
-            } => write!(f, "momentum(lr={learning_rate}, momentum={momentum})"),
-            Optimizer::Adam {
-                learning_rate,
-                beta1,
-                beta2,
-                epsilon,
-            } => write!(
-                f,
-                "adam(lr={learning_rate}, beta1={beta1}, beta2={beta2}, epsilon={epsilon:e})"
-            ),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -99,5 +82,19 @@ mod tests {
     #[test]
     fn rejects_missing_learning_rate() {
         assert!(parse("kind = \"sgd\"\n").is_err());
+    }
+
+    #[test]
+    fn displays_optimizer_with_parameters() {
+        let sgd = parse("kind = \"sgd\"\nlearning_rate = 0.1\n").unwrap();
+        assert_eq!(sgd.to_string(), "sgd(lr=0.1)");
+        let momentum =
+            parse("kind = \"momentum\"\nlearning_rate = 0.01\nmomentum = 0.9\n").unwrap();
+        assert_eq!(momentum.to_string(), "momentum(lr=0.01, momentum=0.9)");
+        let adam = parse("kind = \"adam\"\nlearning_rate = 0.001\n").unwrap();
+        assert_eq!(
+            adam.to_string(),
+            "adam(lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8)"
+        );
     }
 }

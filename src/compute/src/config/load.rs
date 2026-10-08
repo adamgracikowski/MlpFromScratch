@@ -7,7 +7,7 @@ use miette::NamedSource;
 use toml::de::DeTable;
 
 use super::{
-    CONFIG_FILE_NAME, ConfigError, ExperimentConfig, IssueDiagnostic, check_files, validate,
+    CONFIG_FILE_NAME, ConfigError, ExperimentConfig, Issue, IssueDiagnostic, check_files, validate,
 };
 
 /// A config that passed validation, with the warnings it produced.
@@ -21,6 +21,22 @@ pub struct LoadedConfig {
     pub warnings: Vec<IssueDiagnostic>,
     /// Number of input feature columns in the datasets.
     pub feature_count: usize,
+    /// Text of `config.toml`, for diagnostics found after loading.
+    pub source: NamedSource<String>,
+}
+
+impl LoadedConfig {
+    /// Builds an error from issues found after loading, e.g. ones that need
+    /// the number of samples in the datasets. Like load errors, every issue
+    /// points at its line in `config.toml`.
+    pub fn invalid(&self, issues: Vec<Issue>) -> ConfigError {
+        let issues = diagnostics(issues, &self.source);
+        ConfigError::Invalid {
+            path: self.path.clone(),
+            error_count: issues.iter().filter(|d| d.issue().is_error()).count(),
+            issues,
+        }
+    }
 }
 
 /// Reads `config.toml` from `experiment_dir`, parses it, validates it and
@@ -50,12 +66,7 @@ pub fn load_from_str(path: PathBuf, text: String) -> Result<LoadedConfig, Config
     let files = check_files(&config.data);
     issues.extend(files.issues);
 
-    let document = DeTable::parse(&text).ok();
-    let mut diagnostics: Vec<IssueDiagnostic> = issues
-        .into_iter()
-        .map(|issue| IssueDiagnostic::new(issue, document.as_ref(), src.clone()))
-        .collect();
-    diagnostics.sort_by_key(|diagnostic| diagnostic.offset().unwrap_or(usize::MAX));
+    let diagnostics = diagnostics(issues, &src);
 
     let error_count = diagnostics
         .iter()
@@ -76,7 +87,19 @@ pub fn load_from_str(path: PathBuf, text: String) -> Result<LoadedConfig, Config
         feature_count: files
             .feature_count
             .expect("a config without errors has a valid training header"),
+        source: src,
     })
+}
+
+/// Locates `issues` in the config text `src` and sorts them by position.
+fn diagnostics(issues: Vec<Issue>, src: &NamedSource<String>) -> Vec<IssueDiagnostic> {
+    let document = DeTable::parse(src.inner()).ok();
+    let mut diagnostics: Vec<IssueDiagnostic> = issues
+        .into_iter()
+        .map(|issue| IssueDiagnostic::new(issue, document.as_ref(), src.clone()))
+        .collect();
+    diagnostics.sort_by_key(|diagnostic| diagnostic.offset().unwrap_or(usize::MAX));
+    diagnostics
 }
 
 #[cfg(test)]
@@ -115,6 +138,28 @@ mod tests {
         let loaded = load_experiment(dir.path()).unwrap();
         assert_eq!(loaded.warnings.len(), 1);
         assert_eq!(loaded.warnings[0].issue().path_string(), "model.init");
+    }
+
+    #[test]
+    fn reports_later_issues_at_config_lines() {
+        let dir = experiment(CLASSIFICATION);
+        let loaded = load_experiment(dir.path()).unwrap();
+        let err = loaded.invalid(vec![
+            Issue::warning(&["training", "seed"], "late warning"),
+            Issue::error(&["data", "validation_fraction"], "late error"),
+        ]);
+        let ConfigError::Invalid {
+            error_count,
+            issues,
+            ..
+        } = err
+        else {
+            panic!("expected validation errors, got {err:?}");
+        };
+        assert_eq!(error_count, 1);
+        let paths: Vec<String> = issues.iter().map(|d| d.issue().path_string()).collect();
+        assert_eq!(paths, ["data.validation_fraction", "training.seed"]);
+        assert!(issues.iter().all(|d| d.offset().is_some()));
     }
 
     #[test]

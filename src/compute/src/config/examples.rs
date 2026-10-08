@@ -1,8 +1,12 @@
-//! Checks that the example experiment configs in `data/experiments/` stay valid.
+//! Checks that the example experiment configs in `data/experiments/` stay valid
+//! and that their datasets can be prepared.
 
 use std::path::{Path, PathBuf};
 
-use super::{ExperimentConfig, Issue, check_files, validate};
+use miette::NamedSource;
+
+use super::{ExperimentConfig, Issue, LoadedConfig, check_files, validate};
+use crate::data::prepare;
 
 /// Example configs, relative to the repository root.
 const EXAMPLES: [&str; 2] = [
@@ -19,15 +23,28 @@ fn repo_root() -> PathBuf {
 fn example_configs_are_valid() {
     let root = repo_root();
     for example in EXAMPLES {
-        let text = std::fs::read_to_string(root.join(example)).unwrap();
+        let path = root.join(example);
+        let text = std::fs::read_to_string(&path).unwrap();
         let mut config: ExperimentConfig = toml::from_str(&text).unwrap();
         // Tests run in the crate directory, not in the repository root.
         config.data.train = root.join(&config.data.train);
         config.data.test = root.join(&config.data.test);
 
         let mut issues = validate(&config);
-        issues.extend(check_files(&config.data).issues);
+        let files = check_files(&config.data);
+        issues.extend(files.issues);
         let issues: Vec<String> = issues.iter().map(Issue::to_string).collect();
         assert!(issues.is_empty(), "{example}: {issues:?}");
+
+        let loaded = LoadedConfig {
+            source: NamedSource::new(example, text),
+            path,
+            config,
+            warnings: Vec::new(),
+            feature_count: files.feature_count.unwrap(),
+        };
+        if let Err(err) = prepare(&loaded) {
+            panic!("{example}: {err:?}");
+        }
     }
 }

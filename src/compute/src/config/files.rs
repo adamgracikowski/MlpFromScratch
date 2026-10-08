@@ -3,11 +3,10 @@
 //! Only the CSV header is read, so the check stays fast for large datasets
 //! such as MNIST. Loading the data itself is left to the `data` module.
 
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
 use std::path::Path;
 
 use super::{DataConfig, Issue};
+use crate::data::read_header;
 
 /// Result of checking the dataset files.
 #[derive(Debug, Default)]
@@ -52,8 +51,8 @@ fn check_file(
     issues: &mut Vec<Issue>,
 ) -> Option<Vec<String>> {
     let columns = match read_header(path) {
-        Ok(Some(columns)) => columns,
-        Ok(None) => {
+        Ok(columns) if !columns.is_empty() => columns,
+        Ok(_) => {
             issues.push(Issue::error(
                 &["data", field],
                 format!("`{}` is empty", path.display()),
@@ -64,7 +63,7 @@ fn check_file(
             issues.push(
                 Issue::error(
                     &["data", field],
-                    format!("cannot open `{}`: {err}", path.display()),
+                    format!("cannot read `{}`: {err}", path.display()),
                 )
                 .with_help("paths are resolved relative to the current working directory"),
             );
@@ -90,20 +89,6 @@ fn check_file(
         return None;
     }
     Some(columns)
-}
-
-/// Reads the column names from the first line, or `None` for an empty file.
-fn read_header(path: &Path) -> io::Result<Option<Vec<String>>> {
-    let mut line = String::new();
-    if BufReader::new(File::open(path)?).read_line(&mut line)? == 0 {
-        return Ok(None);
-    }
-    let line = line.trim_start_matches('\u{feff}').trim_end();
-    let columns = line
-        .split(',')
-        .map(|column| column.trim().trim_matches('"').to_owned())
-        .collect();
-    Ok(Some(columns))
 }
 
 #[cfg(test)]
