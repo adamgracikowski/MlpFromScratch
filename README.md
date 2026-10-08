@@ -13,7 +13,7 @@ The project has two layers that communicate only through files on disk:
 
 Each experiment lives in `data/experiments/<task>/<experiment-name>/`, where `<task>` is `classification`, `regression` or `mnist`:
 
-1. A config file in the experiment folder holds all parameters, including the RNG seed.
+1. `config.toml` in the experiment folder holds all parameters, including the RNG seed.
 2. The compute binary reads the config, trains the network and writes results into `artifacts/`.
 3. The analysis scripts read `artifacts/` and write plots and statistics into `plots/`.
 
@@ -39,12 +39,17 @@ src/
 
 ## Usage
 
-Compute layer:
+Compute layer, run from the repository root (dataset paths in configs are relative to the current working directory):
 
 ```bash
-cd src/compute
-cargo build --release
-cargo run --release -- --help
+cargo build --release --manifest-path src/compute/Cargo.toml
+cargo run --release --manifest-path src/compute/Cargo.toml -- validate data/experiments/classification/example-three-gauss
+cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/example-three-gauss
+```
+
+Tests, from `src/compute/`:
+
+```bash
 cargo test
 ```
 

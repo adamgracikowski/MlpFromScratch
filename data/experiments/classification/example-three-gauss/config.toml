@@ -1,0 +1,43 @@
+# Example classification experiment: three Gaussian clusters in R^2.
+# Paths are relative to the current working directory; run from the repo root:
+#   cargo run --manifest-path src/compute/Cargo.toml -- validate data/experiments/classification/example-three-gauss
+
+task = "classification"            # classification | regression
+
+[data]
+train = "data/datasets/classification/data.three_gauss.train.500.csv"
+test = "data/datasets/classification/data.three_gauss.test.500.csv"
+target = "cls"                     # all other columns are input features
+input_normalization = "standard"   # none | standard | min_max
+target_normalization = "none"      # must be "none" for classification
+# train_subset = 200               # optional: train on a random subset
+validation_fraction = 0.0          # held out from the training set; 0.0 disables
+
+[model]
+hidden_layers = [16, 16]           # 0 to 4 hidden layers
+bias = true
+hidden_activation = { kind = "tanh" }  # sigmoid | tanh | relu | { kind = "leaky_relu", alpha = 0.01 }
+output_activation = "softmax"      # identity | sigmoid | softmax
+init = { kind = "xavier" }         # xavier | he | { kind = "uniform", limit = 0.5 }
+
+[optimizer]
+kind = "adam"                      # sgd | momentum (+ momentum) | adam
+learning_rate = 0.01
+# beta1 = 0.9                      # Adam defaults
+# beta2 = 0.999
+# epsilon = 1e-8
+
+[training]
+loss = "cross_entropy"             # cross_entropy | mse (classification); mse | mae (regression)
+epochs = 200
+batch_size = 32
+seed = 42
+
+[logging]
+loss_every = 1                     # in iterations (batches)
+weights_every = 10
+max_weights_per_layer = 64
+
+[output]
+grid_resolution = 200              # points per input dimension of the prediction grid
+grid_margin = 0.1                  # grid extends 10% beyond the data range

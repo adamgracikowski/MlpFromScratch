@@ -10,6 +10,8 @@
 mod data;
 mod diagnostic;
 mod error;
+#[cfg(test)]
+mod examples;
 mod experiment;
 mod files;
 mod issue;

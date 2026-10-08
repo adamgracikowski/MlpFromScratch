@@ -51,7 +51,7 @@ impl fmt::Display for Optimizer {
                 epsilon,
             } => write!(
                 f,
-                "adam(lr={learning_rate}, beta1={beta1}, beta2={beta2}, epsilon={epsilon})"
+                "adam(lr={learning_rate}, beta1={beta1}, beta2={beta2}, epsilon={epsilon:e})"
             ),
         }
     }
