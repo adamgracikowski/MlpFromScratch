@@ -13,6 +13,8 @@ use rand::rngs::ChaCha8Rng;
 pub enum RngStream {
     /// Training subset and validation split.
     Data = 0,
+    /// Initial weights of the network.
+    Init = 1,
 }
 
 /// Creates the generator of `stream` for the experiment `seed`.
@@ -28,27 +30,33 @@ mod tests {
 
     use super::*;
 
-    fn draw(seed: u64) -> Vec<u32> {
-        let mut rng = rng(seed, RngStream::Data);
+    fn draw(seed: u64, stream: RngStream) -> Vec<u32> {
+        let mut rng = rng(seed, stream);
         (0..8).map(|_| rng.random()).collect()
     }
 
     #[test]
     fn same_seed_gives_same_numbers() {
-        assert_eq!(draw(42), draw(42));
+        assert_eq!(draw(42, RngStream::Data), draw(42, RngStream::Data));
     }
 
     #[test]
     fn different_seeds_give_different_numbers() {
-        assert_ne!(draw(42), draw(43));
+        assert_ne!(draw(42, RngStream::Data), draw(43, RngStream::Data));
+    }
+
+    #[test]
+    fn streams_are_independent() {
+        assert_ne!(draw(42, RngStream::Data), draw(42, RngStream::Init));
     }
 
     #[test]
     fn stream_ids_are_stable() {
         assert_eq!(RngStream::Data as u64, 0);
+        assert_eq!(RngStream::Init as u64, 1);
         let mut other_stream = ChaCha8Rng::seed_from_u64(42);
         other_stream.set_stream(1);
         let other: Vec<u32> = (0..8).map(|_| other_stream.random()).collect();
-        assert_ne!(draw(42), other);
+        assert_eq!(draw(42, RngStream::Init), other);
     }
 }

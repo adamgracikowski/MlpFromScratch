@@ -1,5 +1,5 @@
 //! Checks that the example experiment configs in `data/experiments/` stay valid
-//! and that their datasets can be prepared.
+//! and that their datasets can be prepared and fed through the network.
 
 use std::path::{Path, PathBuf};
 
@@ -7,6 +7,8 @@ use miette::NamedSource;
 
 use super::{ExperimentConfig, Issue, LoadedConfig, check_files, validate};
 use crate::data::prepare;
+use crate::network::Mlp;
+use crate::rng::{RngStream, rng};
 
 /// Example configs, relative to the repository root.
 const EXAMPLES: [&str; 2] = [
@@ -43,8 +45,23 @@ fn example_configs_are_valid() {
             warnings: Vec::new(),
             feature_count: files.feature_count.unwrap(),
         };
-        if let Err(err) = prepare(&loaded) {
-            panic!("{example}: {err:?}");
-        }
+        let prepared = match prepare(&loaded) {
+            Ok(prepared) => prepared,
+            Err(err) => panic!("{example}: {err:?}"),
+        };
+
+        let test = &prepared.test;
+        let network = Mlp::new(
+            &loaded.config.model,
+            test.inputs.ncols(),
+            test.targets.ncols(),
+            &mut rng(loaded.config.training.seed, RngStream::Init),
+        );
+        let predictions = network.predict(test.inputs.view());
+        assert_eq!(predictions.dim(), test.targets.dim(), "{example}");
+        assert!(
+            predictions.iter().all(|value| value.is_finite()),
+            "{example}"
+        );
     }
 }

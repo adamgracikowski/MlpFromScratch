@@ -4,6 +4,7 @@ use std::fmt;
 
 use crate::config::{LoadedConfig, Task};
 use crate::data::{Dataset, PreparedData};
+use crate::network::Mlp;
 
 /// Prints the warnings of a loaded config to stderr and its summary to stdout.
 pub(super) fn report(loaded: &LoadedConfig) {
@@ -131,6 +132,33 @@ impl fmt::Display for DataSummary<'_> {
     }
 }
 
+/// Parameter counts of the built network, per layer as `in x out + bias`,
+/// e.g. `parameters: 371 (2x16+16, 16x16+16, 16x3+3)`.
+pub(super) struct NetworkSummary<'a>(pub &'a Mlp);
+
+impl fmt::Display for NetworkSummary<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let layers: Vec<String> = self
+            .0
+            .layers()
+            .iter()
+            .map(|layer| {
+                let weights = format!("{}x{}", layer.input_size(), layer.output_size());
+                match layer.bias() {
+                    Some(bias) => format!("{weights}+{}", bias.len()),
+                    None => weights,
+                }
+            })
+            .collect();
+        write!(
+            f,
+            "parameters: {} ({})",
+            self.0.parameter_count(),
+            layers.join(", ")
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -141,6 +169,7 @@ mod tests {
     use super::*;
     use crate::config::{CLASSIFICATION, ExperimentConfig, Normalization};
     use crate::data::{ClassEncoding, Scaler, Table};
+    use crate::network::{Activation, Layer};
 
     fn loaded(config: ExperimentConfig) -> LoadedConfig {
         LoadedConfig {
@@ -222,6 +251,22 @@ mod tests {
              train      2 / 1\n  \
              validation 0 / 1\n  \
              test       1 / 1"
+        );
+    }
+
+    #[test]
+    fn network_summary_lists_parameters_per_layer() {
+        let network = Mlp::from_layers(vec![
+            Layer::from_parts(
+                Array2::zeros((2, 4)),
+                Some(Array1::zeros(4)),
+                Activation::Tanh,
+            ),
+            Layer::from_parts(Array2::zeros((4, 3)), None, Activation::Softmax),
+        ]);
+        assert_eq!(
+            NetworkSummary(&network).to_string(),
+            "parameters: 24 (2x4+4, 4x3)"
         );
     }
 }
