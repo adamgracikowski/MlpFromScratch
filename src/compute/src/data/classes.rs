@@ -62,7 +62,7 @@ impl ClassEncoding {
             .collect()
     }
 
-    /// One-hot matrix (`n × K`) of class indices: row `i` has 1 in column
+    /// One-hot matrix (`n x K`) of class indices: row `i` has 1 in column
     /// `labels[i]` and 0 elsewhere.
     pub fn one_hot(&self, labels: &Array1<usize>) -> Array2<f64> {
         let mut one_hot = Array2::zeros((labels.len(), self.class_count()));

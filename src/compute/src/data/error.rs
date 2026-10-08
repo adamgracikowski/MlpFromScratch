@@ -5,9 +5,17 @@ use std::path::PathBuf;
 use miette::Diagnostic;
 use thiserror::Error;
 
+use crate::config::ConfigError;
+
 /// Failure to load or prepare a dataset.
 #[derive(Debug, Error, Diagnostic)]
 pub enum DataError {
+    /// A config value does not fit the data, e.g. `train_subset` exceeds the
+    /// number of samples. Points at the line in `config.toml`.
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Config(Box<ConfigError>),
+
     /// The file cannot be opened or is not well-formed CSV.
     #[error("cannot read `{}`", path.display())]
     #[diagnostic(
@@ -83,4 +91,10 @@ pub enum DataError {
         label: i64,
         classes: String,
     },
+}
+
+impl From<ConfigError> for DataError {
+    fn from(err: ConfigError) -> Self {
+        DataError::Config(Box::new(err))
+    }
 }

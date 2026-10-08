@@ -49,7 +49,7 @@ pub fn split_indices<R: Rng + ?Sized>(
 }
 
 /// Splits `count` among classes of the given sizes proportionally, using the
-/// largest remainder method: each class first gets `⌊size · count / n⌋`, the
+/// largest remainder method: each class first gets `floor(size * count / n)`, the
 /// leftover goes one by one to the classes with the largest remainders (ties
 /// to the lower class index). The quotas sum to exactly `count`.
 pub fn stratified_quotas(sizes: &[usize], count: usize) -> Vec<usize> {

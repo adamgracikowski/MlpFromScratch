@@ -15,7 +15,7 @@ pub struct Table {
     pub path: PathBuf,
     /// Names of the feature columns, in file order.
     pub feature_names: Vec<String>,
-    /// Input features, one row per sample (`n × d`).
+    /// Input features, one row per sample (`n x d`).
     pub features: Array2<f64>,
     /// Target value of every sample (`n`).
     pub target: Vec<f64>,

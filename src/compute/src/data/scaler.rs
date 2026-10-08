@@ -52,8 +52,17 @@ impl Scaler {
 
     /// Normalizes `data`: `(x - offset) / scale` in every column.
     pub fn transform(&self, data: &Array2<f64>) -> Array2<f64> {
+        let mut data = data.clone();
+        self.transform_in_place(&mut data);
+        data
+    }
+
+    /// Like [`Scaler::transform`], but overwrites `data` instead of
+    /// allocating a copy (large datasets such as MNIST).
+    pub fn transform_in_place(&self, data: &mut Array2<f64>) {
         self.assert_columns(data);
-        (data - &self.offset) / &self.scale
+        *data -= &self.offset;
+        *data /= &self.scale;
     }
 
     /// Reverts [`Scaler::transform`], e.g. to bring predictions back to the
