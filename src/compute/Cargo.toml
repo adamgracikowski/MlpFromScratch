@@ -19,6 +19,7 @@ csv = "1.4.0"
 miette = { version = "7.6.0", features = ["fancy"] }
 ndarray = "0.17.2"
 rand = { version = "0.10.3", default-features = false, features = ["std", "chacha"] }
+rand_distr = { version = "0.6.0", default-features = false, features = ["std"] }
 serde = { version = "1.0.229", features = ["derive"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.21"
