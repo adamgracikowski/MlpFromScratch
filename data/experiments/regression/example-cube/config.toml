@@ -1,0 +1,40 @@
+# Example regression experiment: f(x) on the `cube` dataset.
+# Paths are relative to the current working directory; run from the repo root:
+#   cargo run --manifest-path src/compute/Cargo.toml -- validate data/experiments/regression/example-cube
+
+task = "regression"
+
+[data]
+train = "data/datasets/regression/data.cube.train.500.csv"
+test = "data/datasets/regression/data.cube.test.500.csv"
+target = "y"
+input_normalization = "standard"
+target_normalization = "standard"  # targets are in the hundreds
+validation_fraction = 0.0
+
+[model]
+hidden_layers = [32, 32]
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "identity"     # regression requires identity
+init = { kind = "he" }
+
+[optimizer]
+kind = "momentum"
+learning_rate = 0.01
+momentum = 0.9
+
+[training]
+loss = "mse"                       # mse | mae
+epochs = 500
+batch_size = 16
+seed = 42
+
+[logging]
+loss_every = 1
+weights_every = 10
+max_weights_per_layer = 64
+
+[output]
+grid_resolution = 500
+grid_margin = 0.1
