@@ -134,11 +134,13 @@ mod tests {
         for normalization in [Normalization::Standard, Normalization::MinMax] {
             let scaler = Scaler::fit(normalization, &data());
             assert_eq!(scaler.scale[2], 1.0);
-            assert!(scaler
-                .transform(&data())
-                .column(2)
-                .iter()
-                .all(|&v| v == 0.0));
+            assert!(
+                scaler
+                    .transform(&data())
+                    .column(2)
+                    .iter()
+                    .all(|&v| v == 0.0)
+            );
         }
     }
 
