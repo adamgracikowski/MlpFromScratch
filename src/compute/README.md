@@ -56,6 +56,18 @@ Invalid configs are rejected with diagnostics that point at the offending line o
 
 A `train_subset` larger than the training set, or a `validation_fraction` that leaves the validation or training set empty, is reported at its line in `config.toml`.
 
+## Network
+
+The network (`network::Mlp`) is a stack of fully connected layers stored as matrices, one row per sample:
+
+- Layer sizes are `features -> hidden_layers... -> outputs`, where outputs are the number of classes (one-hot targets) or 1 for regression. Without hidden layers the network is a single layer.
+- A layer computes `Z = A_prev . W + b` and `A = f(Z)`. `W` is `in x out`, `b` has length `out` and is broadcast over the rows; with `bias = false` no layer has a bias.
+- Hidden layers use `hidden_activation`, the last layer `output_activation`. Softmax subtracts the row maximum before `exp`, and sigmoid is evaluated in a form that does not overflow.
+- Every layer is initialized with the same `init` scheme: `xavier` draws from `U[-sqrt(6 / (in + out)), sqrt(6 / (in + out))]`, `he` from `N(0, 2 / in)`, `uniform` from `U[-limit, limit]`. Biases start at 0. Weights come from a random stream of `training.seed` reserved for initialization, so they do not change with e.g. the data split.
+- The forward pass keeps `Z` and `A` of every layer for backpropagation; prediction keeps only the current activations.
+
+`compute train` builds the network after preparing the data and prints its parameter count per layer, e.g. `parameters: 371 (2x16+16, 16x16+16, 16x3+3)`.
+
 ## Commands
 
 ```bash
