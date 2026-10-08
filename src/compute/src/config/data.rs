@@ -1,9 +1,9 @@
 //! Dataset files and preprocessing.
 
-use std::fmt;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 /// Dataset files and preprocessing.
 ///
@@ -29,8 +29,9 @@ pub struct DataConfig {
 }
 
 /// Feature or target normalization. Statistics come from the training set only.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum Normalization {
     /// Leave values unchanged.
     None,
@@ -38,16 +39,6 @@ pub enum Normalization {
     Standard,
     /// Rescale linearly to the `[0, 1]` range.
     MinMax,
-}
-
-impl fmt::Display for Normalization {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Normalization::None => "none",
-            Normalization::Standard => "standard",
-            Normalization::MinMax => "min_max",
-        })
-    }
 }
 
 #[cfg(test)]
@@ -75,5 +66,16 @@ validation_fraction = 0.2
         let text = format!("{DATA}train_subset = 100\n");
         let data: DataConfig = toml::from_str(&text).unwrap();
         assert_eq!(data.train_subset, Some(100));
+    }
+
+    #[test]
+    fn displays_normalization_like_config() {
+        let names = [
+            Normalization::None,
+            Normalization::Standard,
+            Normalization::MinMax,
+        ]
+        .map(|normalization| normalization.to_string());
+        assert_eq!(names, ["none", "standard", "min_max"]);
     }
 }

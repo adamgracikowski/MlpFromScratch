@@ -1,8 +1,7 @@
 //! Top-level experiment configuration.
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 use super::{DataConfig, LoggingConfig, ModelConfig, Optimizer, OutputConfig, TrainingConfig};
 
@@ -27,20 +26,12 @@ pub struct ExperimentConfig {
 }
 
 /// Kind of problem the network solves. MNIST is a classification task.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum Task {
     Classification,
     Regression,
-}
-
-impl fmt::Display for Task {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Task::Classification => "classification",
-            Task::Regression => "regression",
-        })
-    }
 }
 
 #[cfg(test)]
@@ -130,5 +121,11 @@ grid_margin = 0.1
         let config = parse(CLASSIFICATION).unwrap();
         let text = toml::to_string(&config).unwrap();
         assert_eq!(parse(&text).unwrap(), config);
+    }
+
+    #[test]
+    fn displays_task_like_config() {
+        assert_eq!(Task::Classification.to_string(), "classification");
+        assert_eq!(Task::Regression.to_string(), "regression");
     }
 }
