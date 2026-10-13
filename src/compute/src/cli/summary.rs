@@ -1,10 +1,13 @@
 //! Human-readable summary of a loaded experiment config.
 
 use std::fmt;
+use std::time::Duration;
 
+use super::progress::SplitLine;
 use crate::config::{LoadedConfig, Task};
 use crate::data::{Dataset, PreparedData};
 use crate::network::Mlp;
+use crate::training::{StopReason, TrainingOutcome};
 
 /// Prints the warnings of a loaded config to stderr and its summary to stdout.
 pub(super) fn report(loaded: &LoadedConfig) {
@@ -68,7 +71,15 @@ impl fmt::Display for Summary<'_> {
             f,
             "training:   {} epoch(s), batch size {}, seed {}",
             training.epochs, training.batch_size, training.seed
-        )
+        )?;
+        if let Some(early_stopping) = &training.early_stopping {
+            write!(
+                f,
+                "\nearly stop: patience {}, min_delta {}",
+                early_stopping.patience, early_stopping.min_delta
+            )?;
+        }
+        Ok(())
     }
 }
 
@@ -159,6 +170,33 @@ impl fmt::Display for NetworkSummary<'_> {
     }
 }
 
+/// How training ended, how long it took and the metrics of the returned
+/// network, e.g. `stop:       completed after 200 epoch(s), ...`.
+pub(super) struct TrainingSummary<'a>(pub &'a TrainingOutcome, pub Duration);
+
+impl fmt::Display for TrainingSummary<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let TrainingSummary(outcome, elapsed) = *self;
+        let steps = format!(
+            "{} epoch(s), {} iteration(s)",
+            outcome.epochs, outcome.iterations
+        );
+        match outcome.stop {
+            StopReason::Completed => write!(f, "stop:       completed after {steps}")?,
+            StopReason::EarlyStopped => write!(f, "stop:       early stopped after {steps}")?,
+            StopReason::Diverged { epoch, iteration } => write!(
+                f,
+                "stop:       diverged in epoch {epoch} after {iteration} iteration(s)"
+            )?,
+        }
+        writeln!(f, " in {:.2} s", elapsed.as_secs_f64())?;
+        if let Some(best) = outcome.best_epoch {
+            writeln!(f, "best epoch: {best} (weights restored)")?;
+        }
+        write!(f, "result:     {}", SplitLine(&outcome.metrics))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -167,9 +205,10 @@ mod tests {
     use ndarray::{Array1, Array2};
 
     use super::*;
-    use crate::config::{CLASSIFICATION, ExperimentConfig, Normalization};
+    use crate::config::{CLASSIFICATION, EarlyStopping, ExperimentConfig, Normalization};
     use crate::data::{ClassEncoding, Scaler, Table};
     use crate::network::{Activation, Layer};
+    use crate::training::{Metrics, SplitMetrics};
 
     fn loaded(config: ExperimentConfig) -> LoadedConfig {
         LoadedConfig {
@@ -215,6 +254,61 @@ mod tests {
             );
         }
         assert!(!summary.contains("subset:"));
+        assert!(!summary.contains("early stop:"));
+    }
+
+    #[test]
+    fn summary_lists_early_stopping() {
+        let mut config: ExperimentConfig = toml::from_str(CLASSIFICATION).unwrap();
+        config.training.early_stopping = Some(EarlyStopping {
+            patience: 10,
+            min_delta: 1e-4,
+        });
+        let summary = Summary(&loaded(config)).to_string();
+        assert!(summary.ends_with("\nearly stop: patience 10, min_delta 0.0001"));
+    }
+
+    fn outcome(stop: StopReason, best_epoch: Option<usize>) -> TrainingOutcome {
+        let metrics = Metrics {
+            loss: 0.5,
+            accuracy: Some(0.9),
+            mse: None,
+            mae: None,
+        };
+        TrainingOutcome {
+            stop,
+            epochs: 57,
+            iterations: 912,
+            best_epoch,
+            metrics: SplitMetrics {
+                train: metrics,
+                validation: None,
+                test: metrics,
+            },
+        }
+    }
+
+    #[test]
+    fn training_summary_shows_stop_and_result() {
+        let outcome = outcome(StopReason::EarlyStopped, Some(47));
+        assert_eq!(
+            TrainingSummary(&outcome, Duration::from_millis(1234)).to_string(),
+            "stop:       early stopped after 57 epoch(s), 912 iteration(s) in 1.23 s\n\
+             best epoch: 47 (weights restored)\n\
+             result:     train loss 0.5000 acc 90.00% | test loss 0.5000 acc 90.00%"
+        );
+    }
+
+    #[test]
+    fn training_summary_shows_divergence() {
+        let stop = StopReason::Diverged {
+            epoch: 3,
+            iteration: 41,
+        };
+        let summary = TrainingSummary(&outcome(stop, None), Duration::ZERO).to_string();
+        assert!(summary.starts_with(
+            "stop:       diverged in epoch 3 after 41 iteration(s) in 0.00 s\nresult:"
+        ));
     }
 
     fn dataset(labels: Vec<usize>) -> Dataset {
