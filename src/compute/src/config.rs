@@ -34,7 +34,7 @@ pub use logging::LoggingConfig;
 pub use model::{HiddenActivation, Init, ModelConfig, OutputActivation};
 pub use optimizer::Optimizer;
 pub use output::OutputConfig;
-pub use training::{Loss, TrainingConfig};
+pub use training::{EarlyStopping, Loss, TrainingConfig};
 pub use validate::{MAX_HIDDEN_LAYERS, validate};
 
 /// A valid classification config used as the base of tests in other modules.

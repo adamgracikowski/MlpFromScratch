@@ -7,9 +7,11 @@ use super::SplitMetrics;
 pub enum StopReason {
     /// All configured epochs were run.
     Completed,
+    /// The validation loss did not improve for `patience` epochs.
+    EarlyStopped,
     /// The training loss (of a batch or of the whole training set) became
     /// NaN or infinite in `epoch` (0: before training), after `iteration`
-    /// optimizer steps. The network is left as it was then.
+    /// optimizer steps.
     Diverged { epoch: usize, iteration: usize },
 }
 
@@ -21,6 +23,9 @@ pub struct TrainingOutcome {
     pub epochs: usize,
     /// Number of optimizer steps taken.
     pub iterations: usize,
-    /// Metrics of the network returned by training.
+    /// With early stopping, the epoch whose network is returned (whatever
+    /// the stop reason); without it the network of the last step is returned.
+    pub best_epoch: Option<usize>,
+    /// Metrics of the returned network.
     pub metrics: SplitMetrics,
 }

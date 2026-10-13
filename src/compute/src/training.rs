@@ -2,6 +2,7 @@
 //! metrics after every epoch and progress reported to an observer.
 
 mod batches;
+mod early_stopping;
 mod metrics;
 mod observer;
 mod optimizer;
@@ -10,6 +11,7 @@ mod outcome;
 use ndarray::Axis;
 
 pub use batches::BatchOrder;
+pub use early_stopping::{Checkpoint, EarlyStopper};
 pub use metrics::{Metrics, SplitMetrics};
 pub use observer::{EpochRecord, IterationRecord, TrainingObserver};
 pub use optimizer::OptimizerState;
@@ -26,7 +28,11 @@ use crate::rng::{RngStream, rng};
 /// from `training.seed`) in mini-batches of `training.batch_size`; each
 /// batch gives one `optimizer` step. All splits are evaluated before
 /// training and after every epoch. Training stops early when the training
-/// loss becomes NaN or infinite.
+/// loss becomes NaN or infinite, or, with `training.early_stopping`, when
+/// the validation loss stops improving; the network of the best epoch is
+/// then restored.
+///
+/// Panics when early stopping is set but `data` has no validation set.
 pub fn train(
     network: &mut Mlp,
     data: &PreparedData,
@@ -51,6 +57,9 @@ pub fn train(
         },
         network,
     );
+    let mut stopper = training
+        .early_stopping
+        .map(|settings| EarlyStopper::new(settings, metrics, network));
 
     let stop = 'training: {
         if !metrics.train.loss.is_finite() {
@@ -105,14 +114,28 @@ pub fn train(
             if !metrics.train.loss.is_finite() {
                 break 'training StopReason::Diverged { epoch, iteration };
             }
+            if let Some(stopper) = &mut stopper {
+                if stopper.should_stop(epoch, metrics, network) {
+                    break 'training StopReason::EarlyStopped;
+                }
+            }
         }
         StopReason::Completed
     };
 
+    // With early stopping the best network replaces the last one, also
+    // after divergence.
+    let best_epoch = stopper.map(|stopper| {
+        let best = stopper.into_best();
+        *network = best.network;
+        metrics = best.metrics;
+        best.epoch
+    });
     TrainingOutcome {
         stop,
         epochs,
         iterations: iteration,
+        best_epoch,
         metrics,
     }
 }
@@ -123,7 +146,7 @@ mod tests {
     use rand::RngExt;
 
     use super::*;
-    use crate::config::{CLASSIFICATION, ExperimentConfig, Loss, Normalization};
+    use crate::config::{CLASSIFICATION, EarlyStopping, ExperimentConfig, Loss, Normalization};
     use crate::data::{Dataset, Scaler};
     use crate::network::{Activation, Layer};
 
@@ -229,6 +252,82 @@ mod tests {
             .collect();
         assert_eq!(epochs, [(0, 0), (1, 13), (2, 26), (3, 39)]);
         assert_eq!(outcome.metrics, recorder.epochs[3].metrics);
+        assert_eq!(outcome.best_epoch, None);
+    }
+
+    fn with_early_stopping(patience: usize, epochs: usize) -> ExperimentConfig {
+        let mut config = config();
+        config.training.epochs = epochs;
+        config.training.batch_size = 8;
+        config.optimizer = Optimizer::Adam {
+            learning_rate: 0.05,
+            beta1: 0.9,
+            beta2: 0.999,
+            epsilon: 1e-8,
+        };
+        config.training.early_stopping = Some(EarlyStopping {
+            patience,
+            min_delta: 0.0,
+        });
+        config
+    }
+
+    /// Checks that the returned network is the one of the epoch with the
+    /// lowest validation loss.
+    fn assert_best_epoch_restored(
+        network: &Mlp,
+        outcome: &TrainingOutcome,
+        recorder: &Recorder,
+        data: &PreparedData,
+    ) {
+        let best = outcome.best_epoch.expect("early stopping is on");
+        let validation: Vec<f64> = recorder
+            .epochs
+            .iter()
+            .map(|record| record.metrics.validation.unwrap().loss)
+            .collect();
+        let lowest = validation.iter().copied().fold(f64::INFINITY, f64::min);
+        assert_eq!(validation[best], lowest, "{validation:?}");
+        assert_eq!(outcome.metrics, recorder.epochs[best].metrics);
+        let loss = Loss::CrossEntropy;
+        assert_eq!(SplitMetrics::evaluate(network, data, loss), outcome.metrics);
+    }
+
+    #[test]
+    fn early_stopping_stops_after_patience() {
+        let config = with_early_stopping(3, 200);
+        let data = classification_data(true);
+        let mut recorder = Recorder::default();
+        let (network, outcome) = run(&config, &data, &mut recorder);
+
+        assert_eq!(outcome.stop, StopReason::EarlyStopped);
+        let best = outcome.best_epoch.unwrap();
+        assert_eq!(outcome.epochs, best + 3);
+        assert_eq!(recorder.epochs.len(), outcome.epochs + 1);
+        assert_best_epoch_restored(&network, &outcome, &recorder, &data);
+    }
+
+    #[test]
+    fn early_stopping_restores_best_epoch_after_last_epoch() {
+        let config = with_early_stopping(1000, 20);
+        let data = classification_data(true);
+        let mut recorder = Recorder::default();
+        let (network, outcome) = run(&config, &data, &mut recorder);
+
+        assert_eq!(outcome.stop, StopReason::Completed);
+        assert_eq!(outcome.epochs, 20);
+        assert_best_epoch_restored(&network, &outcome, &recorder, &data);
+    }
+
+    #[test]
+    #[should_panic(expected = "early stopping needs a validation set")]
+    fn early_stopping_needs_validation_set() {
+        let config = with_early_stopping(3, 10);
+        run(
+            &config,
+            &classification_data(false),
+            &mut Recorder::default(),
+        );
     }
 
     #[test]

@@ -27,7 +27,7 @@ pub fn validate(config: &ExperimentConfig) -> Vec<Issue> {
     model::validate_model(&config.model, &mut issues);
     task::validate_task(config, &mut issues);
     optimizer::validate_optimizer(&config.optimizer, &mut issues);
-    training::validate_training(&config.training, config.data.train_subset, &mut issues);
+    training::validate_training(&config.training, &config.data, &mut issues);
     logging::validate_logging(&config.logging, &mut issues);
     output::validate_output(&config.output, &mut issues);
     issues
