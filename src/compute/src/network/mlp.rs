@@ -4,7 +4,7 @@ use ndarray::{Array2, ArrayView2};
 use rand::Rng;
 
 use super::{Activation, ForwardCache, Layer, LayerCache};
-use crate::config::ModelConfig;
+use crate::config::{Loss, ModelConfig};
 
 /// Multilayer perceptron: hidden layers followed by one output layer.
 ///
@@ -112,6 +112,16 @@ impl Mlp {
         }
         activations
     }
+
+    /// Mean `loss` of the network on `input` (`n x d`) for `targets` (`n x K`).
+    pub fn loss(&self, input: ArrayView2<'_, f64>, targets: &Array2<f64>, loss: Loss) -> f64 {
+        let cache = self.forward(input);
+        let output = cache
+            .layers
+            .last()
+            .expect("a network has at least one layer");
+        loss.value(&output.z, &output.a, targets)
+    }
 }
 
 #[cfg(test)]
@@ -218,6 +228,14 @@ mod tests {
         for sum in predictions.sum_axis(ndarray::Axis(1)) {
             assert!((sum - 1.0).abs() < 1e-12);
         }
+    }
+
+    #[test]
+    fn loss_uses_network_outputs() {
+        let input = array![[1.0, 1.0], [0.0, -1.0]];
+        // Outputs [1.5, 0.5] against [1, 1.5]: errors 0.5 and -1.
+        let loss = hand_made().loss(input.view(), &array![[1.0], [1.5]], Loss::Mse);
+        assert_eq!(loss, (0.25 + 1.0) / 2.0);
     }
 
     #[test]

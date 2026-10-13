@@ -1,5 +1,6 @@
 //! Checks that the example experiment configs in `data/experiments/` stay valid
-//! and that their datasets can be prepared and fed through the network.
+//! and that their datasets can be prepared and fed through the network, both
+//! forward and backward.
 
 use std::path::{Path, PathBuf};
 
@@ -63,5 +64,16 @@ fn example_configs_are_valid() {
             predictions.iter().all(|value| value.is_finite()),
             "{example}"
         );
+
+        let loss = loaded.config.training.loss;
+        let cache = network.forward(test.inputs.view());
+        let output = cache.layers.last().unwrap();
+        let value = loss.value(&output.z, &output.a, &test.targets);
+        assert!(value.is_finite(), "{example}: loss {value}");
+        let gradients = network.backward(&cache, &test.targets, loss);
+        for (layer, gradient) in network.layers().iter().zip(&gradients.layers) {
+            assert_eq!(gradient.weights.dim(), layer.weights().dim(), "{example}");
+            assert!(gradient.weights.iter().all(|value| value.is_finite()));
+        }
     }
 }

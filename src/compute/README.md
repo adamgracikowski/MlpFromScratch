@@ -65,8 +65,10 @@ The network (`network::Mlp`) is a stack of fully connected layers stored as matr
 - Hidden layers use `hidden_activation`, the last layer `output_activation`. Softmax subtracts the row maximum before `exp`, and sigmoid is evaluated in a form that does not overflow.
 - Every layer is initialized with the same `init` scheme: `xavier` draws from `U[-sqrt(6 / (in + out)), sqrt(6 / (in + out))]`, `he` from `N(0, 2 / in)`, `uniform` from `U[-limit, limit]`. Biases start at 0. Weights come from a random stream of `training.seed` reserved for initialization, so they do not change with e.g. the data split.
 - The forward pass keeps `Z` and `A` of every layer for backpropagation; prediction keeps only the current activations.
+- Losses are batch means: `mse` and `mae` average over all `n x K` entries, `cross_entropy` averages over samples and is computed from the log-softmax of `Z`, so it stays finite for extreme outputs.
+- Backpropagation starts from `dL/dZ` of the output layer: `(A - Y) / n` for `cross_entropy` with `softmax`, otherwise `dL/dA` passed through the output activation. Each layer then gives `dW = A_prev^T . dZ`, `db = sum of dZ over samples` and `dA_prev = dZ . W^T`. At kinks (ReLU at 0, MAE at `a = y`) the derivative is 0. Unit tests compare all gradients with central differences.
 
-`compute train` builds the network after preparing the data and prints its parameter count per layer, e.g. `parameters: 371 (2x16+16, 16x16+16, 16x3+3)`.
+`compute train` builds the network after preparing the data and prints its parameter count per layer, e.g. `parameters: 371 (2x16+16, 16x16+16, 16x3+3)`, and its initial loss on the training set, e.g. `initial loss: 1.0986 (cross_entropy, train)`.
 
 ## Commands
 

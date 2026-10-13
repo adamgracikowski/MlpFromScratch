@@ -10,7 +10,7 @@ use crate::network::Mlp;
 use crate::rng::{RngStream, rng};
 
 /// Loads and checks the experiment config, prepares the data, builds the
-/// network, then trains it.
+/// network, prints its initial training loss, then trains it.
 ///
 /// Training itself is not implemented yet, so the command stops with an
 /// error after the network is built.
@@ -28,6 +28,10 @@ pub(super) fn run(args: &ExperimentArgs) -> miette::Result<()> {
         &mut rng(config.training.seed, RngStream::Init),
     );
     println!("{}", NetworkSummary(&network));
+    let train = &prepared.train;
+    let loss = config.training.loss;
+    let initial = network.loss(train.inputs.view(), &train.targets, loss);
+    println!("initial loss: {initial:.4} ({loss}, train)");
     Err(miette!(
         help = "use `compute validate` to check a config",
         "training is not implemented yet"
