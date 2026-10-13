@@ -1,6 +1,6 @@
 //! A fully connected layer stored as a weight matrix and a bias vector.
 
-use ndarray::{Array1, Array2, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView2, ArrayViewMutD};
 use rand::Rng;
 
 use super::{Activation, initialize_weights};
@@ -83,6 +83,14 @@ impl Layer {
     /// Number of trainable parameters: weights plus biases.
     pub fn parameter_count(&self) -> usize {
         self.weights.len() + self.bias.as_ref().map_or(0, Array1::len)
+    }
+
+    /// Mutable views of the weights and, if present, the bias, in this order,
+    /// e.g. for an optimizer step. Views cannot change the shapes.
+    pub fn parameters_mut(&mut self) -> impl Iterator<Item = ArrayViewMutD<'_, f64>> {
+        let weights = self.weights.view_mut().into_dyn();
+        let bias = self.bias.as_mut().map(|bias| bias.view_mut().into_dyn());
+        std::iter::once(weights).chain(bias)
     }
 
     /// Computes the pre-activations `Z = A_prev . W + b` (`n x out`) for a
@@ -169,6 +177,26 @@ mod tests {
         let layer = hand_made_layer(None);
         let z = layer.pre_activation(array![[1.0, -1.0]].view());
         assert_eq!(z, array![[2.0, -1.0, 2.0]]);
+    }
+
+    #[test]
+    fn parameters_mut_changes_weights_then_bias() {
+        let mut layer = hand_made_layer(Some(array![0.5, 0.0, -1.0]));
+        let shapes: Vec<Vec<usize>> = layer
+            .parameters_mut()
+            .map(|parameter| parameter.shape().to_vec())
+            .collect();
+        assert_eq!(shapes, [vec![2, 3], vec![3]]);
+        for mut parameter in layer.parameters_mut() {
+            parameter += 1.0;
+        }
+        assert_eq!(layer.weights(), &array![[2.0, 1.0, 3.0], [0.0, 2.0, 1.0]]);
+        assert_eq!(layer.bias(), Some(&array![1.5, 1.0, 0.0]));
+    }
+
+    #[test]
+    fn parameters_mut_without_bias_gives_only_weights() {
+        assert_eq!(hand_made_layer(None).parameters_mut().count(), 1);
     }
 
     #[test]
