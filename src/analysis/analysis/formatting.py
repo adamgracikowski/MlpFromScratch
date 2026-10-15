@@ -34,6 +34,49 @@ def format_percent(fraction: float, decimals: int = 1) -> str:
     return f"{format_number(100 * fraction, decimals)}%"
 
 
+# Characters of plain-text numbers (summary tables), by code point to keep the code ASCII.
+DASH = chr(0x2014)
+INFINITY = chr(0x221E)
+THIN_SPACE = chr(0x202F)  # narrow no-break space: the Polish thousands separator
+TIMES = chr(0x00B7)
+_SUPERSCRIPTS = str.maketrans(
+    "0123456789-",
+    "".join(map(chr, [0x2070, 0xB9, 0xB2, 0xB3, 0x2074, 0x2075, 0x2076, 0x2077, 0x2078, 0x2079]))
+    + chr(0x207B),
+)
+# Plain-text values in this range are written without a power of ten.
+PLAIN_RANGE = (1e-3, 1e6)
+
+
+def format_value(value: float | None, digits: int = 4) -> str:
+    """Format a metric for plain text: `0,1303`, `22 910,7`, `7,325 * 10^-5` with superscripts.
+
+    `digits` significant digits below 1000 (trailing zeros dropped), one decimal from 1000 up;
+    `None` and NaN become a dash, infinities the infinity sign.
+    """
+    if value is None or math.isnan(value):
+        return DASH
+    if math.isinf(value):
+        return (MINUS if value < 0 else "") + INFINITY
+    magnitude = abs(value)
+    low, high = PLAIN_RANGE
+    if magnitude == 0:
+        text = "0"
+    elif magnitude < low or magnitude >= high:
+        exponent = math.floor(math.log10(magnitude))
+        mantissa = decimal_comma(f"{value / 10**exponent:.{digits - 1}f}").rstrip("0").rstrip(",")
+        power = str(exponent).translate(_SUPERSCRIPTS)
+        text = f"{mantissa}{TIMES}10{power}"
+    elif magnitude >= 1000:
+        text = decimal_comma(f"{value:,.1f}".replace(",", THIN_SPACE))
+    else:
+        decimals = max(digits - 1 - math.floor(math.log10(magnitude)), 0)
+        text = decimal_comma(f"{value:.{decimals}f}")
+        if "," in text:
+            text = text.rstrip("0").rstrip(",")
+    return text.replace("-", MINUS)
+
+
 class DecimalCommaFormatter(Formatter):
     """Tick formatter delegating to another one and writing a decimal comma."""
 

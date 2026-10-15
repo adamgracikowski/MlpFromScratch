@@ -3,12 +3,17 @@ import pytest
 from matplotlib.ticker import ScalarFormatter
 
 from analysis.formatting import (
+    DASH,
+    INFINITY,
     MINUS,
+    THIN_SPACE,
+    TIMES,
     DecimalCommaFormatter,
     PlainLogFormatter,
     decimal_comma,
     format_number,
     format_percent,
+    format_value,
     plain_or_power,
     use_decimal_comma,
 )
@@ -110,3 +115,23 @@ def test_plain_log_axis_labels() -> None:
     assert r"$\mathdefault{1}$" in labels
     assert r"$\mathdefault{0{,}2}$" in labels
     assert not any("times" in label for label in labels)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (0.13031287, "0,1303"),
+        (0.1, "0,1"),
+        (94.93, "94,93"),
+        (22910.6528, f"22{THIN_SPACE}910,7"),
+        (7.325e-5, f"7,325{TIMES}10{chr(0x207B)}{chr(0x2075)}"),
+        (1e-8, f"1{TIMES}10{chr(0x207B)}{chr(0x2078)}"),
+        (0.0, "0"),
+        (-1.5, f"{MINUS}1,5"),
+        (float("inf"), INFINITY),
+        (float("nan"), DASH),
+        (None, DASH),
+    ],
+)
+def test_format_value(value, expected: str) -> None:
+    assert format_value(value) == expected

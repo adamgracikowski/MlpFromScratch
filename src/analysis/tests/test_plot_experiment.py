@@ -12,7 +12,8 @@ FAST = {"formats": ["png"], "dpi": 40}
 
 
 def expected(names: set[str], formats=("pdf", "png")) -> set[str]:
-    return {f"{name}.{file_format}" for name in names for file_format in formats}
+    """File names of the plots in every format, plus the summary."""
+    return {f"{name}.{file_format}" for name in names for file_format in formats} | {"summary.md"}
 
 
 def file_names(report) -> set[str]:
@@ -69,7 +70,7 @@ def test_diverged_regression(make_experiment) -> None:
 def test_formats(make_experiment) -> None:
     report = plot_experiment(load_experiment(make_experiment()), formats=["svg"])
 
-    assert {path.suffix for path in report.files} == {".svg"}
+    assert {path.suffix for path in report.files} == {".svg", ".md"}
 
 
 def test_removes_old_plots(make_experiment) -> None:

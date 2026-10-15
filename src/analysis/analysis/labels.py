@@ -1,13 +1,11 @@
 """Polish texts shown on the plots (the report is written in Polish).
 
 This is the only module with non-ASCII text: Polish words need their diacritics.
+It holds the texts of the plots and of `summary.md`.
 """
 
-SPLIT_NAMES = {
-    "train": "zbiór uczący",
-    "validation": "zbiór walidacyjny",
-    "test": "zbiór testowy",
-}
+SPLIT_ADJECTIVES = {"train": "uczący", "validation": "walidacyjny", "test": "testowy"}
+SPLIT_NAMES = {split: f"zbiór {adjective}" for split, adjective in SPLIT_ADJECTIVES.items()}
 
 
 def split_name(split: str) -> str:
@@ -78,3 +76,90 @@ def variable(name: str) -> str:
     if name.isidentifier() and len(name) <= 2:
         return f"${name}$"
     return name
+
+
+# summary.md
+
+SUMMARY_TITLE = "Eksperyment"
+SECTION_CONFIG = "Konfiguracja"
+SECTION_TRAINING = "Przebieg uczenia"
+SECTION_METRICS = "Metryki końcowe"
+SECTION_VERSION = "Wersja kodu"
+PARAMETER = "Parametr"
+VALUE = "Wartość"
+SPLIT = "Zbiór"
+LOSS = "Strata"
+ACCURACY_COLUMN = "Dokładność"
+MSE_COLUMN = "MSE"
+MAE_COLUMN = "MAE"
+
+TASK = "Zadanie"
+TRAIN_FILE = "Plik uczący"
+TEST_FILE = "Plik testowy"
+TRAIN_SUBSET = "Podzbiór uczący"
+VALIDATION_FRACTION = "Część walidacyjna"
+SAMPLES = "Liczności zbiorów"
+NORMALIZATION = "Normalizacja wejść / celu"
+ARCHITECTURE = "Architektura"
+ACTIVATIONS = "Aktywacje"
+INIT = "Inicjalizacja wag"
+LOSS_FUNCTION = "Funkcja straty"
+OPTIMIZER = "Optymalizator"
+EPOCHS_AND_BATCH = "Epoki, rozmiar batcha"
+EARLY_STOPPING = "Early stopping"
+SEED = "Ziarno"
+STOP = "Zakończenie"
+EPOCHS_AND_ITERATIONS = "Epoki, iteracje"
+BEST_EPOCH = "Najlepsza epoka"
+TRAINING_TIME = "Czas uczenia"
+NO = "nie"
+
+LAYER_SEPARATOR = "-"  # architecture as layer sizes: 2-16-16-3
+TASK_NAMES = {"classification": "klasyfikacja", "regression": "regresja"}
+NORMALIZATION_NAMES = {"none": "brak", "standard": "standaryzacja", "min_max": "min-max"}
+OPTIMIZER_NAMES = {"sgd": "SGD", "momentum": "SGD z momentum", "adam": "Adam"}
+METRICS_NOTE = "Metryki sieci zwróconej przez uczenie (przy early stoppingu: z najlepszej epoki)."
+REGRESSION_METRICS_NOTE = "MSE i MAE w oryginalnej skali celu."
+
+
+def plural(count: int, one: str, few: str, many: str) -> str:
+    """Polish noun form after a number: 1 parametr, 2-4 parametry (not 12-14), 5+ parametrów."""
+    if count == 1:
+        return one
+    if count % 10 in (2, 3, 4) and count % 100 not in (12, 13, 14):
+        return few
+    return many
+
+
+def parameter_count(count: int, bias: bool) -> str:
+    """Parameter count of the network, e.g. `371 parametrów, z biasem`."""
+    noun = plural(count, "parametr", "parametry", "parametrów")
+    return f"{count} {noun}, {'z biasem' if bias else 'bez biasu'}"
+
+
+def train_subset(size: int) -> str:
+    return f"{size} {plural(size, 'próbka', 'próbki', 'próbek')}"
+
+
+def validation_fraction(percent: str) -> str:
+    return f"{percent} zbioru uczącego"
+
+
+def stop_reason(stop: dict) -> str:
+    """How training ended, from `result.stop` of the metadata."""
+    reason = stop["reason"]
+    if reason == "completed":
+        return "wszystkie epoki"
+    if reason == "early_stopped":
+        return "early stopping"
+    return f"dywergencja (epoka {stop['epoch']}, iteracja {stop['iteration']})"
+
+
+def seconds(text: str) -> str:
+    return f"{text} s"
+
+
+def code_version(package: str, commit: str, dirty: bool) -> str:
+    """Version of the compute layer that trained the network."""
+    changes = " (z niezatwierdzonymi zmianami)" if dirty else ""
+    return f"`compute` {package}, commit `{commit}`{changes}"

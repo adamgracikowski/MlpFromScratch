@@ -21,6 +21,7 @@ from analysis.plots.weights import (
     plot_weight_trajectories,
 )
 from analysis.style import STYLE, save_figure
+from analysis.summary import write_summary
 
 PLOTS_DIR = "plots"
 DEFAULT_FORMATS = ("pdf", "png")
@@ -91,7 +92,7 @@ PLOTS = [
 def plot_experiment(
     experiment: Experiment, formats: list[str] = DEFAULT_FORMATS, dpi: int = DEFAULT_DPI
 ) -> PlotReport:
-    """Remove `<experiment>/plots/` and write every plot that fits the experiment into it."""
+    """Remove `<experiment>/plots/`, write every plot that fits the experiment and the summary."""
     directory = experiment.directory / PLOTS_DIR
     if directory.exists():
         shutil.rmtree(directory)
@@ -108,4 +109,5 @@ def plot_experiment(
                 skipped.append((plot.name, reason))
                 continue
             files += save_figure(plot.draw(experiment), directory, plot.name, formats, dpi)
+    files.append(write_summary(experiment, directory))
     return PlotReport(directory=directory, files=files, skipped=skipped)
