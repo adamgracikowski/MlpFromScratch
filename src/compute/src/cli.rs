@@ -1,10 +1,12 @@
 //! Command-line interface of the compute layer.
 //!
-//! Every command takes an experiment directory that contains `config.toml`.
-//! Relative paths, both of the directory and of the datasets named in the
-//! config, are resolved against the current working directory, so commands
+//! `validate` and `train` take experiment directories that contain
+//! `config.toml`; `generate` takes a study directory with `study.toml`.
+//! Relative paths, both of the directories and of the datasets named in the
+//! configs, are resolved against the current working directory, so commands
 //! are meant to be run from the repository root.
 
+mod generate;
 mod progress;
 mod summary;
 mod train;
@@ -29,6 +31,8 @@ pub enum Command {
     Validate(ExperimentArgs),
     /// Train the network described by an experiment config.
     Train(TrainArgs),
+    /// Write the experiment directories of a study described by `study.toml`.
+    Generate(StudyArgs),
 }
 
 /// Arguments shared by the commands that operate on one experiment.
@@ -37,6 +41,14 @@ pub struct ExperimentArgs {
     /// Experiment directory containing `config.toml`, e.g.
     /// `data/experiments/classification/<name>`.
     pub experiment_dir: PathBuf,
+}
+
+/// Arguments of the commands that operate on a study.
+#[derive(Debug, Args)]
+pub struct StudyArgs {
+    /// Study directory containing `study.toml`, e.g.
+    /// `data/experiments/classification/<study>`.
+    pub study_dir: PathBuf,
 }
 
 /// Arguments of the `train` command.
@@ -59,6 +71,7 @@ pub fn run(cli: Cli) -> miette::Result<()> {
     match cli.command {
         Command::Validate(args) => validate::run(&args),
         Command::Train(args) => train::run(&args),
+        Command::Generate(args) => generate::run(&args),
     }
 }
 
@@ -105,6 +118,15 @@ mod tests {
         ]);
         assert_eq!(args.progress_every, Some(0));
         assert!(args.no_artifacts);
+    }
+
+    #[test]
+    fn parses_study_dir() {
+        let cli = Cli::try_parse_from(["compute", "generate", "data/experiments/x"]).unwrap();
+        let Command::Generate(args) = cli.command else {
+            panic!("expected the generate command");
+        };
+        assert_eq!(args.study_dir, PathBuf::from("data/experiments/x"));
     }
 
     #[test]

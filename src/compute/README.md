@@ -6,9 +6,10 @@ The Rust version is pinned in `rust-toolchain.toml`.
 
 ## Usage
 
-Every command takes an experiment directory that contains `config.toml`:
+`validate` and `train` take an experiment directory that contains `config.toml`; `generate` takes a study directory that contains `study.toml` (see [Studies](#studies)):
 
 ```bash
+compute generate <study-dir>        # write one experiment directory per variant and seed of a study
 compute validate <experiment-dir>   # check the config and dataset files, print a summary
 compute train <experiment-dir>      # prepare the data, train the network, print progress and results
 compute train <experiment-dir> --progress-every 10   # print metrics every 10 epochs (0: only the summary)
@@ -47,6 +48,56 @@ Invalid configs are rejected with diagnostics that point at the offending line o
 | `logging.loss_every`, `logging.weights_every` | intervals in iterations (batches), see [Artifacts](#artifacts) |
 | `logging.max_weights_per_layer` | upper bound on recorded parameters per layer |
 | `output.grid_resolution`, `output.grid_margin` | prediction grid for 1D and 2D inputs |
+
+## Studies
+
+A study is a grid of experiments described by `<study-dir>/study.toml`, e.g. `data/experiments/classification/<study>/study.toml`. It holds a complete base config, the seeds and the axes to vary:
+
+```toml
+description = "Hidden activation on two datasets"   # optional, copied into the study summary
+seeds = [1, 2, 3]                                    # every variant runs once per seed
+
+[[axes]]                                             # shorthand: one key, one level per value
+name = "activation"
+key = "model.hidden_activation"
+values = [{ kind = "sigmoid" }, { kind = "tanh" }, { kind = "relu" }]
+
+[[axes]]                                             # full form: named levels setting several keys
+name = "dataset"
+levels = [
+  { name = "simple-100", set = { "data.train" = "data/datasets/classification/data.simple.train.100.csv", "data.test" = "data/datasets/classification/data.simple.test.100.csv" } },
+  { name = "three-gauss-500", set = { "data.train" = "data/datasets/classification/data.three_gauss.train.500.csv", "data.test" = "data/datasets/classification/data.three_gauss.test.500.csv" } },
+]
+
+[report]                                             # optional: placement of the axes on the comparison plots
+x = "activation"                                     # categories on the x axis
+panels = ["dataset"]                                 # one panel per level; `color = "..."` colors an axis within a panel
+
+[base]                                               # a complete config.toml under `base.`, without training.seed
+task = "classification"
+
+[base.data]
+# ...
+```
+
+`compute generate <study-dir>` combines the levels of all axes (cartesian product; the first axis varies slowest) and writes one experiment directory per variant and seed:
+
+```txt
+<study-dir>/
+├── study.toml
+└── runs/
+    ├── index.csv                       # dir,variant,seed,<axis>,...: one row per run
+    ├── sigmoid__simple-100/            # level names joined by `__` (`base` without axes)
+    │   ├── seed-1/config.toml          # an ordinary experiment directory
+    │   └── ...
+    └── ...
+```
+
+- A level replaces the whole value under its dotted key, e.g. `{ kind = "leaky_relu", alpha = 0.01 }` for `model.hidden_activation`. In the full form, quote the dotted keys: `"data.train" = ...`. The parent table must exist in `[base]`.
+- Shorthand level names come from the values: strings as they are, numbers and booleans as written, arrays joined by `-` (`[]` is `0`, `[64, 16]` is `64-16`), tables as their `kind` followed by the other values (`leaky_relu-0.01`). Names may use letters, digits, `.`, `_` and `-`; values such as paths need the full form with explicit names.
+- Every problem of `study.toml` is reported at its line: empty or duplicate seeds, duplicate axis or level names, an axis with both or neither form, a key without a parent table, `training.seed` in `[base]` or in an axis, two axes setting the same value, and report roles that name no axis or one axis twice.
+- Every generated config is then checked like `compute validate` would, including the dataset headers. Nothing is written if any is invalid; variants failing for the same reason are reported once. Warnings are printed once per variant.
+- Generating again rewrites only the configs whose text changed, so unchanged runs keep their artifacts, and removes the run directories that the study no longer generates, artifacts included.
 
 ## Data preparation
 

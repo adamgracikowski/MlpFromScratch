@@ -91,8 +91,8 @@ pub fn load_from_str(path: PathBuf, text: String) -> Result<LoadedConfig, Config
     })
 }
 
-/// Locates `issues` in the config text `src` and sorts them by position.
-fn diagnostics(issues: Vec<Issue>, src: &NamedSource<String>) -> Vec<IssueDiagnostic> {
+/// Locates `issues` in the TOML text `src` and sorts them by position.
+pub(crate) fn diagnostics(issues: Vec<Issue>, src: &NamedSource<String>) -> Vec<IssueDiagnostic> {
     let document = DeTable::parse(src.inner()).ok();
     let mut diagnostics: Vec<IssueDiagnostic> = issues
         .into_iter()

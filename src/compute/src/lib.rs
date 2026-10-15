@@ -10,4 +10,5 @@ pub mod config;
 pub mod data;
 pub mod network;
 pub mod rng;
+pub mod study;
 pub mod training;

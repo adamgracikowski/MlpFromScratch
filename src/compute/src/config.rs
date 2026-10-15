@@ -29,6 +29,7 @@ pub use error::ConfigError;
 pub use experiment::{ExperimentConfig, Task};
 pub use files::{FileCheck, check_files};
 pub use issue::{Issue, Key};
+pub(crate) use load::diagnostics;
 pub use load::{LoadedConfig, load_experiment, load_from_str};
 pub use logging::LoggingConfig;
 pub use model::{HiddenActivation, Init, ModelConfig, OutputActivation};
