@@ -6,7 +6,7 @@ The Rust version is pinned in `rust-toolchain.toml`.
 
 ## Usage
 
-`validate` and `train` take an experiment directory that contains `config.toml`; `generate` takes a study directory that contains `study.toml` (see [Studies](#studies)):
+`validate` takes an experiment directory that contains `config.toml`; `train` takes one or more of them, or directories to search for them; `generate` takes a study directory that contains `study.toml` (see [Studies](#studies)):
 
 ```bash
 compute generate <study-dir>        # write one experiment directory per variant and seed of a study
@@ -14,7 +14,13 @@ compute validate <experiment-dir>   # check the config and dataset files, print 
 compute train <experiment-dir>      # prepare the data, train the network, print progress and results
 compute train <experiment-dir> --progress-every 10   # print metrics every 10 epochs (0: only the summary)
 compute train <experiment-dir> --no-artifacts        # train without writing artifacts
+compute train <study-dir> --jobs 8                   # train every run of a study, 8 at a time
+compute train <study-dir> --skip-trained             # train only runs without artifacts of their current config
 ```
+
+`train` treats a directory with `config.toml` as one experiment and any other directory as every experiment below it (sorted; `artifacts/`, `plots/` and `results/` are not searched). A single experiment prints its config, progress and results. Several are trained in parallel (`--jobs`, default: the number of CPUs) with one line per finished run, e.g. `[3/18] runs/tanh__simple-100/seed-1: completed after 200 epoch(s), test loss 0.0166 acc 99.00% (0.08 s)`, and a summary. A failed run does not stop the others; its error is printed at the end and the command exits with code 1. Every run has its own seeded random streams, so the results do not depend on `--jobs`.
+
+`--skip-trained` skips a run when `artifacts/metadata.json` exists and holds the same config; a diverged run counts as trained. Without it, every run is trained again.
 
 Relative paths, both of the experiment directory and of the datasets in the config, are resolved against the current working directory. Run the binary from the repository root:
 

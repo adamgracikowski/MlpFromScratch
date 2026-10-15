@@ -69,7 +69,7 @@ impl fmt::Display for SplitLine<'_> {
 
 /// Metrics of one split: loss, then accuracy or the regression errors in
 /// the original target scale.
-struct MetricsLine<'a>(&'a Metrics);
+pub(super) struct MetricsLine<'a>(pub &'a Metrics);
 
 impl fmt::Display for MetricsLine<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

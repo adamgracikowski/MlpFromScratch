@@ -6,12 +6,15 @@
 //! configs, are resolved against the current working directory, so commands
 //! are meant to be run from the repository root.
 
+mod batch;
+mod discover;
 mod generate;
 mod progress;
 mod summary;
 mod train;
 mod validate;
 
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
@@ -29,7 +32,8 @@ pub struct Cli {
 pub enum Command {
     /// Check an experiment config and its dataset files without training.
     Validate(ExperimentArgs),
-    /// Train the network described by an experiment config.
+    /// Train the networks described by experiment configs, e.g. all runs of
+    /// a study.
     Train(TrainArgs),
     /// Write the experiment directories of a study described by `study.toml`.
     Generate(StudyArgs),
@@ -54,16 +58,28 @@ pub struct StudyArgs {
 /// Arguments of the `train` command.
 #[derive(Debug, Args)]
 pub struct TrainArgs {
-    #[command(flatten)]
-    pub experiment: ExperimentArgs,
+    /// Experiment directories containing `config.toml`, or directories
+    /// searched for them, e.g. a study directory; several runs are trained
+    /// in parallel.
+    #[arg(required = true, value_name = "DIR")]
+    pub experiment_dirs: Vec<PathBuf>,
     /// Print the metrics every N epochs, before training and after the last
     /// epoch; 0 prints only the final summary. Defaults to about 20 lines.
+    /// Only for a single run: several runs print one line each.
     #[arg(long, value_name = "N")]
     pub progress_every: Option<usize>,
     /// Train without recording and writing artifacts, e.g. to measure the
     /// logging overhead. Existing artifacts are left untouched.
     #[arg(long)]
     pub no_artifacts: bool,
+    /// Number of runs trained at the same time. Defaults to the number of
+    /// CPUs.
+    #[arg(long, short, value_name = "N")]
+    pub jobs: Option<NonZeroUsize>,
+    /// Skip runs whose artifacts were written from the same config, e.g.
+    /// after adding seeds or levels to a study.
+    #[arg(long)]
+    pub skip_trained: bool,
 }
 
 /// Runs the parsed command.
@@ -105,9 +121,11 @@ mod tests {
             args
         };
         let args = parse(&["compute", "train", "experiment"]);
-        assert_eq!(args.experiment.experiment_dir, PathBuf::from("experiment"));
+        assert_eq!(args.experiment_dirs, [PathBuf::from("experiment")]);
         assert_eq!(args.progress_every, None);
+        assert_eq!(args.jobs, None);
         assert!(!args.no_artifacts);
+        assert!(!args.skip_trained);
         let args = parse(&[
             "compute",
             "train",
@@ -118,6 +136,11 @@ mod tests {
         ]);
         assert_eq!(args.progress_every, Some(0));
         assert!(args.no_artifacts);
+        let args = parse(&["compute", "train", "a", "b", "-j", "4", "--skip-trained"]);
+        assert_eq!(args.experiment_dirs.len(), 2);
+        assert_eq!(args.jobs, NonZeroUsize::new(4));
+        assert!(args.skip_trained);
+        assert!(Cli::try_parse_from(["compute", "train", "a", "--jobs", "0"]).is_err());
     }
 
     #[test]
