@@ -23,11 +23,11 @@ def summary_markdown(experiment: Experiment) -> str:
     sections = [
         f"# {labels.SUMMARY_TITLE} `{experiment.directory.name}`",
         f"## {labels.SECTION_CONFIG}",
-        _table([labels.PARAMETER, labels.VALUE], _config_rows(metadata)),
+        markdown_table([labels.PARAMETER, labels.VALUE], _config_rows(metadata)),
         f"## {labels.SECTION_TRAINING}",
-        _table([labels.PARAMETER, labels.VALUE], _training_rows(metadata)),
+        markdown_table([labels.PARAMETER, labels.VALUE], _training_rows(metadata)),
         f"## {labels.SECTION_METRICS}",
-        _table(*_metric_rows(experiment)),
+        markdown_table(*_metric_rows(experiment)),
         labels.METRICS_NOTE
         + ("" if experiment.is_classification else " " + labels.REGRESSION_METRICS_NOTE),
         f"## {labels.SECTION_VERSION}",
@@ -78,7 +78,7 @@ def _config_rows(metadata: dict[str, Any]) -> list[list[str]]:
             + f" ({labels.parameter_count(network['parameter_count'], network['bias'])})",
         ],
         [labels.ACTIVATIONS, ", ".join(f"`{name}`" for name in network["activations"])],
-        [labels.INIT, _tagged(model["init"])],
+        [labels.INIT, tagged(model["init"])],
         [labels.LOSS_FUNCTION, labels.LOSS_NAMES[training["loss"]]],
         [labels.OPTIMIZER, _optimizer(config["optimizer"])],
         [labels.EPOCHS_AND_BATCH, f"{training['epochs']}, {training['batch_size']}"],
@@ -132,7 +132,7 @@ def _optimizer(optimizer: dict[str, Any]) -> str:
     return f"{labels.OPTIMIZER_NAMES[optimizer['kind']]}: {_parameters(optimizer)}"
 
 
-def _tagged(value: dict[str, Any]) -> str:
+def tagged(value: dict[str, Any]) -> str:
     """A config enum with a `kind` tag: `` `he` `` or `` `uniform` (`limit` = 0,5) ``."""
     parameters = _parameters(value)
     return f"`{value['kind']}`" + (f" ({parameters})" if parameters else "")
@@ -141,11 +141,11 @@ def _tagged(value: dict[str, Any]) -> str:
 def _parameters(values: dict[str, Any]) -> str:
     """Config parameters except the `kind` tag: `` `learning_rate` = 0,01, ... ``."""
     return ", ".join(
-        f"`{name}` = {_config_value(value)}" for name, value in values.items() if name != "kind"
+        f"`{name}` = {config_value(value)}" for name, value in values.items() if name != "kind"
     )
 
 
-def _config_value(value: Any) -> str:
+def config_value(value: Any) -> str:
     if isinstance(value, int):  # also bool
         return str(value)
     if isinstance(value, float):
@@ -153,7 +153,7 @@ def _config_value(value: Any) -> str:
     return f"`{value}`"
 
 
-def _table(header: list[str], rows: list[list[str]]) -> str:
+def markdown_table(header: list[str], rows: list[list[str]]) -> str:
     lines = [
         "| " + " | ".join(header) + " |",
         "|" + "|".join("---" for _ in header) + "|",

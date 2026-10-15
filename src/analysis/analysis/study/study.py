@@ -19,10 +19,12 @@ class StudyError(Exception):
 
 @dataclass(frozen=True)
 class Axis:
-    """An axis of the study and its level names in `study.toml` order."""
+    """An axis of the study, its level names in `study.toml` order and the config keys
+    its levels set."""
 
     name: str
     levels: list[str]
+    keys: list[str]
 
 
 @dataclass(frozen=True)
@@ -79,7 +81,8 @@ def load_study(study_dir: Path) -> Study:
     except tomllib.TOMLDecodeError as error:
         raise StudyError(f"cannot parse {study_path.as_posix()}: {error}") from error
 
-    axis_names = [axis["name"] for axis in config.get("axes", [])]
+    raw_axes = config.get("axes", [])
+    axis_names = [axis["name"] for axis in raw_axes]
     index = pl.read_csv(
         index_path,
         schema_overrides={name: pl.String for name in ("dir", "variant", *axis_names)},
@@ -90,7 +93,10 @@ def load_study(study_dir: Path) -> Study:
             f"{index_path.as_posix()} has columns {index.columns}, expected {expected}: "
             f"run `compute generate {study_dir.as_posix()}` again"
         )
-    axes = [Axis(name, list(dict.fromkeys(index[name].to_list()))) for name in axis_names]
+    axes = [
+        Axis(axis["name"], list(dict.fromkeys(index[axis["name"]].to_list())), _keys(axis))
+        for axis in raw_axes
+    ]
     return Study(
         directory=study_dir,
         description=config.get("description"),
@@ -113,3 +119,11 @@ def _roles(report: dict[str, Any], axis_names: list[str]) -> Roles:
     assigned = {x, color, *panels}
     panels += [name for name in axis_names if name not in assigned]
     return Roles(x=x, color=color, panels=panels)
+
+
+def _keys(axis: dict[str, Any]) -> list[str]:
+    """Dotted config keys set by the levels of an axis (shorthand or full form)."""
+    if "key" in axis:
+        return [axis["key"]]
+    keys = (key for level in axis.get("levels", []) for key in level.get("set", {}))
+    return sorted(set(keys))

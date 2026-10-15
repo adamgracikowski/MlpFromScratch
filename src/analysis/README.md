@@ -22,14 +22,26 @@ uv run --project src/analysis src/analysis/main.py plot data/experiments/classif
 
 - `runs.csv`: one row per run: directory, variant, seed, level of every axis, status (`completed`, `early_stopped`, `diverged` or `missing` without artifacts), epochs, best epoch, training time and the final metrics of every split (accuracy as a fraction).
 - `variants.csv`: one row per variant: numbers of runs, finished, diverged and missing runs, and the mean, sample standard deviation, minimum, median and maximum of every metric over the finished runs (completed or early stopped).
+- the comparison plots below and `summary.md` (plan, base config, results table, representative runs).
 
-Runs without artifacts are listed as a warning; a study without any trained run is an error.
+Options: `--format` and `--dpi` as for `plot`; `--plot-runs` also runs `plot` for the representative run of every variant: the finished run whose test metric is closest to the median over seeds (the smaller seed on a tie). Runs without artifacts are listed as a warning; a study without any trained run is an error.
 
 ```bash
 cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/classification/<study>
 cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/<study>
-uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/<study>
+uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/<study> --plot-runs
 ```
+
+The comparison plots compare the test accuracy (classification) or the test MSE in the original scale (regression): losses of different loss functions are not comparable. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels.
+
+| File | Content | When |
+|---|---|---|
+| `seeds` | final test metric: mean with +-1 standard deviation and a dot per seed; diverged runs noted | always |
+| `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band | always |
+| `curves_train_loss` | training loss per epoch, as `curves` | all variants use the same loss |
+| `heatmap` | mean (+- standard deviation) of the test metric, rows `color`, columns `x` | `x` and `color` are set |
+
+Statistics use the finished runs only. Diverged runs are counted separately, and so are runs without artifacts. Where the standard deviation exceeds the mean on a log axis, the band reaches the bottom of the plot.
 
 ## Plots
 

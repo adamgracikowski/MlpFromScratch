@@ -8,7 +8,10 @@ def test_loads_axes_seeds_and_index(make_study) -> None:
 
     assert study.description == "Synthetic study"
     assert study.seeds == [1, 2, 3]
-    assert study.axes == [Axis("activation", ["sigmoid", "tanh"]), Axis("dataset", ["a", "b"])]
+    assert study.axes == [
+        Axis("activation", ["sigmoid", "tanh"], ["model.bias"]),
+        Axis("dataset", ["a", "b"], ["model.bias"]),
+    ]
     assert study.task == "classification"
     assert study.index.height == 12
     assert study.index.columns == ["dir", "variant", "seed", "activation", "dataset"]
@@ -45,7 +48,7 @@ def test_study_without_axes(make_study) -> None:
 def test_numeric_level_names_stay_strings(make_study) -> None:
     study = load_study(make_study(axes={"layers": ["0", "16", "16-16"]}))
 
-    assert study.axes == [Axis("layers", ["0", "16", "16-16"])]
+    assert study.axes == [Axis("layers", ["0", "16", "16-16"], ["model.bias"])]
     assert study.index["dir"][0] == "runs/0/seed-1"
 
 
