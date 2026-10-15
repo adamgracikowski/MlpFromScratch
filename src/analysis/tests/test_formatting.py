@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plt
 import pytest
-from matplotlib.ticker import LogFormatterSciNotation, ScalarFormatter
+from matplotlib.ticker import ScalarFormatter
 
 from analysis.formatting import (
     MINUS,
     DecimalCommaFormatter,
+    PlainLogFormatter,
     decimal_comma,
     format_number,
     format_percent,
+    plain_or_power,
     use_decimal_comma,
 )
 
@@ -67,7 +69,7 @@ def test_wraps_offset() -> None:
     assert "." not in formatter.get_offset()
 
 
-def test_keeps_log_formatter() -> None:
+def test_replaces_log_formatter_once() -> None:
     figure, axes = plt.subplots()
     axes.set_yscale("log")
     axes.plot([0, 1], [1e-3, 1])
@@ -76,4 +78,35 @@ def test_keeps_log_formatter() -> None:
     plt.close(figure)
 
     formatter = axes.yaxis.get_major_formatter()
-    assert isinstance(formatter.inner, LogFormatterSciNotation)
+    assert isinstance(formatter.inner, PlainLogFormatter)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (0.2, "0.2"),
+        (1.0, "1"),
+        (500.0, "500"),
+        (1e-5, "10^{-5}"),
+        (3e5, r"3\times10^{5}"),
+    ],
+)
+def testplain_or_power(value: float, expected: str) -> None:
+    assert plain_or_power(value) == expected
+
+
+def test_plain_log_axis_labels() -> None:
+    with plt.rc_context({"axes.formatter.use_mathtext": True}):
+        figure, axes = plt.subplots()
+        axes.set_yscale("log")
+        axes.set_ylim(0.15, 1.2)
+        use_decimal_comma(figure)
+
+        labels = tick_labels(axes.yaxis) + [
+            label.get_text() for label in axes.yaxis.get_minorticklabels()
+        ]
+    plt.close(figure)
+
+    assert r"$\mathdefault{1}$" in labels
+    assert r"$\mathdefault{0{,}2}$" in labels
+    assert not any("times" in label for label in labels)

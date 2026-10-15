@@ -10,6 +10,12 @@ from matplotlib.figure import Figure
 
 from analysis.experiment import Experiment
 from analysis.plots.dataset import plot_dataset
+from analysis.plots.loss import plot_loss, plot_metrics
+from analysis.plots.weights import (
+    plot_weight_heatmap,
+    plot_weight_norms,
+    plot_weight_trajectories,
+)
 from analysis.style import STYLE, save_figure
 
 PLOTS_DIR = "plots"
@@ -46,6 +52,11 @@ def _input_space_reason(experiment: Experiment) -> str | None:
 
 PLOTS = [
     Plot("dataset", plot_dataset, _input_space_reason),
+    Plot("loss", plot_loss),
+    Plot("metrics", plot_metrics),
+    Plot("weights_trajectories", plot_weight_trajectories),
+    Plot("weight_norms", plot_weight_norms),
+    Plot("weights_heatmap", plot_weight_heatmap),
 ]
 
 

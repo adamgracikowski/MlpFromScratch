@@ -5,10 +5,15 @@ replace it with a comma, independently of the system locale. In mathtext the com
 as `{,}`, otherwise it would be followed by a space like a punctuation mark.
 """
 
+import math
+
+import numpy as np
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
-from matplotlib.ticker import Formatter, ScalarFormatter
+from matplotlib.ticker import Formatter, LogFormatterSciNotation, ScalarFormatter
 
+# Log-axis labels in this range are plain numbers (0.2, 1, 500), outside it powers of ten.
+PLAIN_LOG_RANGE = (1e-3, 1e4)
 MINUS = "\u2212"
 
 
@@ -58,11 +63,36 @@ class DecimalCommaFormatter(Formatter):
         return decimal_comma(self.inner.format_data_short(value))
 
 
+class PlainLogFormatter(LogFormatterSciNotation):
+    """Log-axis labels as plain numbers in `PLAIN_LOG_RANGE`, powers of ten outside it.
+
+    Labels the same ticks as the default formatter, but writes `0.2` instead of
+    `2 x 10^-1`, which reads badly when an axis spans about one decade.
+    """
+
+    def __call__(self, x: float, pos: int | None = None) -> str:
+        if not math.isfinite(x) or not super().__call__(x, pos):
+            return ""
+        return f"$\\mathdefault{{{plain_or_power(x)}}}$"
+
+
+def plain_or_power(x: float) -> str:
+    """Mathtext body of a log-axis label: `0.2`, `10^{-5}` or `3\\times10^{5}`."""
+    low, high = PLAIN_LOG_RANGE
+    if low <= abs(x) < high:
+        return np.format_float_positional(float(f"{x:.3g}"), trim="-")
+    exponent = math.floor(math.log10(abs(x)))
+    coefficient = float(f"{x / 10**exponent:.3g}")
+    if coefficient == 1:
+        return f"10^{{{exponent}}}"
+    return f"{coefficient:g}\\times10^{{{exponent}}}"
+
+
 def use_decimal_comma(figure: Figure) -> None:
     """Wrap the tick formatters of every axis of the figure (call after setting the scales).
 
-    Colorbars reset their formatter when drawn; create them with
-    `format=DecimalCommaFormatter()` instead.
+    Default log-axis formatters are replaced by `PlainLogFormatter`. Colorbars reset their
+    formatter when drawn; create them with `format=DecimalCommaFormatter()` instead.
     """
     for axes in figure.axes:
         for axis in (axes.xaxis, axes.yaxis):
@@ -70,5 +100,11 @@ def use_decimal_comma(figure: Figure) -> None:
                 (axis.get_major_formatter(), axis.set_major_formatter),
                 (axis.get_minor_formatter(), axis.set_minor_formatter),
             ):
-                if not isinstance(formatter, DecimalCommaFormatter):
-                    setter(DecimalCommaFormatter(formatter))
+                if isinstance(formatter, DecimalCommaFormatter):
+                    continue
+                if type(formatter) is LogFormatterSciNotation:
+                    formatter = PlainLogFormatter(
+                        labelOnlyBase=formatter.labelOnlyBase,
+                        minor_thresholds=formatter.minor_thresholds,
+                    )
+                setter(DecimalCommaFormatter(formatter))

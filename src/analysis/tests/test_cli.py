@@ -41,7 +41,7 @@ def test_missing_artifacts_exit_code(tmp_path, capsys) -> None:
 
 def test_plot_writes_files(make_experiment, capsys) -> None:
     experiment_dir = make_experiment(features=3)
-    main(["plot", str(experiment_dir), "--format", "png"])
+    main(["plot", str(experiment_dir), "--format", "png", "--dpi", "40"])
 
     output = capsys.readouterr().out
     assert "skipped dataset" in output

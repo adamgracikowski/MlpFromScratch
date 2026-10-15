@@ -1,6 +1,16 @@
 from analysis.experiment import load_experiment
 from analysis.plot_experiment import PLOTS_DIR, plot_experiment
 
+ALWAYS = {"loss", "metrics", "weights_trajectories", "weight_norms", "weights_heatmap"}
+
+
+# Fast settings for tests that do not check the formats.
+FAST = {"formats": ["png"], "dpi": 40}
+
+
+def expected(names: set[str], formats=("pdf", "png")) -> set[str]:
+    return {f"{name}.{file_format}" for name in names for file_format in formats}
+
 
 def file_names(report) -> set[str]:
     return {path.name for path in report.files}
@@ -10,32 +20,38 @@ def test_classification(make_experiment) -> None:
     report = plot_experiment(load_experiment(make_experiment()))
 
     assert report.directory.name == PLOTS_DIR
-    assert {"dataset.pdf", "dataset.png"} <= file_names(report)
+    assert file_names(report) == expected(ALWAYS | {"dataset"})
     assert report.skipped == []
     assert all(path.stat().st_size > 0 for path in report.files)
 
 
 def test_regression_with_validation(make_experiment) -> None:
     experiment_dir = make_experiment(task="regression", features=1, validation=True)
-    report = plot_experiment(load_experiment(experiment_dir))
+    report = plot_experiment(load_experiment(experiment_dir), **FAST)
 
-    assert {"dataset.pdf", "dataset.png"} <= file_names(report)
+    assert file_names(report) == expected(ALWAYS | {"dataset"}, formats=["png"])
     assert report.skipped == []
 
 
 def test_classification_with_validation(make_experiment) -> None:
-    report = plot_experiment(load_experiment(make_experiment(validation=True)), formats=["png"])
+    report = plot_experiment(load_experiment(make_experiment(validation=True)), **FAST)
 
     assert "dataset.png" in file_names(report)
 
 
 def test_skips_input_space_plots_for_three_features(make_experiment) -> None:
-    report = plot_experiment(load_experiment(make_experiment(features=3)))
+    report = plot_experiment(load_experiment(make_experiment(features=3)), **FAST)
 
     skipped = dict(report.skipped)
     assert "dataset" in skipped
     assert "2 input feature" in skipped["dataset"]
-    assert not any(name.startswith("dataset.") for name in file_names(report))
+    assert file_names(report) == expected(ALWAYS, formats=["png"])
+
+
+def test_diverged(make_experiment) -> None:
+    report = plot_experiment(load_experiment(make_experiment(diverged=True)), **FAST)
+
+    assert file_names(report) == expected(ALWAYS | {"dataset"}, formats=["png"])
 
 
 def test_formats(make_experiment) -> None:
@@ -50,7 +66,7 @@ def test_removes_old_plots(make_experiment) -> None:
     stale.parent.mkdir()
     stale.write_bytes(b"old")
 
-    plot_experiment(load_experiment(experiment_dir))
+    plot_experiment(load_experiment(experiment_dir), **FAST)
 
     assert not stale.exists()
 
