@@ -48,6 +48,10 @@ pub struct TrainArgs {
     /// epoch; 0 prints only the final summary. Defaults to about 20 lines.
     #[arg(long, value_name = "N")]
     pub progress_every: Option<usize>,
+    /// Train without recording and writing artifacts, e.g. to measure the
+    /// logging overhead. Existing artifacts are left untouched.
+    #[arg(long)]
+    pub no_artifacts: bool,
 }
 
 /// Runs the parsed command.
@@ -90,8 +94,17 @@ mod tests {
         let args = parse(&["compute", "train", "experiment"]);
         assert_eq!(args.experiment.experiment_dir, PathBuf::from("experiment"));
         assert_eq!(args.progress_every, None);
-        let args = parse(&["compute", "train", "experiment", "--progress-every", "0"]);
+        assert!(!args.no_artifacts);
+        let args = parse(&[
+            "compute",
+            "train",
+            "experiment",
+            "--progress-every",
+            "0",
+            "--no-artifacts",
+        ]);
         assert_eq!(args.progress_every, Some(0));
+        assert!(args.no_artifacts);
     }
 
     #[test]

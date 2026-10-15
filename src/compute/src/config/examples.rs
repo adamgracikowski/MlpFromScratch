@@ -3,10 +3,13 @@
 //! forward and backward, and trained on.
 
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 use miette::NamedSource;
 
 use super::{ExperimentConfig, Issue, LoadedConfig, check_files, validate};
+use crate::artifacts::read_npy;
+use crate::artifacts::{Recorder, Run, write_artifacts};
 use crate::data::prepare;
 use crate::network::Mlp;
 use crate::rng::{RngStream, rng};
@@ -82,10 +85,42 @@ fn example_configs_are_valid() {
         training.epochs = 3;
         let mut trained = network.clone();
         let optimizer = loaded.config.optimizer;
-        let outcome = train(&mut trained, &prepared, optimizer, &training, &mut ());
+        let config = &loaded.config;
+        let mut recorder = Recorder::new(&trained, &config.logging, training.seed);
+        let outcome = train(&mut trained, &prepared, optimizer, &training, &mut recorder);
         assert_eq!(outcome.stop, StopReason::Completed, "{example}");
         let initial = SplitMetrics::evaluate(&network, &prepared, loss).train.loss;
         let last = outcome.metrics.train.loss;
         assert!(last < initial, "{example}: {initial} -> {last}");
+
+        // The artifacts of the run hold a prediction grid over the inputs.
+        let experiment = tempfile::TempDir::new().unwrap();
+        let run = Run {
+            config,
+            data: &prepared,
+            network: &trained,
+            outcome: &outcome,
+            recorder: &recorder,
+            started_at: SystemTime::now(),
+            training_time: Duration::ZERO,
+        };
+        let dir = write_artifacts(experiment.path(), &run).unwrap();
+        let (shape, outputs) = read_npy::<f64>(&dir.join("grid/outputs.npy"));
+        let resolution = config.output.grid_resolution as u64;
+        let classes = test.targets.ncols() as u64;
+        let expected = match test.inputs.ncols() {
+            1 => vec![resolution, classes],
+            _ => vec![resolution, resolution, classes],
+        };
+        assert_eq!(shape, expected, "{example}");
+        assert!(outputs.iter().all(|value| value.is_finite()), "{example}");
+        for file in [
+            "epochs.csv",
+            "metadata.json",
+            "history/loss.npy",
+            "weights/iteration.npy",
+        ] {
+            assert!(dir.join(file).is_file(), "{example}: missing {file}");
+        }
     }
 }

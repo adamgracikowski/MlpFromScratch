@@ -14,9 +14,29 @@ pub struct Dataset {
     pub targets: Array2<f64>,
     /// Class index of every sample (`n`), for classification only.
     pub labels: Option<Array1<usize>>,
+    /// Row of every sample in its source file (`n`), counted from 0 without
+    /// the header. Kept through subsets and splits, so that predictions can
+    /// be matched with the original data.
+    pub rows: Array1<usize>,
 }
 
 impl Dataset {
+    /// Samples that are the rows `0..n` of their source file in order.
+    pub fn new(inputs: Array2<f64>, targets: Array2<f64>, labels: Option<Array1<usize>>) -> Self {
+        assert_eq!(
+            inputs.nrows(),
+            targets.nrows(),
+            "inputs and targets must have one row per sample"
+        );
+        let rows = Array1::from_iter(0..inputs.nrows());
+        Self {
+            inputs,
+            targets,
+            labels,
+            rows,
+        }
+    }
+
     /// Number of samples.
     pub fn len(&self) -> usize {
         self.inputs.nrows()
@@ -36,6 +56,7 @@ impl Dataset {
                 .labels
                 .as_ref()
                 .map(|labels| labels.select(Axis(0), rows)),
+            rows: self.rows.select(Axis(0), rows),
         }
     }
 
@@ -86,11 +107,11 @@ mod tests {
     use super::*;
 
     fn dataset() -> Dataset {
-        Dataset {
-            inputs: array![[0.0], [1.0], [2.0]],
-            targets: array![[1.0, 0.0], [0.0, 1.0], [0.0, 1.0]],
-            labels: Some(array![0, 1, 1]),
-        }
+        Dataset::new(
+            array![[0.0], [1.0], [2.0]],
+            array![[1.0, 0.0], [0.0, 1.0], [0.0, 1.0]],
+            Some(array![0, 1, 1]),
+        )
     }
 
     #[test]
@@ -99,6 +120,8 @@ mod tests {
         assert_eq!(selected.inputs, array![[2.0], [0.0]]);
         assert_eq!(selected.targets, array![[0.0, 1.0], [1.0, 0.0]]);
         assert_eq!(selected.labels, Some(array![1, 0]));
+        assert_eq!(selected.rows, array![2, 0]);
+        assert_eq!(selected.select(&[1]).rows, array![0]);
         assert_eq!(selected.len(), 2);
     }
 

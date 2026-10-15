@@ -12,6 +12,7 @@ Every command takes an experiment directory that contains `config.toml`:
 compute validate <experiment-dir>   # check the config and dataset files, print a summary
 compute train <experiment-dir>      # prepare the data, train the network, print progress and results
 compute train <experiment-dir> --progress-every 10   # print metrics every 10 epochs (0: only the summary)
+compute train <experiment-dir> --no-artifacts        # train without writing artifacts
 ```
 
 Relative paths, both of the experiment directory and of the datasets in the config, are resolved against the current working directory. Run the binary from the repository root:
@@ -43,8 +44,8 @@ Invalid configs are rejected with diagnostics that point at the offending line o
 | `training.loss` | `cross_entropy` (needs `softmax`), `mse`, `mae` (regression only) |
 | `training.epochs`, `training.batch_size`, `training.seed` | positive integers; the seed determines every random choice |
 | `training.early_stopping` | optional `{ patience = 20, min_delta = 1e-4 }` (`min_delta` defaults to 0); needs `data.validation_fraction > 0` |
-| `logging.loss_every`, `logging.weights_every` | intervals in iterations (batches) |
-| `logging.max_weights_per_layer` | upper bound on recorded weights per layer |
+| `logging.loss_every`, `logging.weights_every` | intervals in iterations (batches), see [Artifacts](#artifacts) |
+| `logging.max_weights_per_layer` | upper bound on recorded parameters per layer |
 | `output.grid_resolution`, `output.grid_margin` | prediction grid for 1D and 2D inputs |
 
 ## Data preparation
@@ -92,6 +93,48 @@ epoch 200/200  train loss 0.1303 acc 94.93% | test loss 0.1727 acc 94.07%
 stop:       completed after 200 epoch(s), 9400 iteration(s) in 0.62 s
 result:     train loss 0.1303 acc 94.93% | test loss 0.1727 acc 94.07%
 ```
+
+## Artifacts
+
+After training, `compute train` writes the run to `<experiment-dir>/artifacts/` (git-ignored) for the presentation layer. Artifacts of a previous run are removed first. Arrays are NumPy `.npy` files (`numpy.load`), little-endian, C order; `u64` and `i64` for integers, `f64` otherwise. Layers are numbered from 0 (first hidden layer) to the output layer, `S` is the number of weight snapshots, `L` the number of layers, `K` the number of network outputs.
+
+```text
+artifacts/
+├── metadata.json             # code version, start time, training time, full config,
+│                             # data, network, how training ended, final metrics
+├── epochs.csv                # metrics before training (epoch 0) and after every epoch
+├── history/                  # loss during training
+│   ├── iteration.npy         # (n,) last iteration of every window
+│   ├── epoch.npy             # (n,) epoch of that iteration
+│   └── loss.npy              # (n,) mean batch loss of the window
+├── weights/                  # evolution of the weights
+│   ├── iteration.npy         # (S,) iteration of every snapshot, 0 = initial weights
+│   ├── layer_<l>_indices.npy # (m, 2) recorded (row, column) of [W; b]
+│   ├── layer_<l>_values.npy  # (S, m) their values
+│   ├── weight_norms.npy      # (S, L) Frobenius norm of W
+│   └── bias_norms.npy        # (S, L) Euclidean norm of b, NaN without bias
+├── model/                    # the trained network
+│   ├── layer_<l>_weights.npy # (in, out)
+│   └── layer_<l>_bias.npy    # (out,), only with bias
+├── predictions/<split>/      # train, validation (if any) and test
+│   ├── rows.npy              # (n,) row of every sample in the CSV file (0 = first data row)
+│   ├── outputs.npy           # (n, K) class probabilities, or predictions in the original scale
+│   ├── labels.npy            # (n,) true class labels (classification)
+│   ├── predicted.npy         # (n,) label of the largest output (classification)
+│   └── targets.npy           # (n, 1) true targets in the original scale (regression)
+└── grid/                     # only for 1 or 2 input features
+    ├── x.npy, y.npy          # (r,) grid axes in the original scale (y: 2 features only)
+    └── outputs.npy           # (r, K) or (r, r, K); [i, j] is the point (x[j], y[i])
+```
+
+- **Loss history:** every batch loss enters the mean of a window of `logging.loss_every` iterations, weighted by the batch size; the last window may be shorter. With `loss_every = 1` the history holds every batch loss.
+- **Weights:** the parameters of a layer form the matrix `[W; b]` of shape `(in + 1) x out`, whose last row (`row == in`) is the bias (without bias just `W`). A layer with more than `logging.max_weights_per_layer` parameters is recorded through a fixed random subset of that size, drawn from a random stream of `training.seed` reserved for it. Snapshots are taken before training, every `logging.weights_every` iterations and after the last iteration. Norms always use all weights.
+- **Model and predictions:** with early stopping, the network of the best epoch; predictions are made by that network. Inputs are not copied: `rows` points into the CSV files named in the config.
+- **Grid:** `output.grid_resolution` points per axis spanning all samples (training, validation and test) in the original scale, widened by `output.grid_margin` of the range on each side.
+- **`epochs.csv`:** columns `epoch`, `iteration`, then for every split (`train`, `validation`, `test`) the loss and either `accuracy` or `mse` and `mae` (original scale), e.g. `train_loss`, `test_accuracy`. A diverged run has `NaN` or `inf` values, which become `null` in `metadata.json`.
+- **`metadata.json`:** `version` holds the crate version, the git commit the binary was built from and whether the crate sources differed from it (`dirty`); `started_at` is in seconds since the Unix epoch; `result.stop.reason` is `completed`, `early_stopped` or `diverged` (with `epoch` and `iteration`).
+
+The same seed and config give identical artifacts, except for times in `metadata.json`. Recording happens in memory and writing after training, so it hardly slows training down; compare with `--no-artifacts`.
 
 ## Commands
 

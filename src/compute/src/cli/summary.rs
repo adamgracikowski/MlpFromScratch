@@ -313,11 +313,11 @@ mod tests {
 
     fn dataset(labels: Vec<usize>) -> Dataset {
         let rows = labels.len();
-        Dataset {
-            inputs: Array2::zeros((rows, 2)),
-            targets: Array2::zeros((rows, 2)),
-            labels: Some(Array1::from(labels)),
-        }
+        Dataset::new(
+            Array2::zeros((rows, 2)),
+            Array2::zeros((rows, 2)),
+            Some(Array1::from(labels)),
+        )
     }
 
     #[test]

@@ -1,6 +1,7 @@
 //! Quality of the network on a dataset: loss, accuracy, regression errors.
 
 use ndarray::{ArrayView1, ArrayView2, s};
+use serde::Serialize;
 
 use crate::config::Loss;
 use crate::data::{Dataset, PreparedData, Scaler};
@@ -8,10 +9,10 @@ use crate::network::Mlp;
 
 /// Number of samples evaluated at once. Evaluating a large set (MNIST) in
 /// chunks keeps the intermediate activations small.
-const CHUNK_ROWS: usize = 1024;
+pub(crate) const CHUNK_ROWS: usize = 1024;
 
 /// Quality of the network on one dataset.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Metrics {
     /// Mean of the training loss (on normalized targets for regression).
     pub loss: f64,
@@ -101,7 +102,7 @@ fn count_correct(outputs: ArrayView2<'_, f64>, labels: ArrayView1<'_, usize>) ->
 }
 
 /// Index of the largest value (the first one on ties).
-fn argmax(row: ArrayView1<'_, f64>) -> usize {
+pub(crate) fn argmax(row: ArrayView1<'_, f64>) -> usize {
     let mut best = 0;
     for (index, &value) in row.iter().enumerate() {
         if value > row[best] {
@@ -112,7 +113,7 @@ fn argmax(row: ArrayView1<'_, f64>) -> usize {
 }
 
 /// Metrics of the network on every split of the data.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct SplitMetrics {
     pub train: Metrics,
     /// Present when part of the training file is held out for validation.
@@ -160,11 +161,11 @@ mod tests {
     #[test]
     fn counts_largest_output_as_prediction() {
         let labels = array![0, 1, 0, 0];
-        let dataset = Dataset {
-            inputs: array![[1.0, 0.0], [0.0, 1.0], [2.0, 3.0], [5.0, 1.0]],
-            targets: one_hot(&labels, 2),
-            labels: Some(labels),
-        };
+        let dataset = Dataset::new(
+            array![[1.0, 0.0], [0.0, 1.0], [2.0, 3.0], [5.0, 1.0]],
+            one_hot(&labels, 2),
+            Some(labels),
+        );
         let metrics = Metrics::evaluate(&identity_network(), &dataset, Loss::Mse, None);
         // Predictions 0, 1, 1, 0: the third sample is wrong.
         assert_eq!(metrics.accuracy, Some(0.75));
@@ -186,11 +187,7 @@ mod tests {
             Some(array![0.5]),
             Activation::Identity,
         )]);
-        let dataset = Dataset {
-            inputs: array![[0.0], [1.0]],
-            targets: array![[0.0], [0.0]],
-            labels: None,
-        };
+        let dataset = Dataset::new(array![[0.0], [1.0]], array![[0.0], [0.0]], None);
         let scaler = Scaler {
             normalization: Normalization::Standard,
             offset: array![100.0],
@@ -211,11 +208,7 @@ mod tests {
         let inputs = Array2::from_shape_fn((samples, 2), |(row, column)| {
             ((row * 7 + column * 3) % 11) as f64 / 5.0 - 1.0
         });
-        let dataset = Dataset {
-            targets: one_hot(&labels, 2),
-            inputs,
-            labels: Some(labels),
-        };
+        let dataset = Dataset::new(inputs, one_hot(&labels, 2), Some(labels));
         let network = Mlp::from_layers(vec![Layer::from_parts(
             array![[0.3, -0.2], [0.1, 0.4]],
             Some(array![0.05, -0.05]),

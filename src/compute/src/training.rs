@@ -12,6 +12,7 @@ use ndarray::Axis;
 
 pub use batches::BatchOrder;
 pub use early_stopping::{Checkpoint, EarlyStopper};
+pub(crate) use metrics::{CHUNK_ROWS, argmax};
 pub use metrics::{Metrics, SplitMetrics};
 pub use observer::{EpochRecord, IterationRecord, TrainingObserver};
 pub use optimizer::OptimizerState;
@@ -122,6 +123,7 @@ pub fn train(
         }
         StopReason::Completed
     };
+    observer.on_stop(iteration, network);
 
     // With early stopping the best network replaces the last one, also
     // after divergence.
@@ -155,6 +157,7 @@ mod tests {
     struct Recorder {
         iterations: Vec<IterationRecord>,
         epochs: Vec<EpochRecord>,
+        stops: Vec<(usize, Mlp)>,
     }
 
     impl TrainingObserver for Recorder {
@@ -164,6 +167,10 @@ mod tests {
 
         fn on_epoch(&mut self, record: &EpochRecord, _network: &Mlp) {
             self.epochs.push(*record);
+        }
+
+        fn on_stop(&mut self, iteration: usize, network: &Mlp) {
+            self.stops.push((iteration, network.clone()));
         }
     }
 
@@ -179,11 +186,7 @@ mod tests {
         let targets = Array2::from_shape_fn((samples, 2), |(row, class)| {
             f64::from(u8::from(labels[row] == class))
         });
-        Dataset {
-            inputs,
-            targets,
-            labels: Some(labels),
-        }
+        Dataset::new(inputs, targets, Some(labels))
     }
 
     fn classification_data(validation: bool) -> PreparedData {
@@ -227,7 +230,7 @@ mod tests {
         config.training.epochs = 3;
         config.training.batch_size = 16;
         let mut recorder = Recorder::default();
-        let (_, outcome) = run(&config, &classification_data(false), &mut recorder);
+        let (network, outcome) = run(&config, &classification_data(false), &mut recorder);
 
         // 200 samples in batches of 16: 12 full batches and one of 8.
         assert_eq!(outcome.stop, StopReason::Completed);
@@ -253,6 +256,7 @@ mod tests {
         assert_eq!(epochs, [(0, 0), (1, 13), (2, 26), (3, 39)]);
         assert_eq!(outcome.metrics, recorder.epochs[3].metrics);
         assert_eq!(outcome.best_epoch, None);
+        assert_eq!(recorder.stops, [(39, network)]);
     }
 
     fn with_early_stopping(patience: usize, epochs: usize) -> ExperimentConfig {
@@ -305,6 +309,11 @@ mod tests {
         assert_eq!(outcome.epochs, best + 3);
         assert_eq!(recorder.epochs.len(), outcome.epochs + 1);
         assert_best_epoch_restored(&network, &outcome, &recorder, &data);
+        let [(iteration, last)] = recorder.stops.as_slice() else {
+            panic!("on_stop must be called once");
+        };
+        assert_eq!(*iteration, outcome.iterations);
+        assert_ne!(*last, network);
     }
 
     #[test]
@@ -389,11 +398,7 @@ mod tests {
     #[test]
     fn stops_when_loss_diverges() {
         let x = Array2::from_shape_fn((50, 1), |(row, _)| row as f64 / 25.0 - 1.0);
-        let samples = Dataset {
-            targets: x.mapv(|x| 3.0 * x),
-            inputs: x,
-            labels: None,
-        };
+        let samples = Dataset::new(x.clone(), x.mapv(|x| 3.0 * x), None);
         let data = PreparedData {
             input_scaler: Scaler::fit(Normalization::None, &samples.inputs),
             target_scaler: Some(Scaler::fit(Normalization::None, &samples.targets)),
@@ -427,6 +432,7 @@ mod tests {
         assert!(epoch < 1000);
         assert_eq!(iteration, outcome.iterations);
         assert_eq!(recorder.iterations.len(), iteration);
+        assert_eq!(recorder.stops, [(iteration, network)]);
         assert!(
             recorder
                 .iterations

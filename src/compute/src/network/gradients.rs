@@ -85,10 +85,10 @@ mod tests {
     #[test]
     fn zeros_like_matches_network_shapes() {
         let gradients = Gradients::zeros_like(&network());
-        assert_eq!(gradients.layers[0].weights, Array2::zeros((3, 4)));
+        assert_eq!(gradients.layers[0].weights, Array2::<f64>::zeros((3, 4)));
         assert_eq!(gradients.layers[0].bias, None);
-        assert_eq!(gradients.layers[1].weights, Array2::zeros((4, 2)));
-        assert_eq!(gradients.layers[1].bias, Some(Array1::zeros(2)));
+        assert_eq!(gradients.layers[1].weights, Array2::<f64>::zeros((4, 2)));
+        assert_eq!(gradients.layers[1].bias, Some(Array1::<f64>::zeros(2)));
     }
 
     #[test]
