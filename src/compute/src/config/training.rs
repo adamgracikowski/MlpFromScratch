@@ -1,9 +1,9 @@
-//! Loss function, training length and RNG seed.
+//! Loss function, training length, RNG seed and early stopping.
 
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-/// Loss function, training length and RNG seed.
+/// Loss function, training length, RNG seed and early stopping.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TrainingConfig {
@@ -15,6 +15,21 @@ pub struct TrainingConfig {
     pub batch_size: usize,
     /// Seed of every random choice in the run.
     pub seed: u64,
+    /// Stop when the validation loss stops improving; `None` runs every epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub early_stopping: Option<EarlyStopping>,
+}
+
+/// Stops training once the validation loss has not improved for `patience`
+/// epochs, then restores the weights of the best epoch.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EarlyStopping {
+    /// Number of epochs without improvement after which training stops.
+    pub patience: usize,
+    /// Smallest decrease of the validation loss that counts as an improvement.
+    #[serde(default)]
+    pub min_delta: f64,
 }
 
 /// Loss function minimized during training.
@@ -38,6 +53,38 @@ mod tests {
     fn rejects_negative_epochs() {
         let text = "loss = \"mae\"\nepochs = -1\nbatch_size = 32\nseed = 1\n";
         assert!(toml::from_str::<TrainingConfig>(text).is_err());
+    }
+
+    const TRAINING: &str = "loss = \"mse\"\nepochs = 10\nbatch_size = 32\nseed = 1\n";
+
+    #[test]
+    fn early_stopping_is_optional() {
+        let training: TrainingConfig = toml::from_str(TRAINING).unwrap();
+        assert_eq!(training.early_stopping, None);
+    }
+
+    #[test]
+    fn min_delta_defaults_to_zero() {
+        let text = format!("{TRAINING}early_stopping = {{ patience = 5 }}\n");
+        let training: TrainingConfig = toml::from_str(&text).unwrap();
+        let expected = EarlyStopping {
+            patience: 5,
+            min_delta: 0.0,
+        };
+        assert_eq!(training.early_stopping, Some(expected));
+    }
+
+    #[test]
+    fn parses_early_stopping_with_min_delta() {
+        let text = format!("{TRAINING}early_stopping = {{ patience = 5, min_delta = 1e-4 }}\n");
+        let training: TrainingConfig = toml::from_str(&text).unwrap();
+        assert_eq!(training.early_stopping.unwrap().min_delta, 1e-4);
+    }
+
+    #[test]
+    fn rejects_unknown_early_stopping_field() {
+        let text = format!("{TRAINING}early_stopping = {{ patience = 5, monitor = \"loss\" }}\n");
+        assert!(toml::from_str::<TrainingConfig>(&text).is_err());
     }
 
     #[test]

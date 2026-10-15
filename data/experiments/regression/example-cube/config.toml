@@ -29,6 +29,7 @@ loss = "mse"                       # mse | mae
 epochs = 500
 batch_size = 16
 seed = 42
+# early_stopping = { patience = 20, min_delta = 1e-4 }  # optional; needs validation_fraction > 0
 
 [logging]
 loss_every = 1

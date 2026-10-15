@@ -1,6 +1,6 @@
 //! The multilayer perceptron: a stack of fully connected layers.
 
-use ndarray::{Array2, ArrayView2};
+use ndarray::{Array2, ArrayView2, ArrayViewMutD};
 use rand::Rng;
 
 use super::{Activation, ForwardCache, Layer, LayerCache};
@@ -83,6 +83,13 @@ impl Mlp {
     /// Number of trainable parameters of all layers.
     pub fn parameter_count(&self) -> usize {
         self.layers.iter().map(Layer::parameter_count).sum()
+    }
+
+    /// Mutable views of all parameters, layer by layer from the first hidden
+    /// layer: the weights of a layer, then its bias if present. The order
+    /// matches [`Gradients::tensors`](super::Gradients::tensors).
+    pub fn parameters_mut(&mut self) -> impl Iterator<Item = ArrayViewMutD<'_, f64>> {
+        self.layers.iter_mut().flat_map(Layer::parameters_mut)
     }
 
     /// Runs the batch `input` (`n x d`) through the network and keeps `Z` and
@@ -228,6 +235,20 @@ mod tests {
         for sum in predictions.sum_axis(ndarray::Axis(1)) {
             assert!((sum - 1.0).abs() < 1e-12);
         }
+    }
+
+    #[test]
+    fn parameters_mut_lists_layers_in_order() {
+        let mut network = hand_made();
+        let shapes: Vec<Vec<usize>> = network
+            .parameters_mut()
+            .map(|parameter| parameter.shape().to_vec())
+            .collect();
+        assert_eq!(shapes, [vec![2, 2], vec![2], vec![2, 1], vec![1]]);
+        for mut parameter in network.parameters_mut() {
+            parameter.fill(0.0);
+        }
+        assert_eq!(network.predict(array![[1.0, 1.0]].view()), array![[0.0]]);
     }
 
     #[test]

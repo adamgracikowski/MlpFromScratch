@@ -9,3 +9,4 @@ pub mod config;
 pub mod data;
 pub mod network;
 pub mod rng;
+pub mod training;

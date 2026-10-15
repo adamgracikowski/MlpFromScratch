@@ -1,6 +1,6 @@
 //! Checks that the example experiment configs in `data/experiments/` stay valid
-//! and that their datasets can be prepared and fed through the network, both
-//! forward and backward.
+//! and that their datasets can be prepared, fed through the network, both
+//! forward and backward, and trained on.
 
 use std::path::{Path, PathBuf};
 
@@ -10,6 +10,7 @@ use super::{ExperimentConfig, Issue, LoadedConfig, check_files, validate};
 use crate::data::prepare;
 use crate::network::Mlp;
 use crate::rng::{RngStream, rng};
+use crate::training::{SplitMetrics, StopReason, train};
 
 /// Example configs, relative to the repository root.
 const EXAMPLES: [&str; 2] = [
@@ -75,5 +76,16 @@ fn example_configs_are_valid() {
             assert_eq!(gradient.weights.dim(), layer.weights().dim(), "{example}");
             assert!(gradient.weights.iter().all(|value| value.is_finite()));
         }
+
+        // A few epochs of training lower the training loss.
+        let mut training = loaded.config.training.clone();
+        training.epochs = 3;
+        let mut trained = network.clone();
+        let optimizer = loaded.config.optimizer;
+        let outcome = train(&mut trained, &prepared, optimizer, &training, &mut ());
+        assert_eq!(outcome.stop, StopReason::Completed, "{example}");
+        let initial = SplitMetrics::evaluate(&network, &prepared, loss).train.loss;
+        let last = outcome.metrics.train.loss;
+        assert!(last < initial, "{example}: {initial} -> {last}");
     }
 }
