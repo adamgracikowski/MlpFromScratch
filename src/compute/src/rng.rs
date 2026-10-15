@@ -17,6 +17,8 @@ pub enum RngStream {
     Init = 1,
     /// Order of the training samples, reshuffled every epoch.
     Shuffle = 2,
+    /// Subset of the weights recorded in the training artifacts.
+    WeightLog = 3,
 }
 
 /// Creates the generator of `stream` for the experiment `seed`.
@@ -57,6 +59,7 @@ mod tests {
         assert_eq!(RngStream::Data as u64, 0);
         assert_eq!(RngStream::Init as u64, 1);
         assert_eq!(RngStream::Shuffle as u64, 2);
+        assert_eq!(RngStream::WeightLog as u64, 3);
         let mut other_stream = ChaCha8Rng::seed_from_u64(42);
         other_stream.set_stream(1);
         let other: Vec<u32> = (0..8).map(|_| other_stream.random()).collect();
