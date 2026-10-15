@@ -18,6 +18,19 @@ uv run --project src/analysis src/analysis/main.py plot data/experiments/classif
 - `--format pdf,png` (default): comma-separated file formats out of `pdf`, `png`, `svg`.
 - `--dpi 200` (default): resolution of raster images.
 
+`aggregate <study-dir>` aggregates a study (see `src/compute/README.md`, section Studies) over seeds. It reads `<study-dir>/study.toml`, `runs/index.csv` (written by `compute generate`) and the `metadata.json` and `epochs.csv` of every run, then replaces `<study-dir>/results/` with:
+
+- `runs.csv`: one row per run: directory, variant, seed, level of every axis, status (`completed`, `early_stopped`, `diverged` or `missing` without artifacts), epochs, best epoch, training time and the final metrics of every split (accuracy as a fraction).
+- `variants.csv`: one row per variant: numbers of runs, finished, diverged and missing runs, and the mean, sample standard deviation, minimum, median and maximum of every metric over the finished runs (completed or early stopped).
+
+Runs without artifacts are listed as a warning; a study without any trained run is an error.
+
+```bash
+cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/classification/<study>
+cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/<study>
+uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/<study>
+```
+
 ## Plots
 
 Texts on the plots and in `summary.md` are in Polish, like the report. Figures are drawn at their final print size (16 cm wide, 10 pt STIX font), with a decimal comma, the Okabe-Ito palette and no titles. Files are reproducible: the same artifacts give byte-identical files.
