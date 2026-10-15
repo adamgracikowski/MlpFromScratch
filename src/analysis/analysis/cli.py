@@ -6,6 +6,8 @@ from pathlib import Path
 
 from analysis import __version__
 from analysis.experiment import ArtifactsError, load_experiment
+from analysis.plot_experiment import DEFAULT_DPI, DEFAULT_FORMATS, plot_experiment
+from analysis.style import FORMATS
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,12 +24,48 @@ def build_parser() -> argparse.ArgumentParser:
         help="plot one experiment",
         description=(
             "Read <experiment-dir>/artifacts/ and write plots and statistics to "
-            "<experiment-dir>/plots/. Dataset paths in the config are relative to the "
-            "current working directory, so run from the repository root."
+            "<experiment-dir>/plots/ (removed first). Dataset paths in the config are relative "
+            "to the current working directory, so run from the repository root."
         ),
     )
     plot.add_argument("experiment_dir", type=Path, metavar="<experiment-dir>")
+    plot.add_argument(
+        "--format",
+        dest="formats",
+        type=_formats,
+        default=list(DEFAULT_FORMATS),
+        metavar="<formats>",
+        help=f"comma-separated file formats out of {', '.join(FORMATS)} "
+        f"(default: {','.join(DEFAULT_FORMATS)})",
+    )
+    plot.add_argument(
+        "--dpi",
+        type=_positive_int,
+        default=DEFAULT_DPI,
+        metavar="<dpi>",
+        help=f"resolution of raster images (default: {DEFAULT_DPI})",
+    )
     return parser
+
+
+def _formats(value: str) -> list[str]:
+    formats = [part.strip().lower() for part in value.split(",") if part.strip()]
+    unknown = [part for part in formats if part not in FORMATS]
+    if not formats or unknown:
+        raise argparse.ArgumentTypeError(
+            f"expected a comma-separated list out of {', '.join(FORMATS)}, got {value!r}"
+        )
+    return list(dict.fromkeys(formats))
+
+
+def _positive_int(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        number = 0
+    if number <= 0:
+        raise argparse.ArgumentTypeError(f"expected a positive integer, got {value!r}")
+    return number
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -38,7 +76,8 @@ def main(argv: list[str] | None = None) -> None:
     except ArtifactsError as error:
         print(f"error: {error}", file=sys.stderr)
         raise SystemExit(2) from error
-    samples = {split: len(p.rows) for split, p in experiment.predictions.items()}
-    print(f"task:     {experiment.task}")
-    print(f"samples:  {samples}")
-    print(f"stop:     {experiment.stop_reason}")
+
+    report = plot_experiment(experiment, formats=args.formats, dpi=args.dpi)
+    for name, reason in report.skipped:
+        print(f"skipped {name}: {reason}")
+    print(f"plots:  {report.directory.as_posix()} ({len(report.files)} files)")
