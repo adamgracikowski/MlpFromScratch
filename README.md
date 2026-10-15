@@ -53,12 +53,16 @@ Tests, from `src/compute/`:
 cargo test
 ```
 
-Presentation layer:
+Presentation layer, also from the repository root (plots and `summary.md` go to the `plots/` folder of the experiment):
 
 ```bash
-cd src/analysis
+uv run --project src/analysis src/analysis/main.py plot data/experiments/classification/example-three-gauss
+```
+
+Tests, from `src/analysis/`:
+
+```bash
 uv sync
-uv run main.py --help
 uv run pytest
 ```
 

@@ -4,6 +4,39 @@ Data visualization and analysis layer for the custom MLP project, generating tra
 
 The code lives in the `analysis` package. `main.py` is the entry point.
 
+## Usage
+
+Run from the repository root, because dataset paths in the experiment configs are relative to the current working directory:
+
+```bash
+cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/example-three-gauss
+uv run --project src/analysis src/analysis/main.py plot data/experiments/classification/example-three-gauss
+```
+
+`plot <experiment-dir>` reads `<experiment-dir>/artifacts/` (written by `compute train`) and replaces `<experiment-dir>/plots/` with the plots and `summary.md`. Options:
+
+- `--format pdf,png` (default): comma-separated file formats out of `pdf`, `png`, `svg`.
+- `--dpi 200` (default): resolution of raster images.
+
+## Plots
+
+Texts on the plots and in `summary.md` are in Polish, like the report. Figures are drawn at their final print size (16 cm wide, 10 pt STIX font), with a decimal comma, the Okabe-Ito palette and no titles. Files are reproducible: the same artifacts give byte-identical files.
+
+| File | Content | When |
+|---|---|---|
+| `dataset` | training, validation and test samples | classification with 2 features, regression with 1 |
+| `decision_boundary` | class regions shaded by confidence, boundaries, test samples, misclassified ones | classification with 2 features |
+| `regression` | data, target function (test set) and network output; test residuals | regression with 1 feature |
+| `loss` | loss per iteration window with a moving average; loss per epoch for every split | always |
+| `metrics` | accuracy (classification) or MSE in the original scale (regression) per epoch | always |
+| `weights_trajectories` | values of the sampled weights and biases, one panel per layer | always |
+| `weight_norms` | Frobenius norm of `W` and Euclidean norm of `b` of every layer | always |
+| `weights_heatmap` | sampled parameters (sorted by final value) over the snapshots | always |
+| `confusion_<split>` | confusion matrix with counts and row percentages | classification |
+| `summary.md` | configuration, course of training, final metrics, code version | always |
+
+Plots that do not fit the data (e.g. the decision boundary for MNIST) are skipped with a message.
+
 ## Commands
 
 ```bash

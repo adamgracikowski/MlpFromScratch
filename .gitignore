@@ -2,6 +2,7 @@
 docs/*.md
 CLAUDE.md
 notes/*
+.claude/*
 
 # Rust
 src/compute/target/
