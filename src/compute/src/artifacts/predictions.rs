@@ -1,7 +1,11 @@
 //! Predictions of the trained network on the training, validation and test sets.
 
+use std::path::Path;
+
 use ndarray::{Array1, Array2, ArrayView2, Axis, s};
 
+use super::npy::write_npy;
+use super::{ArtifactError, create_dir};
 use crate::data::{Dataset, PreparedData};
 use crate::network::Mlp;
 use crate::training::{CHUNK_ROWS, argmax};
@@ -47,6 +51,37 @@ pub struct Predictions {
 }
 
 impl Predictions {
+    /// Writes to `dir`: `rows.npy` (`u64`), `outputs.npy` (`n x K`) and
+    /// either `labels.npy` and `predicted.npy` (`i64`, classification) or
+    /// `targets.npy` (`n x 1`, regression).
+    pub(super) fn write(&self, dir: &Path) -> Result<(), ArtifactError> {
+        create_dir(dir)?;
+        let samples = self.rows.len();
+        let rows = self.rows.iter().map(|&row| row as u64);
+        write_npy(&dir.join("rows.npy"), &[samples], rows)?;
+        let shape = self.outputs.shape();
+        write_npy(
+            &dir.join("outputs.npy"),
+            shape,
+            self.outputs.iter().copied(),
+        )?;
+        match &self.targets {
+            Targets::Classification { labels, predicted } => {
+                write_npy(&dir.join("labels.npy"), &[samples], labels.iter().copied())?;
+                write_npy(
+                    &dir.join("predicted.npy"),
+                    &[samples],
+                    predicted.iter().copied(),
+                )
+            }
+            Targets::Regression { targets } => write_npy(
+                &dir.join("targets.npy"),
+                targets.shape(),
+                targets.iter().copied(),
+            ),
+        }
+    }
+
     /// Runs `network` on `dataset`; `data` provides the class labels and the
     /// target normalization to undo.
     pub fn compute(network: &Mlp, dataset: &Dataset, data: &PreparedData) -> Self {
@@ -89,6 +124,15 @@ pub struct SplitPredictions {
 }
 
 impl SplitPredictions {
+    /// Writes the predictions of every split to `dir/<split>/`.
+    pub(super) fn write(&self, dir: &Path) -> Result<(), ArtifactError> {
+        self.train.write(&dir.join("train"))?;
+        if let Some(validation) = &self.validation {
+            validation.write(&dir.join("validation"))?;
+        }
+        self.test.write(&dir.join("test"))
+    }
+
     /// Runs `network` on the training, validation and test sets.
     pub fn compute(network: &Mlp, data: &PreparedData) -> Self {
         let compute = |dataset: &Dataset| Predictions::compute(network, dataset, data);

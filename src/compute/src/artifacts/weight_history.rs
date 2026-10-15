@@ -1,6 +1,9 @@
 //! Snapshots of the recorded weights and of the weight norms.
 
-use super::WeightSample;
+use std::path::Path;
+
+use super::npy::write_npy;
+use super::{ArtifactError, WeightSample};
 use crate::network::Mlp;
 
 /// Values of the sampled parameters and the norms of every layer, taken
@@ -82,6 +85,39 @@ impl WeightHistory {
     /// Euclidean norms of `b` (NaN without bias): snapshots x layers, row-major.
     pub fn bias_norms(&self) -> &[f64] {
         &self.bias_norms
+    }
+
+    /// Writes to `dir`: `iteration.npy` (snapshots), for every layer `l`
+    /// `layer_<l>_indices.npy` (`(row, column)` in `[W; b]`, sample size x 2)
+    /// and `layer_<l>_values.npy` (snapshots x sample size), and the norms
+    /// `weight_norms.npy` and `bias_norms.npy` (snapshots x layers).
+    pub(super) fn write(&self, dir: &Path) -> Result<(), ArtifactError> {
+        let snapshots = self.iterations.len();
+        let iterations = self.iterations.iter().map(|&iteration| iteration as u64);
+        write_npy(&dir.join("iteration.npy"), &[snapshots], iterations)?;
+        for (index, (sample, values)) in self.sample.layers().iter().zip(&self.values).enumerate() {
+            let indices = sample
+                .iter()
+                .flat_map(|&(row, column)| [row as u64, column as u64]);
+            write_npy(
+                &dir.join(format!("layer_{index}_indices.npy")),
+                &[sample.len(), 2],
+                indices,
+            )?;
+            let path = dir.join(format!("layer_{index}_values.npy"));
+            write_npy(&path, &[snapshots, sample.len()], values.iter().copied())?;
+        }
+        let shape = [snapshots, self.values.len()];
+        write_npy(
+            &dir.join("weight_norms.npy"),
+            &shape,
+            self.weight_norms.iter().copied(),
+        )?;
+        write_npy(
+            &dir.join("bias_norms.npy"),
+            &shape,
+            self.bias_norms.iter().copied(),
+        )
     }
 }
 

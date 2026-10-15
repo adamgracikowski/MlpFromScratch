@@ -1,9 +1,12 @@
 //! How a training run ended.
 
+use serde::Serialize;
+
 use super::SplitMetrics;
 
 /// Why training stopped.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(tag = "reason", rename_all = "snake_case")]
 pub enum StopReason {
     /// All configured epochs were run.
     Completed,

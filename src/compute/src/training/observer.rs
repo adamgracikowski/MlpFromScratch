@@ -44,6 +44,27 @@ pub trait TrainingObserver {
 /// Ignores all progress.
 impl TrainingObserver for () {}
 
+/// Passes all progress to the observer, if there is one.
+impl<T: TrainingObserver> TrainingObserver for Option<T> {
+    fn on_iteration(&mut self, record: &IterationRecord, network: &Mlp) {
+        if let Some(observer) = self {
+            observer.on_iteration(record, network);
+        }
+    }
+
+    fn on_epoch(&mut self, record: &EpochRecord, network: &Mlp) {
+        if let Some(observer) = self {
+            observer.on_epoch(record, network);
+        }
+    }
+
+    fn on_stop(&mut self, iteration: usize, network: &Mlp) {
+        if let Some(observer) = self {
+            observer.on_stop(iteration, network);
+        }
+    }
+}
+
 /// Passes all progress to both observers, first to `A`.
 impl<A: TrainingObserver, B: TrainingObserver> TrainingObserver for (A, B) {
     fn on_iteration(&mut self, record: &IterationRecord, network: &Mlp) {

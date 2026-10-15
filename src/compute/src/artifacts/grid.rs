@@ -1,9 +1,12 @@
 //! Predictions on a regular grid over the input space (1 or 2 features):
 //! the regression curve or the decision regions.
 
+use std::path::Path;
+
 use ndarray::{Array1, Array2, ArrayD, IxDyn};
 
-use super::predict_in_chunks;
+use super::npy::write_npy;
+use super::{ArtifactError, create_dir, predict_in_chunks};
 use crate::config::OutputConfig;
 use crate::data::{Dataset, PreparedData};
 use crate::network::Mlp;
@@ -50,6 +53,20 @@ impl Grid {
             .into_shape_with_order(IxDyn(&shape))
             .expect("one output row per grid point");
         Some(Self { axes, outputs })
+    }
+
+    /// Writes `x.npy` (and `y.npy` for two features) and `outputs.npy` to `dir`.
+    pub(super) fn write(&self, dir: &Path) -> Result<(), ArtifactError> {
+        create_dir(dir)?;
+        for (axis, name) in self.axes.iter().zip(["x.npy", "y.npy"]) {
+            write_npy(&dir.join(name), &[axis.len()], axis.iter().copied())?;
+        }
+        let shape = self.outputs.shape();
+        write_npy(
+            &dir.join("outputs.npy"),
+            shape,
+            self.outputs.iter().copied(),
+        )
     }
 }
 

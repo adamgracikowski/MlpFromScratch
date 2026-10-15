@@ -1,5 +1,9 @@
 //! Training loss per iteration, averaged over windows of `loss_every` steps.
 
+use std::path::Path;
+
+use super::ArtifactError;
+use super::npy::write_npy;
 use crate::training::IterationRecord;
 
 /// Mean batch loss over windows of `every` iterations.
@@ -80,6 +84,21 @@ impl LossHistory {
     /// The mean loss of every window.
     pub fn losses(&self) -> &[f64] {
         &self.losses
+    }
+
+    /// Writes `iteration.npy`, `epoch.npy` (`u64`) and `loss.npy` (`f64`),
+    /// one value per window, to `dir`.
+    pub(super) fn write(&self, dir: &Path) -> Result<(), ArtifactError> {
+        let shape = [self.losses.len()];
+        let numbers =
+            |values: &[usize]| values.iter().map(|&value| value as u64).collect::<Vec<_>>();
+        write_npy(
+            &dir.join("iteration.npy"),
+            &shape,
+            numbers(&self.iterations),
+        )?;
+        write_npy(&dir.join("epoch.npy"), &shape, numbers(&self.epochs))?;
+        write_npy(&dir.join("loss.npy"), &shape, self.losses.iter().copied())
     }
 }
 

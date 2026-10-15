@@ -1,6 +1,7 @@
 //! Quality of the network on a dataset: loss, accuracy, regression errors.
 
 use ndarray::{ArrayView1, ArrayView2, s};
+use serde::Serialize;
 
 use crate::config::Loss;
 use crate::data::{Dataset, PreparedData, Scaler};
@@ -11,7 +12,7 @@ use crate::network::Mlp;
 pub(crate) const CHUNK_ROWS: usize = 1024;
 
 /// Quality of the network on one dataset.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Metrics {
     /// Mean of the training loss (on normalized targets for regression).
     pub loss: f64,
@@ -112,7 +113,7 @@ pub(crate) fn argmax(row: ArrayView1<'_, f64>) -> usize {
 }
 
 /// Metrics of the network on every split of the data.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct SplitMetrics {
     pub train: Metrics,
     /// Present when part of the training file is held out for validation.
