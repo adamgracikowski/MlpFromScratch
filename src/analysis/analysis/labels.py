@@ -33,6 +33,15 @@ NORM = "Norma"
 WEIGHT_NORM = "$\\|W\\|_F$"
 BIAS_NORM = "$\\|b\\|_2$"
 
+MISCLASSIFIED = "Błędnie sklasyfikowane"
+TARGET_FUNCTION = "Funkcja docelowa (zbiór testowy)"
+NETWORK_OUTPUT = "Predykcja sieci"
+RESIDUAL = r"Reszta $\hat{y} - y$"
+OUTSIDE_TRAINING_RANGE = "Poza zakresem zbioru uczącego"
+TRUE_CLASS = "Prawdziwa klasa"
+PREDICTED_CLASS = "Przewidziana klasa"
+ROW_SHARE = "Udział w klasie prawdziwej [%]"
+
 LOSS_NAMES = {
     "cross_entropy": "entropia krzyżowa",
     "mse": "MSE",
