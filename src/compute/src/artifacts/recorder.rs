@@ -69,6 +69,8 @@ impl TrainingObserver for Recorder {
 
 #[cfg(test)]
 mod tests {
+    use ndarray::Array2;
+
     use super::*;
     use crate::config::{CLASSIFICATION, ExperimentConfig, Normalization};
     use crate::data::{Dataset, PreparedData, Scaler};
@@ -80,15 +82,15 @@ mod tests {
 
     /// 50 points on a line, class 1 for positive `x`.
     fn data() -> PreparedData {
-        let dataset = Dataset {
-            inputs: ndarray::Array2::from_shape_fn((50, 2), |(row, column)| {
+        let dataset = Dataset::new(
+            Array2::from_shape_fn((50, 2), |(row, column)| {
                 (row as f64 - 24.5) * (column + 1) as f64
             }),
-            targets: ndarray::Array2::from_shape_fn((50, 2), |(row, class)| {
+            Array2::from_shape_fn((50, 2), |(row, class)| {
                 f64::from(u8::from((row >= 25) == (class == 1)))
             }),
-            labels: Some((0..50).map(|row| usize::from(row >= 25)).collect()),
-        };
+            Some((0..50).map(|row| usize::from(row >= 25)).collect()),
+        );
         PreparedData {
             input_scaler: Scaler::fit(Normalization::None, &dataset.inputs),
             train: dataset.clone(),

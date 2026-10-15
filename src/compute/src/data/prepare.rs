@@ -67,21 +67,15 @@ pub fn prepare(loaded: &LoadedConfig) -> Result<PreparedData, DataError> {
 /// Inputs, one-hot targets and class indices of a classification table.
 fn classification_dataset(table: Table, classes: &ClassEncoding) -> Result<Dataset, DataError> {
     let labels = classes.encode(&table)?;
-    Ok(Dataset {
-        inputs: table.features,
-        targets: classes.one_hot(&labels),
-        labels: Some(labels),
-    })
+    let targets = classes.one_hot(&labels);
+    Ok(Dataset::new(table.features, targets, Some(labels)))
 }
 
 /// Inputs and the target column (`n x 1`) of a regression table.
 fn regression_dataset(table: Table) -> Dataset {
     let rows = table.len();
-    Dataset {
-        inputs: table.features,
-        targets: Array2::from_shape_vec((rows, 1), table.target).expect("one target per sample"),
-        labels: None,
-    }
+    let targets = Array2::from_shape_vec((rows, 1), table.target).expect("one target per sample");
+    Dataset::new(table.features, targets, None)
 }
 
 /// Draws the training subset and splits off the validation set.
@@ -247,6 +241,29 @@ mod tests {
             prepared.validation.unwrap().class_counts(3),
             Some(vec![1, 1, 1])
         );
+    }
+
+    #[test]
+    fn keeps_source_rows_of_samples() {
+        let prepared = prepare_with(&classification(
+            "validation_fraction = 0.2\ntrain_subset = 15",
+        ))
+        .unwrap();
+        let validation = prepared.validation.unwrap();
+        // Row i of the training file has x = i and class index i % 3.
+        for dataset in [&prepared.train, &validation] {
+            let raw = prepared.input_scaler.inverse_transform(&dataset.inputs);
+            for (sample, &row) in dataset.rows.iter().enumerate() {
+                assert!((raw[[sample, 0]] - row as f64).abs() < 1e-9);
+                assert_eq!(dataset.labels.as_ref().unwrap()[sample], row % 3);
+            }
+        }
+        let mut all: Vec<usize> = prepared.train.rows.iter().copied().collect();
+        all.extend(&validation.rows);
+        all.sort_unstable();
+        all.dedup();
+        assert_eq!(all.len(), 15);
+        assert_eq!(prepared.test.rows, array![0, 1, 2]);
     }
 
     #[test]

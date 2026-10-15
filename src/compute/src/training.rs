@@ -12,6 +12,7 @@ use ndarray::Axis;
 
 pub use batches::BatchOrder;
 pub use early_stopping::{Checkpoint, EarlyStopper};
+pub(crate) use metrics::{CHUNK_ROWS, argmax};
 pub use metrics::{Metrics, SplitMetrics};
 pub use observer::{EpochRecord, IterationRecord, TrainingObserver};
 pub use optimizer::OptimizerState;
@@ -185,11 +186,7 @@ mod tests {
         let targets = Array2::from_shape_fn((samples, 2), |(row, class)| {
             f64::from(u8::from(labels[row] == class))
         });
-        Dataset {
-            inputs,
-            targets,
-            labels: Some(labels),
-        }
+        Dataset::new(inputs, targets, Some(labels))
     }
 
     fn classification_data(validation: bool) -> PreparedData {
@@ -401,11 +398,7 @@ mod tests {
     #[test]
     fn stops_when_loss_diverges() {
         let x = Array2::from_shape_fn((50, 1), |(row, _)| row as f64 / 25.0 - 1.0);
-        let samples = Dataset {
-            targets: x.mapv(|x| 3.0 * x),
-            inputs: x,
-            labels: None,
-        };
+        let samples = Dataset::new(x.clone(), x.mapv(|x| 3.0 * x), None);
         let data = PreparedData {
             input_scaler: Scaler::fit(Normalization::None, &samples.inputs),
             target_scaler: Some(Scaler::fit(Normalization::None, &samples.targets)),
