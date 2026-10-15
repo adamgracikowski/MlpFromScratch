@@ -11,6 +11,8 @@
 
 mod axis;
 mod error;
+#[cfg(test)]
+mod examples;
 mod expand;
 #[cfg(test)]
 mod fixtures;

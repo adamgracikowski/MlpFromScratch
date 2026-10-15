@@ -19,6 +19,8 @@ Each experiment lives in `data/experiments/<task>/<experiment-name>/`, where `<t
 
 Configs and plots are committed. Artifacts are git-ignored.
 
+A study compares many experiments: `study.toml` in `data/experiments/<task>/<study-name>/` holds a base config, axes of parameters to vary and a list of seeds. `compute generate` writes one experiment folder per combination of levels and seed into `runs/` (generated, git-ignored: `study.toml` and the code version reproduce it), `compute train` trains them in parallel, and `aggregate` writes tables over seeds (mean, standard deviation), comparison plots and `summary.md` into `results/`. Examples: `data/experiments/classification/example-study/` and `data/experiments/regression/example-study/`.
+
 ## Repository layout
 
 ```txt
@@ -45,6 +47,14 @@ Compute layer, run from the repository root (dataset paths in configs are relati
 cargo build --release --manifest-path src/compute/Cargo.toml
 cargo run --release --manifest-path src/compute/Cargo.toml -- validate data/experiments/classification/example-three-gauss
 cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/example-three-gauss
+```
+
+A study, from the repository root:
+
+```bash
+cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/classification/example-study
+cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/example-study --jobs 8
+uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/example-study --plot-runs
 ```
 
 Tests, from `src/compute/`:

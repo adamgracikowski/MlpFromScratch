@@ -57,7 +57,7 @@ Invalid configs are rejected with diagnostics that point at the offending line o
 
 ## Studies
 
-A study is a grid of experiments described by `<study-dir>/study.toml`, e.g. `data/experiments/classification/<study>/study.toml`. It holds a complete base config, the seeds and the axes to vary:
+A study is a grid of experiments described by `<study-dir>/study.toml`, e.g. `data/experiments/classification/<study>/study.toml`. It holds a complete base config, the seeds and the axes to vary. See the commented examples in `data/experiments/classification/example-study/` and `data/experiments/regression/example-study/`; a test checks that every config they generate is valid. Only `study.toml` is committed: `runs/` is generated and git-ignored.
 
 ```toml
 description = "Hidden activation on two datasets"   # optional, copied into the study summary
