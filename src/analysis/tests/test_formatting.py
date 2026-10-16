@@ -13,6 +13,7 @@ from analysis.formatting import (
     decimal_comma,
     format_number,
     format_percent,
+    format_significant,
     format_value,
     plain_or_power,
     use_decimal_comma,
@@ -135,3 +136,12 @@ def test_plain_log_axis_labels() -> None:
 )
 def test_format_value(value, expected: str) -> None:
     assert format_value(value) == expected
+
+
+def test_format_significant() -> None:
+    assert format_significant(41621.1) == f"41{THIN_SPACE}600"
+    assert format_significant(2466.8) == f"2{THIN_SPACE}470"
+    assert format_significant(12.345) == "12,3"
+    assert format_significant(0.012345) == "0,0123"
+    assert format_significant(-1.5) == MINUS + "1,50"
+    assert format_significant(0.0) == "0"

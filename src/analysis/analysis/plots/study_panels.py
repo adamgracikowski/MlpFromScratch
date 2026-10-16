@@ -1,0 +1,113 @@
+"""Layout shared by the comparison plots of a study: panels, categories and the metric.
+
+The roles of the axes (`[report]` of `study.toml`) decide the layout: one panel per
+combination of the levels of the `panels` axes, the levels of the `x` axis as categories
+and the levels of the `color` axis as colors within a category.
+"""
+
+import itertools
+import math
+from dataclasses import dataclass
+
+import numpy as np
+import polars as pl
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+
+from analysis import labels
+from analysis.study import StudyResults, primary_metric
+from analysis.style import CATEGORICAL, new_figure
+
+
+@dataclass(frozen=True)
+class Panel:
+    """Runs of one combination of the panel levels."""
+
+    levels: dict[str, str]  # panel axis -> level
+    runs: pl.DataFrame
+
+    @property
+    def title(self) -> str | None:
+        return labels.panel_title(self.levels) if self.levels else None
+
+
+def panels(results: StudyResults) -> list[Panel]:
+    """One panel per combination of the levels of the panel axes, in level order."""
+    study = results.study
+    axes = {axis.name: axis.levels for axis in study.axes}
+    names = study.roles.panels
+    found = []
+    for combination in itertools.product(*(axes[name] for name in names)):
+        levels = dict(zip(names, combination, strict=True))
+        runs = results.runs
+        for name, level in levels.items():
+            runs = runs.filter(pl.col(name) == level)
+        if runs.height:
+            found.append(Panel(levels, runs))
+    return found
+
+
+def levels(results: StudyResults, role: str) -> list[str | None]:
+    """Levels of the axis with the given role (`x` or `color`); `[None]` without one."""
+    name = getattr(results.study.roles, role)
+    if name is None:
+        return [None]
+    return next(axis.levels for axis in results.study.axes if axis.name == name)
+
+
+def select(runs: pl.DataFrame, results: StudyResults, x: str | None, color: str | None):
+    """Runs of one category and color within a panel."""
+    roles = results.study.roles
+    for name, level in ((roles.x, x), (roles.color, color)):
+        if name is not None:
+            runs = runs.filter(pl.col(name) == level)
+    return runs
+
+
+def series_label(x: str | None, color: str | None) -> str | None:
+    """Legend entry of a variant within a panel: its `x` and `color` levels."""
+    parts = [level for level in (x, color) if level is not None]
+    return ", ".join(parts) if parts else None
+
+
+def color_of(index: int) -> str:
+    return CATEGORICAL[index % len(CATEGORICAL)]
+
+
+def line_style_of(index: int) -> str:
+    """Line style that tells apart series whose colors repeat (more than 8 series)."""
+    return ("-", "--", ":", "-.")[(index // len(CATEGORICAL)) % 4]
+
+
+def panel_figure(count: int, single_height_cm: float = 9.0) -> tuple[Figure, list[Axes]]:
+    """A figure 16 cm wide with `count` panels in up to two columns; spare axes hidden."""
+    columns = 1 if count == 1 else 2
+    rows = math.ceil(count / columns)
+    height = single_height_cm if count == 1 else 6.5 * rows
+    figure, axes = new_figure(16, height, rows=rows, columns=columns, squeeze=False)
+    flat = list(axes.ravel())
+    for spare in flat[count:]:
+        spare.set_visible(False)
+    return figure, flat[:count]
+
+
+def is_log_metric(results: StudyResults) -> bool:
+    """Regression errors span orders of magnitude: they are drawn on a log axis."""
+    return not results.study.is_classification
+
+
+def metric_scale(results: StudyResults) -> float:
+    """Accuracy is shown in percent."""
+    return 100.0 if results.study.is_classification else 1.0
+
+
+def metric_label(results: StudyResults) -> str:
+    return labels.TEST_ACCURACY if results.study.is_classification else labels.TEST_MSE
+
+
+def primary_column(results: StudyResults) -> str:
+    return f"test_{primary_metric(results.study)}"
+
+
+def finite(values: np.ndarray) -> np.ndarray:
+    return values[np.isfinite(values)]

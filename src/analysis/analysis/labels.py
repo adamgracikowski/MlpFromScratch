@@ -163,3 +163,66 @@ def code_version(package: str, commit: str, dirty: bool) -> str:
     """Version of the compute layer that trained the network."""
     changes = " (z niezatwierdzonymi zmianami)" if dirty else ""
     return f"`compute` {package}, commit `{commit}`{changes}"
+
+
+# Studies: comparison plots and results/summary.md
+
+MEAN_AND_SD = "Średnia ± odchylenie standardowe"
+SINGLE_SEED = "Pojedyncze ziarno"
+
+
+TEST_ACCURACY = "Dokładność testowa [%]"
+TEST_MSE = "MSE testowe (skala oryginalna)"
+
+
+def train_loss(loss: str) -> str:
+    """Axis label of the training loss, e.g. `Strata ucząca (MSE)`."""
+    return f"Strata ucząca ({LOSS_NAMES[loss]})"
+
+
+def diverged_runs(diverged: int, runs: int) -> str:
+    """Annotation of a variant whose runs diverged, e.g. `2/5 rozbieżne`."""
+    return f"{diverged}/{runs} rozbieżne"
+
+
+def panel_title(levels: dict[str, str]) -> str:
+    """Title of a panel: the panel axes and their levels, e.g. `dataset: simple-100`."""
+    return ", ".join(f"{axis}: {level}" for axis, level in levels.items())
+
+
+STUDY_TITLE = "Badanie"
+SECTION_PLAN = "Plan badania"
+SECTION_BASE = "Konfiguracja bazowa"
+SECTION_RESULTS = "Wyniki"
+SECTION_REPRESENTATIVE = "Runy reprezentatywne"
+AXIS = "Oś"
+LEVELS = "Poziomy"
+SEEDS = "Ziarna"
+RUN_COUNT = "Liczba runów"
+KEY = "Klucz"
+VARIANT = "Wariant"
+FINISHED = "Ukończone"
+DIVERGED = "Rozbieżne"
+MISSING = "Bez artefaktów"
+MEAN_EPOCHS = "Epoki (średnio)"
+MEAN_TIME = "Czas uczenia (średnio)"
+RUN = "Run"
+RESULTS_NOTE = (
+    "Średnia ± odchylenie standardowe (próbkowe) po ziarnach, tylko z runów zakończonych "
+    "normalnie (wszystkie epoki lub early stopping); runy rozbieżne i bez artefaktów są "
+    "policzone osobno."
+)
+REPRESENTATIVE_NOTE = (
+    "Dla każdego wariantu run, którego metryka testowa jest najbliższa medianie po ziarnach; "
+    "jego wykresy są w katalogu `plots/` runu."
+)
+
+
+def set_by_axis(axis: str) -> str:
+    """Value of a base config key replaced by the levels of an axis."""
+    return f"zmieniane przez oś `{axis}`"
+
+
+def metric_column(metric: str, split: str) -> str:
+    """Column of a results table, e.g. `Dokładność (testowy)`."""
+    return f"{metric} ({SPLIT_ADJECTIVES[split]})"

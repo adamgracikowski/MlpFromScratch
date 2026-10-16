@@ -62,7 +62,7 @@ def plot_loss(experiment: Experiment) -> Figure:
 
     loss_label = labels.loss_label(config["training"]["loss"])
     for axes, series in ((by_iteration, [loss]), (by_epoch, epoch_losses)):
-        _fit_log_axis(axes, series)
+        fit_log_axis(axes, series)
         axes.set_ylabel(loss_label)
     # Noisy batch losses fill the whole panel: the legend gets a background.
     by_iteration.legend(
@@ -79,7 +79,7 @@ def plot_metrics(experiment: Experiment) -> Figure:
         _plot_by_epoch(axes, experiment, "accuracy", scale=100.0)
         axes.set_ylabel(labels.ACCURACY)
     else:
-        _fit_log_axis(axes, _plot_by_epoch(axes, experiment, "mse"))
+        fit_log_axis(axes, _plot_by_epoch(axes, experiment, "mse"))
         axes.set_ylabel(labels.MSE)
     if experiment.best_epoch is not None:
         _mark_best_epoch(axes, experiment.best_epoch, experiment.best_epoch)
@@ -113,7 +113,7 @@ def _plot_by_epoch(
     return series
 
 
-def _fit_log_axis(axes: Axes, series: list[np.ndarray]) -> None:
+def fit_log_axis(axes: Axes, series: list[np.ndarray]) -> None:
     """Switch to a log scale with limits from the positive finite values, 5% margin in decades.
 
     Matplotlib's own autoscaling overflows on values near the float limit (diverged runs).

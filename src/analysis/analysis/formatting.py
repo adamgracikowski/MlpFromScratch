@@ -77,6 +77,20 @@ def format_value(value: float | None, digits: int = 4) -> str:
     return text.replace("-", MINUS)
 
 
+def format_significant(value: float, digits: int = 3) -> str:
+    """Round to `digits` significant digits for plot text: `41 600`, `2 470`, `0,0123`.
+
+    Thousands are separated by a thin space; non-finite values as in `format_value`.
+    """
+    if not math.isfinite(value) or value == 0:
+        return format_value(value) if value != 0 else "0"
+    exponent = math.floor(math.log10(abs(value)))
+    decimals = max(digits - 1 - exponent, 0)
+    rounded = round(value, digits - 1 - exponent)
+    text = f"{rounded:,.{decimals}f}".replace(",", THIN_SPACE)
+    return text.replace(".", ",").replace("-", MINUS)
+
+
 class DecimalCommaFormatter(Formatter):
     """Tick formatter delegating to another one and writing a decimal comma."""
 

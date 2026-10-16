@@ -30,8 +30,16 @@ def write_experiment(
     early_stopped: bool = False,
     diverged: bool = False,
     bias: bool = True,
+    name: str = "experiment",
+    seed: int = 42,
+    shift: float = 0.0,
+    loss_function: str | None = None,
 ) -> Path:
-    """Write datasets and `artifacts/` of a small synthetic run; return the experiment dir."""
+    """Write datasets and `artifacts/` of a small synthetic run; return the experiment dir.
+
+    `name` is the experiment directory relative to `root`; `shift` is added to the
+    metrics (accuracy, relative change of the regression errors) to tell runs apart.
+    """
     rng = np.random.default_rng(0)
     classification = task == "classification"
     feature_names = ["x", "y"][:features] if features <= 2 else [f"f{i}" for i in range(features)]
@@ -51,7 +59,7 @@ def write_experiment(
         paths[split] = datasets / f"{task}.{features}.{split}.csv"
         pl.DataFrame(columns).write_csv(paths[split])
 
-    experiment = root / "experiment"
+    experiment = root / name
     artifacts = experiment / "artifacts"
     artifacts.mkdir(parents=True)
 
@@ -93,7 +101,7 @@ def write_experiment(
     for split in splits:
         columns[f"{split}_loss"] = np.linspace(1.0, 0.1, epochs + 1)
         for metric in metric_names:
-            columns[f"{split}_{metric}"] = np.linspace(0.3, 0.9, epochs + 1)
+            columns[f"{split}_{metric}"] = np.linspace(0.3, 0.9, epochs + 1) + shift
     if diverged:
         for name in columns:
             if name not in ("epoch", "iteration"):
@@ -150,9 +158,16 @@ def write_experiment(
         stop = {"reason": "early_stopped"}
     if diverged:
         stop = {"reason": "diverged", "epoch": epochs, "iteration": iterations - 1}
-    final = {"loss": 0.1, "accuracy": 0.9, "mse": None, "mae": None}
+    final = {"loss": 0.1, "accuracy": 0.9 + shift, "mse": None, "mae": None}
     if not classification:
-        final = {"loss": 0.1, "accuracy": None, "mse": 1234.5, "mae": 12.5}
+        final = {
+            "loss": 0.1,
+            "accuracy": None,
+            "mse": 1234.5 * (1 + shift),
+            "mae": 12.5 * (1 + shift),
+        }
+    if diverged:
+        final = {name: None for name in final}
     metadata = {
         "version": {"package": "0.1.0", "commit": "0123456789abcdef", "dirty": False},
         "started_at": 1792076037,
@@ -176,10 +191,10 @@ def write_experiment(
             },
             "optimizer": {"kind": "momentum", "learning_rate": 0.01, "momentum": 0.9},
             "training": {
-                "loss": "cross_entropy" if classification else "mse",
+                "loss": loss_function or ("cross_entropy" if classification else "mse"),
                 "epochs": epochs,
                 "batch_size": BATCH_SIZE,
-                "seed": 42,
+                "seed": seed,
                 **(
                     {"early_stopping": {"patience": 2, "min_delta": 0.0001}}
                     if early_stopped
@@ -240,6 +255,73 @@ def write_experiment(
 
 def _save(path: Path, array: np.ndarray) -> None:
     np.save(path, np.ascontiguousarray(array))
+
+
+def write_study(
+    root: Path,
+    *,
+    task: str = "classification",
+    axes: dict[str, list[str]] | None = None,
+    seeds: tuple[int, ...] = (1, 2, 3),
+    report: str = "",
+    missing: tuple[str, ...] = (),
+    diverged: tuple[str, ...] = (),
+    losses: dict[str, str] | None = None,
+) -> Path:
+    """Write `study.toml`, `runs/index.csv` and synthetic runs of a study; return its dir.
+
+    `missing` and `diverged` list run dirs (`runs/<variant>/seed-<s>`) without artifacts
+    or with a diverged run. `losses` maps a level name to the loss of its runs. The
+    metrics grow with the variant number and slightly with the seed.
+    """
+    axes = {"activation": ["sigmoid", "tanh"], "dataset": ["a", "b"]} if axes is None else axes
+    study = root / "study"
+    study.mkdir(parents=True)
+    lines = ['description = "Synthetic study"', f"seeds = {list(seeds)}", ""]
+    for name, levels in axes.items():
+        values = ", ".join(f'"{level}"' for level in levels)
+        lines += ["[[axes]]", f'name = "{name}"', 'key = "model.bias"', f"values = [{values}]", ""]
+    lines += [report, "", "[base]", f'task = "{task}"', "", "[base.training]", 'loss = "mse"']
+    (study / "study.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    combinations: list[list[str]] = [[]]
+    for levels in axes.values():
+        combinations = [combination + [level] for combination in combinations for level in levels]
+    rows = []
+    for number, combination in enumerate(combinations):
+        variant = "__".join(combination) or "base"
+        for seed in seeds:
+            run = f"runs/{variant}/seed-{seed}"
+            levels = dict(zip(axes, combination, strict=True))
+            rows.append({"dir": run, "variant": variant, "seed": seed} | levels)
+            if run in missing:
+                (study / run).mkdir(parents=True)
+                continue
+            loss = next((losses[level] for level in combination if level in (losses or {})), None)
+            write_experiment(
+                study,
+                task=task,
+                name=run,
+                seed=seed,
+                shift=0.02 * number + 0.001 * seed,
+                diverged=run in diverged,
+                loss_function=loss,
+            )
+    index = study / "runs" / "index.csv"
+    index.parent.mkdir(exist_ok=True)
+    pl.DataFrame(rows, schema=["dir", "variant", "seed", *axes], orient="row").write_csv(index)
+    return study
+
+
+@pytest.fixture
+def make_study(tmp_path: Path) -> Callable[..., Path]:
+    """Factory writing a synthetic study into a fresh temporary directory."""
+    counter = iter(range(1000))
+
+    def make(**options: object) -> Path:
+        return write_study(tmp_path / f"study{next(counter)}", **options)
+
+    return make
 
 
 @pytest.fixture

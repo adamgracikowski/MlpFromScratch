@@ -53,6 +53,12 @@ impl Issue {
         self
     }
 
+    /// Narrows the path to the field `name` of the table it points at.
+    pub fn at_field(mut self, name: &'static str) -> Self {
+        self.path.push(Key::Field(name));
+        self
+    }
+
     /// Attaches a hint on how to fix the problem.
     pub fn with_help(mut self, help: impl Into<String>) -> Self {
         self.help = Some(help.into());
@@ -100,6 +106,14 @@ mod tests {
             "`model.hidden_layers[2]`: must be positive"
         );
         assert!(issue.is_error());
+    }
+
+    #[test]
+    fn formats_field_after_index() {
+        let issue = Issue::error(&["axes"], "duplicate name")
+            .at_index(1)
+            .at_field("name");
+        assert_eq!(issue.path_string(), "axes[1].name");
     }
 
     #[test]

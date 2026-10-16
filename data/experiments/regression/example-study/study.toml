@@ -1,0 +1,66 @@
+# Example study: hidden activation x loss function on the `cube` dataset, 3 seeds each.
+# Paths are relative to the current working directory; run from the repo root:
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/regression/example-study
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/regression/example-study
+#   uv run --project src/analysis src/analysis/main.py aggregate data/experiments/regression/example-study
+
+description = "Wpływ funkcji aktywacji i funkcji straty na regresję zbioru cube."
+seeds = [1, 2, 3]                  # every variant runs once per seed (training.seed)
+
+# Full form: every level sets several keys, here the activation with its usual initialization.
+[[axes]]
+name = "activation"
+levels = [
+  { name = "sigmoid", set = { "model.hidden_activation" = { kind = "sigmoid" }, "model.init" = { kind = "xavier" } } },
+  { name = "tanh", set = { "model.hidden_activation" = { kind = "tanh" }, "model.init" = { kind = "xavier" } } },
+  { name = "relu", set = { "model.hidden_activation" = { kind = "relu" }, "model.init" = { kind = "he" } } },
+]
+
+# Shorthand: one key, one level per value, named after the value.
+[[axes]]
+name = "loss"
+key = "training.loss"
+values = ["mse", "mae"]
+
+[report]                           # x and color set: the heatmap is drawn too
+x = "activation"
+color = "loss"
+
+# Complete experiment config (see config.toml of example-cube), without training.seed.
+# Keys set by the axes still need a value here; it is replaced in every run.
+[base]
+task = "regression"
+
+[base.data]
+train = "data/datasets/regression/data.cube.train.500.csv"
+test = "data/datasets/regression/data.cube.test.500.csv"
+target = "y"
+input_normalization = "standard"
+target_normalization = "standard"
+validation_fraction = 0.0
+
+[base.model]
+hidden_layers = [32, 32]
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "identity"
+init = { kind = "he" }
+
+[base.optimizer]
+kind = "momentum"
+learning_rate = 0.01
+momentum = 0.9
+
+[base.training]
+loss = "mse"
+epochs = 200
+batch_size = 16
+
+[base.logging]
+loss_every = 1
+weights_every = 50                 # fewer snapshots: many runs
+max_weights_per_layer = 64
+
+[base.output]
+grid_resolution = 500
+grid_margin = 0.1
