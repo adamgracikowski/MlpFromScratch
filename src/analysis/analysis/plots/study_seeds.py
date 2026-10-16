@@ -10,6 +10,7 @@ from analysis import labels
 from analysis.plots.loss import fit_log_axis
 from analysis.plots.study_panels import (
     Metric,
+    category_ticks,
     color_of,
     finite,
     levels,
@@ -38,7 +39,7 @@ def plot_study_seeds(results: StudyResults, column: str | None = None) -> Figure
         values = _draw_panel(axes, results, metric, panel.runs, x_levels, color_levels)
         if panel.title:
             axes.set_title(panel.title)
-        axes.set_xticks(range(len(x_levels)), [level or "" for level in x_levels])
+        category_ticks(axes, [level or "" for level in x_levels])
         axes.set_xlim(-0.5, len(x_levels) - 0.5)
         axes.grid(axis="x", visible=False)
         axes.set_xlabel(results.study.roles.x or "")

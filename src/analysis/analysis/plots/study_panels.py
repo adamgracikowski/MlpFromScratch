@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 from analysis import labels
 from analysis.study import StudyResults, primary_metric
 from analysis.study.range_errors import INSIDE, OUTSIDE
-from analysis.style import CATEGORICAL, new_figure
+from analysis.style import CATEGORICAL, CM, new_figure
 
 
 @dataclass(frozen=True)
@@ -78,6 +78,32 @@ def color_of(index: int) -> str:
 def line_style_of(index: int) -> str:
     """Line style that tells apart series whose colors repeat (more than 8 series)."""
     return ("-", "--", ":", "-.")[(index // len(CATEGORICAL)) % 4]
+
+
+# Rough width of a character of the 9 pt tick labels and of the 8 pt heatmap cells.
+TICK_CHARACTER_CM = 0.17
+CELL_CHARACTER_CM = 0.15
+
+
+def axes_width_cm(axes: Axes) -> float:
+    """Width of the axes in the figure grid (before the constrained layout shrinks it)."""
+    return axes.get_position().width * axes.get_figure().get_figwidth() / CM
+
+
+def fits(texts: list[str], slot_cm: float, character_cm: float) -> bool:
+    """Whether the longest text fits a slot, with a margin of 10 %."""
+    longest = max((len(text) for text in texts), default=0)
+    return longest * character_cm <= 0.9 * slot_cm
+
+
+def category_ticks(axes: Axes, names: list[str]) -> None:
+    """One x tick per category; labels too long for their slot are slanted."""
+    axes.set_xticks(range(len(names)), names)
+    if names and not fits(names, axes_width_cm(axes) / len(names), TICK_CHARACTER_CM):
+        axes.tick_params(axis="x", labelrotation=30)
+        for label in axes.get_xticklabels():
+            label.set_horizontalalignment("right")
+            label.set_rotation_mode("anchor")
 
 
 def panel_figure(count: int, single_height_cm: float = 9.0) -> tuple[Figure, list[Axes]]:

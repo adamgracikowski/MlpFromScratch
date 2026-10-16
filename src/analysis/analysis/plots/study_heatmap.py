@@ -15,8 +15,12 @@ from analysis.formatting import (
     format_significant,
 )
 from analysis.plots.study_panels import (
+    CELL_CHARACTER_CM,
     Metric,
+    axes_width_cm,
+    category_ticks,
     finite,
+    fits,
     levels,
     metric_of,
     panel_figure,
@@ -27,6 +31,7 @@ from analysis.study import StudyResults
 from analysis.study.run_summary import FINISHED
 from analysis.style import GRID, INK
 
+PLUS_MINUS = chr(0xB1)
 # Cells darker than this share of the color range get white text.
 DARK_TEXT_THRESHOLD = 0.6
 
@@ -57,7 +62,7 @@ def plot_study_heatmap(results: StudyResults, column: str | None = None) -> Figu
     for axes, panel, (mean, sd) in zip(axes_list, study_panels, tables, strict=True):
         image = axes.imshow(mean, cmap=cmap, norm=norm, aspect="auto")
         _annotate(axes, mean, sd, norm, log)
-        axes.set_xticks(range(len(x_levels)), x_levels)
+        category_ticks(axes, x_levels)
         axes.set_yticks(range(len(color_levels)), color_levels)
         axes.set_xlabel(results.study.roles.x)
         axes.set_ylabel(results.study.roles.color)
@@ -106,11 +111,22 @@ def _norm(values: np.ndarray, log: bool) -> Normalize:
 
 
 def _annotate(axes: Axes, mean: np.ndarray, sd: np.ndarray, norm: Normalize, log: bool) -> None:
+    """Mean and deviation in every cell; on two lines when one line is wider than a cell."""
+    texts = {
+        (row, col): _cell_text(value, sd[row, col], log)
+        for (row, col), value in np.ndenumerate(mean)
+        if not np.isnan(value)
+    }
+    # The colorbar takes about a fifth of the panel.
+    cell_cm = 0.8 * axes_width_cm(axes) / mean.shape[1]
+    if not fits(list(texts.values()), cell_cm, CELL_CHARACTER_CM):
+        wrapped = f"\n{PLUS_MINUS} "
+        texts = {cell: text.replace(f" {PLUS_MINUS} ", wrapped) for cell, text in texts.items()}
     for (row, col), value in np.ndenumerate(mean):
         if np.isnan(value):
             text, color = DASH, INK
         else:
-            text = _cell_text(value, sd[row, col], log)
+            text = texts[row, col]
             shade = float(norm(value))
             dark = (1 - shade if log else shade) > DARK_TEXT_THRESHOLD
             color = "white" if dark else INK
@@ -126,4 +142,4 @@ def _cell_text(mean: float, sd: float, log: bool) -> str:
     else:
         main = format_number(mean, 1)
         spread = format_number(sd, 1) if np.isfinite(sd) else None
-    return main if spread is None else f"{main} {chr(0xB1)} {spread}"
+    return main if spread is None else f"{main} {PLUS_MINUS} {spread}"
