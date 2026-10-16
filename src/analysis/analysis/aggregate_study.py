@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from analysis.experiment import load_experiment
 from analysis.plot_experiment import DEFAULT_DPI, DEFAULT_FORMATS, plot_experiment
 from analysis.plots.study_curves import plot_study_curves, plot_study_train_loss, training_losses
+from analysis.plots.study_gallery import gallery_skip_reason, plot_study_gallery
 from analysis.plots.study_heatmap import heatmap_skip_reason, plot_study_heatmap
 from analysis.plots.study_seeds import plot_study_seeds
 from analysis.study import (
@@ -69,7 +70,8 @@ def aggregate_study(
     plot_runs: bool = False,
 ) -> AggregateReport:
     """Write `runs.csv` (one row per run), `variants.csv` (statistics over seeds), the
-    comparison plots and `summary.md` to `<study>/results/`, which is removed first.
+    comparison plots, the galleries of representative runs and `summary.md` to
+    `<study>/results/`, which is removed first.
 
     With `plot_runs`, the representative run of every variant (closest to the median of
     the test metric) also gets all plots of a single experiment in its `plots/`. Runs
@@ -99,6 +101,12 @@ def aggregate_study(
                 skipped.append((plot.name, reason))
                 continue
             files += save_figure(plot.draw(results), directory, plot.name, formats, dpi)
+        reason = gallery_skip_reason(results)
+        if reason is None:
+            for name, figure in plot_study_gallery(results):
+                files += save_figure(figure, directory, name, formats, dpi)
+        else:
+            skipped.append(("gallery", reason))
 
     plotted = representative_runs(results) if plot_runs else {}
     for run in plotted.values():

@@ -1,12 +1,14 @@
 """Decision regions of a classifier in R^2 with the test samples."""
 
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.colors import to_rgb
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
 from analysis import labels
 from analysis.experiment import Experiment
+from analysis.series import evenly_spaced
 from analysis.style import INK, MUTED, class_style, new_figure
 
 # Opacity of the class color over white, from the least to the most confident prediction.
@@ -16,11 +18,25 @@ REGION_ALPHA = (0.06, 0.40)
 
 def plot_decision_boundary(experiment: Experiment) -> Figure:
     """Class regions shaded by confidence, their boundaries and the test samples."""
+    figure, axes = new_figure(16, 11)
+    draw_decision_regions(axes, experiment)
+    axes.set_xlabel(labels.variable(experiment.features[0]))
+    axes.set_ylabel(labels.variable(experiment.features[1]))
+    axes.legend(
+        handles=legend_handles(experiment.classes), loc="upper left", bbox_to_anchor=(1.02, 1)
+    )
+    return figure
+
+
+def draw_decision_regions(
+    axes: Axes, experiment: Experiment, max_points: int | None = None
+) -> None:
+    """Draw the class regions, their boundaries and the test samples, misclassified ones
+    marked; with `max_points`, only that many evenly spaced test samples."""
     grid = experiment.grid
     x, y = grid.axes
     probabilities = grid.outputs  # (r, r, K), [i, j] is the point (x[j], y[i])
     classes = experiment.classes
-    figure, axes = new_figure(16, 11)
 
     extent = [*_cell_bounds(x), *_cell_bounds(y)]
     axes.imshow(
@@ -37,9 +53,11 @@ def plot_decision_boundary(experiment: Experiment) -> Figure:
             axes.contour(x, y, margin, levels=[0.0], colors=INK, linewidths=0.8)
 
     test = experiment.predictions["test"]
+    shown = evenly_spaced(len(test.rows), len(test.rows) if max_points is None else max_points)
+    inputs, true, predicted = test.inputs[shown], test.labels[shown], test.predicted[shown]
     for index, label in enumerate(classes):
         color, marker = class_style(index)
-        points = test.inputs[test.labels == label]
+        points = inputs[true == label]
         axes.scatter(
             points[:, 0],
             points[:, 1],
@@ -50,10 +68,10 @@ def plot_decision_boundary(experiment: Experiment) -> Figure:
             linewidths=0.3,
             zorder=3,
         )
-    wrong = test.predicted != test.labels
+    wrong = predicted != true
     for index, label in enumerate(classes):
         color, _ = class_style(index)
-        points = test.inputs[wrong & (test.labels == label)]
+        points = inputs[wrong & (true == label)]
         axes.scatter(
             points[:, 0],
             points[:, 1],
@@ -67,9 +85,11 @@ def plot_decision_boundary(experiment: Experiment) -> Figure:
 
     axes.set_xlim(extent[0], extent[1])
     axes.set_ylim(extent[2], extent[3])
-    axes.set_xlabel(labels.variable(experiment.features[0]))
-    axes.set_ylabel(labels.variable(experiment.features[1]))
     axes.grid(False)
+
+
+def legend_handles(classes: list[int]) -> list[Line2D]:
+    """Legend entries of the classes and of the misclassified samples."""
     handles = [
         Line2D(
             [],
@@ -97,8 +117,7 @@ def plot_decision_boundary(experiment: Experiment) -> Figure:
             label=labels.MISCLASSIFIED,
         )
     )
-    axes.legend(handles=handles, loc="upper left", bbox_to_anchor=(1.02, 1))
-    return figure
+    return handles
 
 
 def region_colors(probabilities: np.ndarray) -> np.ndarray:

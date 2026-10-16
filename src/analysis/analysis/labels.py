@@ -190,6 +190,19 @@ def panel_title(levels: dict[str, str]) -> str:
     return ", ".join(f"{axis}: {level}" for axis, level in levels.items())
 
 
+NO_FINISHED_RUN = "Brak ukończonego runu"
+
+
+def gallery_title(level: str | None, metric: str) -> str:
+    """Title of a gallery panel: the `x` level and the test metric of its run, e.g.
+    `relu · 97,2%`."""
+    return metric if level is None else f"{level} · {metric}"
+
+
+def gallery_mse(value: str) -> str:
+    return f"MSE {value}"
+
+
 STUDY_TITLE = "Badanie"
 SECTION_PLAN = "Plan badania"
 SECTION_BASE = "Konfiguracja bazowa"

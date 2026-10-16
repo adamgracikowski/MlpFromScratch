@@ -22,7 +22,7 @@ uv run --project src/analysis src/analysis/main.py plot data/experiments/classif
 
 - `runs.csv`: one row per run: directory, variant, seed, level of every axis, status (`completed`, `early_stopped`, `diverged` or `missing` without artifacts), epochs, best epoch, training time and the final metrics of every split (accuracy as a fraction).
 - `variants.csv`: one row per variant: numbers of runs, finished, diverged and missing runs, and the mean, sample standard deviation, minimum, median and maximum of every metric over the finished runs (completed or early stopped).
-- the comparison plots below and `summary.md` (plan, base config, results table, representative runs).
+- the comparison plots and galleries below and `summary.md` (plan, base config, results table, representative runs).
 
 Options: `--format` and `--dpi` as for `plot`; `--plot-runs` also runs `plot` for the representative run of every variant: the finished run whose test metric is closest to the median over seeds (the smaller seed on a tie). Runs without artifacts are listed as a warning; a study without any trained run is an error.
 
@@ -40,6 +40,7 @@ The comparison plots compare the test accuracy (classification) or the test MSE 
 | `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band | always |
 | `curves_train_loss` | training loss per epoch, as `curves` | all variants use the same loss |
 | `heatmap` | mean (+- standard deviation) of the test metric, rows `color`, columns `x` | `x` and `color` are set |
+| `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level: decision regions (classification) or network curve (regression) of the representative run, with its test metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |
 
 Statistics use the finished runs only. Diverged runs are counted separately, and so are runs without artifacts. Where the standard deviation exceeds the mean on a log axis, the band reaches the bottom of the plot.
 
