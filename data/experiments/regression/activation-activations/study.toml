@@ -1,0 +1,70 @@
+# Study: activation x training set size on `activation`, 10 seeds each.
+# Run from the repo root (or all studies at once: pwsh -File scripts/run-studies.ps1):
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/regression/activation-activations
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/regression/activation-activations --skip-trained
+#   uv run --project src/analysis src/analysis/main.py aggregate data/experiments/regression/activation-activations --plot-runs
+
+description = "Wpływ funkcji aktywacji w warstwach ukrytych na regresję zbioru `activation` w czterech rozmiarach."
+seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# Full form: every activation with its usual initialization (Xavier for sigmoid and tanh, He for ReLU).
+[[axes]]
+name = "activation"
+levels = [
+  { name = "sigmoid", set = { "model.hidden_activation" = { kind = "sigmoid" }, "model.init" = { kind = "xavier" } } },
+  { name = "tanh", set = { "model.hidden_activation" = { kind = "tanh" }, "model.init" = { kind = "xavier" } } },
+  { name = "relu", set = { "model.hidden_activation" = { kind = "relu" }, "model.init" = { kind = "he" } } },
+  { name = "leaky-relu", set = { "model.hidden_activation" = { kind = "leaky_relu", alpha = 0.01 }, "model.init" = { kind = "he" } } },
+]
+
+# Training set size: rows of the training file (the test file has 1201 rows).
+# Larger sets get fewer epochs, so the number of iterations (batches) stays of a similar order.
+[[axes]]
+name = "size"
+levels = [
+  { name = "100", set = { "data.train" = "data/datasets/regression/data.activation.train.100.csv", "data.test" = "data/datasets/regression/data.activation.test.100.csv", "training.epochs" = 1000 } },
+  { name = "500", set = { "data.train" = "data/datasets/regression/data.activation.train.500.csv", "data.test" = "data/datasets/regression/data.activation.test.500.csv", "training.epochs" = 300 } },
+  { name = "1000", set = { "data.train" = "data/datasets/regression/data.activation.train.1000.csv", "data.test" = "data/datasets/regression/data.activation.test.1000.csv", "training.epochs" = 200 } },
+  { name = "10000", set = { "data.train" = "data/datasets/regression/data.activation.train.10000.csv", "data.test" = "data/datasets/regression/data.activation.test.10000.csv", "training.epochs" = 30 } },
+]
+
+[report]                           # factor on the x axis, sizes as colors; heatmap and galleries per size
+x = "activation"
+color = "size"
+
+# Settings not studied here. Keys set by the axes still need a value; it is replaced in every run.
+[base]
+task = "regression"
+
+[base.data]
+train = "data/datasets/regression/data.activation.train.100.csv"
+test = "data/datasets/regression/data.activation.test.100.csv"
+target = "y"
+input_normalization = "standard"
+target_normalization = "standard"   # targets are in the hundreds
+validation_fraction = 0.0
+
+[base.model]
+hidden_layers = [32, 32]
+bias = true
+hidden_activation = { kind = "tanh" }
+output_activation = "identity"
+init = { kind = "xavier" }
+
+[base.optimizer]
+kind = "adam"
+learning_rate = 0.003
+
+[base.training]
+loss = "mse"
+epochs = 1000
+batch_size = 32
+
+[base.logging]
+loss_every = 1
+weights_every = 100
+max_weights_per_layer = 32
+
+[base.output]
+grid_resolution = 500
+grid_margin = 0.1

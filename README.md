@@ -58,6 +58,16 @@ cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experim
 uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/example-study --plot-runs
 ```
 
+The studies of part one are in `data/experiments/<task>/<dataset>-<factor>/`, one per dataset and studied factor, each with the factor and the training set size (100, 500, 1000, 10000; fewer epochs for larger sets) as axes and 10 seeds:
+
+| Factor | Levels | Studies |
+|---|---|---|
+| `activations` | hidden activation: sigmoid, tanh (Xavier initialization), ReLU, leaky ReLU (He) | `classification/{simple,three-gauss}-activations`, `regression/{activation,cube}-activations` |
+| `architectures` | hidden layers: none, 4, 16, 64, 16-16, 64-64, 16-16-16, 16-16-16-16, 64-64-64-64 | `classification/{simple,three-gauss}-architectures`, `regression/{activation,cube}-architectures` |
+| `losses` | cross-entropy and MSE with softmax (classification), MSE and MAE (regression) | `classification/{simple,three-gauss}-losses`, `regression/{activation,cube}-losses` |
+
+The other settings are shared: tanh, 16-16 (classification) or 32-32 (regression) hidden neurons, Adam with learning rate 0.003, batch size 32.
+
 All studies of part one, one after another (PowerShell 7, from any directory):
 
 ```powershell

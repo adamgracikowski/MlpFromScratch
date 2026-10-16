@@ -1,34 +1,62 @@
-//! Checks that the example studies in `data/experiments/` are valid and that
-//! every config they generate is valid, with existing dataset files.
+//! Checks that every study in `data/experiments/` (examples and the studies of part one)
+//! is valid and that every config it generates is valid, with existing dataset files.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use miette::Severity;
+
 use super::{STUDY_FILE_NAME, StudyConfig, expand, validate};
 use crate::config::{ExperimentConfig, Issue, check_files};
-
-/// Example studies, relative to the repository root.
-const EXAMPLES: [&str; 2] = [
-    "data/experiments/classification/example-study",
-    "data/experiments/regression/example-study",
-];
 
 /// The repository root; dataset paths in studies are relative to it.
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
+/// Directories `data/experiments/<task>/<study>/` with a `study.toml`, sorted.
+fn studies(root: &Path) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    for task in fs::read_dir(root.join("data/experiments")).unwrap() {
+        let task = task.unwrap().path();
+        if !task.is_dir() {
+            continue;
+        }
+        for study in fs::read_dir(&task).unwrap() {
+            let study = study.unwrap().path();
+            if study.join(STUDY_FILE_NAME).is_file() {
+                found.push(study);
+            }
+        }
+    }
+    found.sort();
+    found
+}
+
+/// Errors and warnings; advice (e.g. the unused hidden activation of a network without
+/// hidden layers) is expected in some variants.
+fn problems(issues: &[Issue]) -> Vec<String> {
+    issues
+        .iter()
+        .filter(|issue| issue.severity != Severity::Advice)
+        .map(Issue::to_string)
+        .collect()
+}
+
 #[test]
-fn example_studies_generate_valid_configs() {
+fn studies_generate_valid_configs() {
     let root = repo_root();
-    for example in EXAMPLES {
-        let text = fs::read_to_string(root.join(example).join(STUDY_FILE_NAME)).unwrap();
+    let studies = studies(&root);
+    assert!(studies.len() >= 14, "found only {studies:?}");
+    for study_dir in studies {
+        let text = fs::read_to_string(study_dir.join(STUDY_FILE_NAME)).unwrap();
         let study: StudyConfig = toml::from_str(&text).unwrap();
-        let issues: Vec<String> = validate(&study).iter().map(Issue::to_string).collect();
-        assert!(issues.is_empty(), "{example}: {issues:?}");
+        let name = study_dir.display();
+        let issues = problems(&validate(&study));
+        assert!(issues.is_empty(), "{name}: {issues:?}");
 
         for run in expand(&study) {
-            let name = format!("{example}/{}", run.dir.display());
+            let name = format!("{name}/{}", run.dir.display());
             let text = toml::to_string(&run.config).unwrap();
             let mut config: ExperimentConfig =
                 toml::from_str(&text).unwrap_or_else(|err| panic!("{name}: {err}"));
@@ -37,7 +65,7 @@ fn example_studies_generate_valid_configs() {
             config.data.test = root.join(&config.data.test);
             let mut issues = crate::config::validate(&config);
             issues.extend(check_files(&config.data).issues);
-            let issues: Vec<String> = issues.iter().map(Issue::to_string).collect();
+            let issues = problems(&issues);
             assert!(issues.is_empty(), "{name}: {issues:?}");
         }
     }
