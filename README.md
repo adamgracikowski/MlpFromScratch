@@ -27,6 +27,7 @@ A study compares many experiments: `study.toml` in `data/experiments/<task>/<stu
 data/
 ├── datasets/        # classification, regression (CSV) and mnist (downloaded)
 └── experiments/     # one folder per experiment
+scripts/             # run-studies.ps1: runs all studies, resumable
 src/
 ├── compute/         # Rust crate (library + `compute` binary)
 └── analysis/        # Python package managed with uv
@@ -56,6 +57,16 @@ cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/expe
 cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/example-study --jobs 8
 uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/example-study --plot-runs
 ```
+
+All studies of part one, one after another (PowerShell 7, from any directory):
+
+```powershell
+pwsh -File scripts/run-studies.ps1                  # every study, the cheapest first
+pwsh -File scripts/run-studies.ps1 -Jobs 6 data/experiments/regression/cube-losses
+pwsh -File scripts/run-studies.ps1 -ForceAggregate  # aggregate again, e.g. after a plotting change
+```
+
+For every study the script runs `generate`, `train --skip-trained` and `aggregate --plot-runs`, printing their output and appending it to `logs/run-studies-<date>-<time>.log`; at the end it prints a table of the studies (`done`, `incomplete` when some runs failed, `failed`) and exits with 1 unless all are done. It can be stopped at any time (Ctrl+C) and started again: trained runs are skipped (a run counts as trained once `artifacts/metadata.json`, written last, holds its current config), so only the runs in progress are lost, and aggregation is skipped while `results/summary.md` is newer than `study.toml`, `runs/index.csv` and every `metadata.json` of the study. While it runs, Windows does not go to sleep; closing the lid may still suspend the laptop, depending on the power settings.
 
 Tests, from `src/compute/`:
 
