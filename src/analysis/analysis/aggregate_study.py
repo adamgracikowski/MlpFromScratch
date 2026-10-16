@@ -3,6 +3,7 @@
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -22,6 +23,7 @@ from analysis.study import (
     representative_runs,
     variants_table,
 )
+from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.study_summary import write_study_summary
 from analysis.style import STYLE, save_figure
 
@@ -30,11 +32,13 @@ RESULTS_DIR = "results"
 
 @dataclass(frozen=True)
 class StudyPlot:
-    """One comparison plot; a plot with a skip reason is left out and reported."""
+    """One comparison plot; a plot that does not apply (another task) is left out silently,
+    a plot with a skip reason is left out and reported."""
 
     name: str
     draw: Callable[[StudyResults], Figure]
     skip_reason: Callable[[StudyResults], str | None] = lambda _: None
+    applies: Callable[[StudyResults], bool] = lambda _: True  # false: left out silently
 
 
 def _train_loss_reason(results: StudyResults) -> str | None:
@@ -44,11 +48,29 @@ def _train_loss_reason(results: StudyResults) -> str | None:
     return None
 
 
+def _regression(results: StudyResults) -> bool:
+    return not results.study.is_classification
+
+
 STUDY_PLOTS = [
     StudyPlot("seeds", plot_study_seeds),
+    StudyPlot("seeds_inside", partial(plot_study_seeds, column=INSIDE), applies=_regression),
+    StudyPlot("seeds_outside", partial(plot_study_seeds, column=OUTSIDE), applies=_regression),
     StudyPlot("curves", plot_study_curves),
     StudyPlot("curves_train_loss", plot_study_train_loss, _train_loss_reason),
     StudyPlot("heatmap", plot_study_heatmap, heatmap_skip_reason),
+    StudyPlot(
+        "heatmap_inside",
+        partial(plot_study_heatmap, column=INSIDE),
+        heatmap_skip_reason,
+        _regression,
+    ),
+    StudyPlot(
+        "heatmap_outside",
+        partial(plot_study_heatmap, column=OUTSIDE),
+        heatmap_skip_reason,
+        _regression,
+    ),
 ]
 
 
@@ -96,6 +118,8 @@ def aggregate_study(
     skipped = []
     with plt.rc_context(STYLE):
         for plot in STUDY_PLOTS:
+            if not plot.applies(results):
+                continue
             reason = plot.skip_reason(results)
             if reason is not None:
                 skipped.append((plot.name, reason))

@@ -16,6 +16,7 @@ from matplotlib.figure import Figure
 
 from analysis import labels
 from analysis.study import StudyResults, primary_metric
+from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.style import CATEGORICAL, new_figure
 
 
@@ -107,6 +108,30 @@ def metric_label(results: StudyResults) -> str:
 
 def primary_column(results: StudyResults) -> str:
     return f"test_{primary_metric(results.study)}"
+
+
+@dataclass(frozen=True)
+class Metric:
+    """A final metric compared across variants: column of the runs table, axis label,
+    factor of the shown values and whether the axis is logarithmic."""
+
+    column: str
+    label: str
+    scale: float
+    log: bool
+
+
+def metric_of(results: StudyResults, column: str | None = None) -> Metric:
+    """The primary test metric, or the test MSE inside or outside the training range."""
+    if column is None:
+        return Metric(
+            primary_column(results),
+            metric_label(results),
+            metric_scale(results),
+            is_log_metric(results),
+        )
+    label = {INSIDE: labels.TEST_MSE_INSIDE, OUTSIDE: labels.TEST_MSE_OUTSIDE}[column]
+    return Metric(column, label, 1.0, True)
 
 
 def finite(values: np.ndarray) -> np.ndarray:

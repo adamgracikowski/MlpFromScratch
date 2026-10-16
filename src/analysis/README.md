@@ -20,7 +20,7 @@ uv run --project src/analysis src/analysis/main.py plot data/experiments/classif
 
 `aggregate <study-dir>` aggregates a study (see `src/compute/README.md`, section Studies) over seeds. It reads `<study-dir>/study.toml`, `runs/index.csv` (written by `compute generate`) and the `metadata.json` and `epochs.csv` of every run, then replaces `<study-dir>/results/` with:
 
-- `runs.csv`: one row per run: directory, variant, seed, level of every axis, status (`completed`, `early_stopped`, `diverged` or `missing` without artifacts), epochs, best epoch, training time and the final metrics of every split (accuracy as a fraction).
+- `runs.csv`: one row per run: directory, variant, seed, level of every axis, status (`completed`, `early_stopped`, `diverged` or `missing` without artifacts), epochs, best epoch, training time and the final metrics of every split (accuracy as a fraction). Regression runs also get `test_mse_inside` and `test_mse_outside`: the test MSE (original scale) over the test samples whose inputs lie in the range (minimum to maximum, per feature) of the run's training inputs, and over the others. The test sets of the regression datasets reach beyond the training inputs, so the test MSE mixes interpolation with extrapolation. They are computed from `predictions/` of the runs.
 - `variants.csv`: one row per variant: numbers of runs, finished, diverged and missing runs, and the mean, sample standard deviation, minimum, median and maximum of every metric over the finished runs (completed or early stopped).
 - the comparison plots and galleries below and `summary.md` (plan, base config, results table, representative runs).
 
@@ -40,6 +40,7 @@ The comparison plots compare the test accuracy (classification) or the test MSE 
 | `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band; a panel per combination of the `panels` and `color` levels (levels of `color` often differ in the number of epochs), a curve per `x` level | always |
 | `curves_train_loss` | training loss per epoch, as `curves` | all variants use the same loss |
 | `heatmap` | mean (+- standard deviation) of the test metric, rows `color`, columns `x` | `x` and `color` are set |
+| `seeds_inside`, `seeds_outside`, `heatmap_inside`, `heatmap_outside` | `seeds` and `heatmap` of `test_mse_inside` (interpolation) and `test_mse_outside` (extrapolation) | regression (`heatmap_*`: as `heatmap`) |
 | `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level: decision regions (classification) or network curve (regression) of the representative run, with its test metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |
 
 Statistics use the finished runs only. Diverged runs are counted separately, and so are runs without artifacts. Where the standard deviation exceeds the mean on a log axis, the band reaches the bottom of the plot.

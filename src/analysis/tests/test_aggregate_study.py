@@ -62,8 +62,12 @@ def test_regression_with_diverged_runs(make_study) -> None:
     report = aggregate_study(load_study(study_dir), **PNG)
 
     assert report.skipped == []
+    names = _names(study_dir)
+    for name in ("seeds_inside", "seeds_outside", "heatmap_inside", "heatmap_outside"):
+        assert f"{name}.png" in names
     summary = (study_dir / RESULTS_DIR / "summary.md").read_text(encoding="utf-8")
     assert "| `sigmoid` | `a` | 0/3 | 3 |" in summary
+    assert "MSE w zakresie (testowy)" in summary
 
 
 def test_study_without_axes(make_study) -> None:

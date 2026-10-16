@@ -26,7 +26,10 @@ def test_regression_metrics(make_study) -> None:
         "test_loss",
         "test_mse",
         "test_mae",
+        "test_mse_inside",
+        "test_mse_outside",
     ]
+    assert results.runs["test_mse_inside"].null_count() == 0
 
 
 def test_marks_missing_and_diverged_runs(make_study) -> None:

@@ -15,14 +15,12 @@ from analysis.formatting import (
     format_significant,
 )
 from analysis.plots.study_panels import (
+    Metric,
     finite,
-    is_log_metric,
     levels,
-    metric_label,
-    metric_scale,
+    metric_of,
     panel_figure,
     panels,
-    primary_column,
     select,
 )
 from analysis.study import StudyResults
@@ -40,17 +38,19 @@ def heatmap_skip_reason(results: StudyResults) -> str | None:
     return None
 
 
-def plot_study_heatmap(results: StudyResults) -> Figure:
-    """One heatmap per panel level; cells show the mean and the standard deviation."""
+def plot_study_heatmap(results: StudyResults, column: str | None = None) -> Figure:
+    """One heatmap per panel level; cells show the mean and the standard deviation.
+    `column` selects another metric than the primary one (see `metric_of`)."""
+    metric = metric_of(results, column)
     study_panels = panels(results)
     x_levels = levels(results, "x")
     color_levels = levels(results, "color")
     # At least as tall as the colorbar label.
     height = min(10.0, max(7.0, 3.0 + 1.2 * len(color_levels)))
     figure, axes_list = panel_figure(len(study_panels), single_height_cm=height)
-    tables = [_table(results, panel.runs, x_levels, color_levels) for panel in study_panels]
+    tables = [_table(results, metric, panel.runs, x_levels, color_levels) for panel in study_panels]
     values = np.concatenate([finite(mean.ravel()) for mean, _ in tables] or [np.array([])])
-    log = is_log_metric(results)
+    log = metric.log
     norm = _norm(values, log)
     # Darker is better: high accuracy, low error.
     cmap = mpl.colormaps["Blues_r" if log else "Blues"].with_extremes(bad=GRID)
@@ -69,27 +69,27 @@ def plot_study_heatmap(results: StudyResults) -> Figure:
             axes.set_title(panel.title)
         formatter = DecimalCommaFormatter(PlainLogFormatter() if log else None)
         colorbar = figure.colorbar(image, ax=axes, format=formatter, shrink=0.9)
-        colorbar.set_label(metric_label(results))
+        colorbar.set_label(metric.label)
         colorbar.outline.set_visible(False)
     return figure
 
 
 def _table(
     results: StudyResults,
+    metric: Metric,
     runs: pl.DataFrame,
     x_levels: list[str | None],
     color_levels: list[str | None],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Mean and sample standard deviation per cell over the finished runs (NaN if none)."""
-    column = primary_column(results)
     mean = np.full((len(color_levels), len(x_levels)), np.nan)
     sd = np.full_like(mean, np.nan)
     for row, color_level in enumerate(color_levels):
         for col, x in enumerate(x_levels):
             variant = select(runs, results, x, color_level)
             finished = variant.filter(pl.col("status").is_in(FINISHED))
-            values = finite(finished[column].cast(float).fill_null(np.nan).to_numpy())
-            values = metric_scale(results) * values
+            values = finite(finished[metric.column].cast(float).fill_null(np.nan).to_numpy())
+            values = metric.scale * values
             if values.size:
                 mean[row, col] = values.mean()
                 sd[row, col] = values.std(ddof=1) if values.size > 1 else np.nan

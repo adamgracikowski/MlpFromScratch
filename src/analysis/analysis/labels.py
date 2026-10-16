@@ -173,6 +173,16 @@ SINGLE_SEED = "Pojedyncze ziarno"
 
 TEST_ACCURACY = "Dokładność testowa [%]"
 TEST_MSE = "MSE testowe (skala oryginalna)"
+TEST_MSE_INSIDE = "MSE testowe (interpolacja)"
+TEST_MSE_OUTSIDE = "MSE testowe (ekstrapolacja)"
+MSE_INSIDE_COLUMN = "MSE w zakresie"
+MSE_OUTSIDE_COLUMN = "MSE poza zakresem"
+RANGE_NOTE = (
+    "MSE w zakresie i poza zakresem: punkty testowe, których wejścia leżą w zakresie "
+    "(od minimum do maksimum) wejść zbioru uczącego runu, i pozostałe; na wykresach "
+    "`seeds_inside`, `heatmap_inside` (interpolacja) i `seeds_outside`, `heatmap_outside` "
+    "(ekstrapolacja)."
+)
 
 
 def train_loss(loss: str) -> str:

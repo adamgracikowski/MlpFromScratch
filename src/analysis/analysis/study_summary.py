@@ -8,6 +8,7 @@ import polars as pl
 from analysis import labels
 from analysis.formatting import DASH, format_number, format_percent, format_value
 from analysis.study import StudyResults
+from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.summary import config_value, markdown_table, tagged
 
 SUMMARY_FILE = "summary.md"
@@ -65,6 +66,7 @@ def study_summary_markdown(
         markdown_table(*_result_rows(results, variants)),
         labels.RESULTS_NOTE
         + ("" if study.is_classification else " " + labels.REGRESSION_METRICS_NOTE),
+        *([] if study.is_classification else [labels.RANGE_NOTE]),
     ]
     if representative:
         rows = [
@@ -133,6 +135,8 @@ def _result_rows(
     else:
         metrics = [(labels.MSE_COLUMN, f"{split}_mse", split) for split in splits]
         metrics.append((labels.MAE_COLUMN, "test_mae", "test"))
+        metrics.append((labels.MSE_INSIDE_COLUMN, INSIDE, "test"))
+        metrics.append((labels.MSE_OUTSIDE_COLUMN, OUTSIDE, "test"))
     missing = int(variants["missing"].sum()) > 0
     header = [
         *(f"`{name}`" for name in study.axis_names or [labels.VARIANT]),
