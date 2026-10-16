@@ -32,12 +32,12 @@ cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experim
 uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/<study> --plot-runs
 ```
 
-The comparison plots compare the test accuracy (classification) or the test MSE in the original scale (regression): losses of different loss functions are not comparable. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels.
+The comparison plots compare the test accuracy (classification) or the test MSE in the original scale (regression): losses of different loss functions are not comparable. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels. The learning curves put the `color` levels into panels too.
 
 | File | Content | When |
 |---|---|---|
 | `seeds` | final test metric: mean with +-1 standard deviation and a dot per seed; diverged runs noted | always |
-| `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band | always |
+| `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band; a panel per combination of the `panels` and `color` levels (levels of `color` often differ in the number of epochs), a curve per `x` level | always |
 | `curves_train_loss` | training loss per epoch, as `curves` | all variants use the same loss |
 | `heatmap` | mean (+- standard deviation) of the test metric, rows `color`, columns `x` | `x` and `color` are set |
 | `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level: decision regions (classification) or network curve (regression) of the representative run, with its test metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |

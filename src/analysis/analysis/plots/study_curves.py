@@ -1,4 +1,10 @@
-"""Learning curves of every variant: mean over seeds with a +-1 standard deviation band."""
+"""Learning curves of every variant: mean over seeds with a +-1 standard deviation band.
+
+Unlike the other comparison plots, the levels of the `color` axis get panels of their own
+(next to the `panels` axes), so a panel holds one curve per `x` level: levels of `color`
+often differ in the number of epochs (e.g. training set sizes), and a panel with every
+combination would be unreadable.
+"""
 
 import numpy as np
 import polars as pl
@@ -9,6 +15,7 @@ from matplotlib.ticker import MaxNLocator
 from analysis import labels
 from analysis.plots.loss import fit_log_axis
 from analysis.plots.study_panels import (
+    Panel,
     color_of,
     is_log_metric,
     levels,
@@ -18,7 +25,6 @@ from analysis.plots.study_panels import (
     panel_figure,
     panels,
     primary_column,
-    select,
     series_label,
 )
 from analysis.series import finite_or_nan
@@ -69,8 +75,23 @@ def mean_and_sd(series: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np.nd
     return np.arange(length), mean, sd
 
 
+def curve_panels(results: StudyResults) -> list[Panel]:
+    """One panel per combination of the `panels` levels and the `color` level."""
+    color = results.study.roles.color
+    found = []
+    for panel in panels(results):
+        for level in levels(results, "color"):
+            if color is None:
+                found.append(panel)
+                continue
+            runs = panel.runs.filter(pl.col(color) == level)
+            if runs.height:
+                found.append(Panel(panel.levels | {color: level}, runs))
+    return found
+
+
 def _plot_curves(results: StudyResults, column: str, scale: float, label: str, log: bool) -> Figure:
-    study_panels = panels(results)
+    study_panels = curve_panels(results)
     figure, axes_list = panel_figure(len(study_panels))
     for axes, panel in zip(axes_list, study_panels, strict=True):
         drawn = _draw_panel(axes, results, panel.runs, column, scale)
@@ -82,37 +103,45 @@ def _plot_curves(results: StudyResults, column: str, scale: float, label: str, l
         axes.set_xlim(left=0)
         if log:
             fit_log_axis(axes, drawn)
-    handles, names = axes_list[0].get_legend_handles_labels()
+    handles, names = _legend_entries(axes_list)
     if handles:
         figure.legend(handles, names, loc="outside lower center", ncols=min(len(handles), 4))
     return figure
 
 
+def _legend_entries(axes_list: list[Axes]) -> tuple[list, list[str]]:
+    """Entries of all panels, each `x` level once, in level order."""
+    entries = {}
+    for axes in axes_list:
+        for handle, name in zip(*axes.get_legend_handles_labels(), strict=True):
+            entries.setdefault(name, handle)
+    return list(entries.values()), list(entries)
+
+
 def _draw_panel(
     axes: Axes, results: StudyResults, runs: pl.DataFrame, column: str, scale: float
 ) -> list[np.ndarray]:
+    """One curve per `x` level; a level keeps its color and line style in every panel."""
     drawn = []
-    index = 0
-    for x in levels(results, "x"):
-        for color_level in levels(results, "color"):
-            variant = select(runs, results, x, color_level)
-            finished = variant.filter(pl.col("status").is_in(FINISHED)).sort("seed")
-            series = [
-                scale * finite_or_nan(results.summaries[run].epochs[column].to_numpy())
-                for run in finished["dir"]
-            ]
-            if not series:
-                continue
-            epochs, mean, sd = mean_and_sd(series)
-            color = color_of(index)
-            axes.plot(
-                epochs,
-                mean,
-                color=color,
-                linestyle=line_style_of(index),
-                label=series_label(x, color_level),
-            )
-            axes.fill_between(epochs, mean - sd, mean + sd, color=color, alpha=0.18, linewidth=0)
-            drawn += [mean - sd, mean + sd, mean]
-            index += 1
+    x_axis = results.study.roles.x
+    for index, x in enumerate(levels(results, "x")):
+        variant = runs if x_axis is None else runs.filter(pl.col(x_axis) == x)
+        finished = variant.filter(pl.col("status").is_in(FINISHED)).sort("seed")
+        series = [
+            scale * finite_or_nan(results.summaries[run].epochs[column].to_numpy())
+            for run in finished["dir"]
+        ]
+        if not series:
+            continue
+        epochs, mean, sd = mean_and_sd(series)
+        color = color_of(index)
+        axes.plot(
+            epochs,
+            mean,
+            color=color,
+            linestyle=line_style_of(index),
+            label=series_label(x, None),
+        )
+        axes.fill_between(epochs, mean - sd, mean + sd, color=color, alpha=0.18, linewidth=0)
+        drawn += [mean - sd, mean + sd, mean]
     return drawn
