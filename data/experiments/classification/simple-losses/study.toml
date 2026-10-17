@@ -13,15 +13,16 @@ name = "loss"
 key = "training.loss"
 values = ["cross_entropy", "mse"]
 
-# Training set size: rows of the training file.
+# Training set size: rows of the training file. Every size is tested on the largest test file,
+# so all sizes share one test set.
 # Larger sets get fewer epochs, so the number of iterations (batches) stays of a similar order.
 [[axes]]
 name = "size"
 levels = [
-  { name = "100", set = { "data.train" = "data/datasets/classification/data.simple.train.100.csv", "data.test" = "data/datasets/classification/data.simple.test.100.csv", "training.epochs" = 1000 } },
-  { name = "500", set = { "data.train" = "data/datasets/classification/data.simple.train.500.csv", "data.test" = "data/datasets/classification/data.simple.test.500.csv", "training.epochs" = 300 } },
-  { name = "1000", set = { "data.train" = "data/datasets/classification/data.simple.train.1000.csv", "data.test" = "data/datasets/classification/data.simple.test.1000.csv", "training.epochs" = 200 } },
-  { name = "10000", set = { "data.train" = "data/datasets/classification/data.simple.train.10000.csv", "data.test" = "data/datasets/classification/data.simple.test.10000.csv", "training.epochs" = 30 } },
+  { name = "100", set = { "data.train" = "data/datasets/classification/data.simple.train.100.csv", "training.epochs" = 1000 } },
+  { name = "500", set = { "data.train" = "data/datasets/classification/data.simple.train.500.csv", "training.epochs" = 300 } },
+  { name = "1000", set = { "data.train" = "data/datasets/classification/data.simple.train.1000.csv", "training.epochs" = 200 } },
+  { name = "10000", set = { "data.train" = "data/datasets/classification/data.simple.train.10000.csv", "training.epochs" = 30 } },
 ]
 
 [report]                           # factor on the x axis, sizes as colors; heatmap and galleries per size
@@ -34,7 +35,7 @@ task = "classification"
 
 [base.data]
 train = "data/datasets/classification/data.simple.train.100.csv"
-test = "data/datasets/classification/data.simple.test.100.csv"
+test = "data/datasets/classification/data.simple.test.10000.csv"
 target = "cls"
 input_normalization = "standard"
 target_normalization = "none"
