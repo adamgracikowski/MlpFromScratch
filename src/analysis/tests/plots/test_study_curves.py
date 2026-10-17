@@ -50,7 +50,7 @@ def test_panel_per_color_level(make_study) -> None:
 
     found = curve_panels(results)
 
-    assert [panel.title for panel in found] == ["dataset: a", "dataset: b"]
+    assert [panel.title(results.study) for panel in found] == ["dataset: a", "dataset: b"]
     assert all(panel.runs.height == 6 for panel in found)
 
 
@@ -59,7 +59,7 @@ def test_panels_and_color_combined(make_study) -> None:
     report = '[report]\nx = "activation"\ncolor = "size"\npanels = ["dataset"]'
     results = load_results(load_study(make_study(axes=axes, seeds=(1, 2), report=report)))
 
-    titles = [panel.title for panel in curve_panels(results)]
+    titles = [panel.title(results.study) for panel in curve_panels(results)]
 
     assert titles == [
         "dataset: a, size: 1",
@@ -85,7 +85,7 @@ def test_curve_per_x_level_and_one_legend(make_study) -> None:
 def test_without_color_one_panel(make_study) -> None:
     results = load_results(load_study(make_study(axes={"activation": ["sigmoid", "tanh"]})))
 
-    assert [panel.title for panel in curve_panels(results)] == [None]
+    assert [panel.title(results.study) for panel in curve_panels(results)] == [None]
 
 
 def test_axis_fitted_without_first_epochs() -> None:
@@ -109,4 +109,15 @@ def test_accuracy_bands_within_bounds(make_study) -> None:
             vertices = band.get_paths()[0].vertices
             assert vertices[:, 1].min() >= 0.0
             assert vertices[:, 1].max() <= 100.0
+    plt.close(figure)
+
+
+def test_labels_in_panel_titles_and_legend(make_study) -> None:
+    report = REPORT + '\nlabels = { dataset = "Zbiór", a = "A", tanh = "tangens" }'
+    results = load_results(load_study(make_study(report=report)))
+
+    figure = plot_study_curves(results)
+
+    assert [axes.get_title() for axes in figure.axes] == ["Zbiór: A", "Zbiór: b"]
+    assert [text.get_text() for text in figure.legends[0].get_texts()] == ["sigmoid", "tangens"]
     plt.close(figure)

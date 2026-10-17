@@ -57,6 +57,7 @@ def plot_study_heatmap(results: StudyResults, column: str | None = None) -> Figu
     """One heatmap per panel level; cells show the center and the spread over seeds.
     `column` selects another metric than the primary one (see `metric_of`)."""
     metric = metric_of(results, column)
+    study = results.study
     study_panels = panels(results)
     x_levels = levels(results, "x")
     color_levels = levels(results, "color")
@@ -72,16 +73,16 @@ def plot_study_heatmap(results: StudyResults, column: str | None = None) -> Figu
     for axes, panel, (center, low, high) in zip(axes_list, study_panels, tables, strict=True):
         image = axes.imshow(center, cmap=cmap, norm=norm, aspect="auto")
         _annotate(axes, center, low, high, norm, log)
-        category_ticks(axes, x_levels)
-        axes.set_yticks(range(len(color_levels)), color_levels)
-        axes.set_xlabel(results.study.roles.x)
-        axes.set_ylabel(results.study.roles.color)
+        category_ticks(axes, [study.label(level) for level in x_levels])
+        axes.set_yticks(range(len(color_levels)), [study.label(level) for level in color_levels])
+        axes.set_xlabel(study.label(study.roles.x))
+        axes.set_ylabel(study.label(study.roles.color))
         axes.grid(visible=False)
         axes.tick_params(length=0)
         for spine in axes.spines.values():
             spine.set_visible(False)
-        if panel.title:
-            axes.set_title(panel.title)
+        if title := panel.title(study):
+            axes.set_title(title)
         formatter = DecimalCommaFormatter(PlainLogFormatter() if log else None)
         colorbar = figure.colorbar(image, ax=axes, format=formatter, shrink=0.9)
         colorbar.set_label(metric.label)

@@ -60,3 +60,13 @@ def test_reports_missing_files(tmp_path, make_study) -> None:
     (study_dir / "runs" / "index.csv").unlink()
     with pytest.raises(StudyError, match="compute generate"):
         load_study(study_dir)
+
+
+def test_labels_replace_names(make_study) -> None:
+    report = '[report]\nlabels = { dataset = "Zbiór", a = "A (100)" }'
+    study = load_study(make_study(report=report))
+
+    assert study.label("dataset") == "Zbiór"
+    assert study.label("a") == "A (100)"
+    assert study.label("b") == "b"
+    assert study.label(None) is None

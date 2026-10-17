@@ -47,6 +47,7 @@ class Study:
     roles: Roles
     base: dict[str, Any]
     index: pl.DataFrame  # dir, variant, seed, then one column per axis
+    labels: dict[str, str]  # plot texts by axis or level name (`labels` of `[report]`)
 
     @property
     def task(self) -> str:
@@ -59,6 +60,10 @@ class Study:
     @property
     def axis_names(self) -> list[str]:
         return [axis.name for axis in self.axes]
+
+    def label(self, name: str | None) -> str | None:
+        """Text of an axis or level name on the plots: its label, or the name itself."""
+        return None if name is None else self.labels.get(name, name)
 
     @property
     def variants(self) -> list[str]:
@@ -105,6 +110,7 @@ def load_study(study_dir: Path) -> Study:
         roles=_roles(config.get("report", {}), axis_names),
         base=config["base"],
         index=index,
+        labels=dict(config.get("report", {}).get("labels", {})),
     )
 
 

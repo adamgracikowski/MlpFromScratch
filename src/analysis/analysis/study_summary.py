@@ -7,7 +7,7 @@ import polars as pl
 
 from analysis import labels
 from analysis.formatting import DASH, format_number, format_percent, format_value
-from analysis.study import StudyResults
+from analysis.study import Study, StudyResults
 from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.summary import config_value, markdown_table, tagged
 
@@ -142,7 +142,7 @@ def _result_rows(
         metrics.append((labels.MSE_OUTSIDE_COLUMN, OUTSIDE, "test"))
     missing = int(variants["missing"].sum()) > 0
     header = [
-        *(f"`{name}`" for name in study.axis_names or [labels.VARIANT]),
+        *([_name(study, name) for name in study.axis_names] or [labels.VARIANT]),
         labels.FINISHED,
         labels.DIVERGED,
         *([labels.MISSING] if missing else []),
@@ -152,7 +152,7 @@ def _result_rows(
     ]
     rows = []
     for row in variants.iter_rows(named=True):
-        cells = [f"`{row[name]}`" for name in study.axis_names] or [f"`{row['variant']}`"]
+        cells = [_name(study, row[name]) for name in study.axis_names] or [f"`{row['variant']}`"]
         cells += [f"{row['finished']}/{row['runs']}", str(row["diverged"])]
         if missing:
             cells.append(str(row["missing"]))
@@ -167,6 +167,11 @@ def _result_rows(
         cells.append(DASH if time is None else labels.seconds(format_value(time, 3)))
         rows.append(cells)
     return header, rows
+
+
+def _name(study: Study, name: str) -> str:
+    """An axis or level name in the results table: its label, or the name as code."""
+    return study.labels.get(name, f"`{name}`")
 
 
 def _mean_sd(mean: float | None, sd: float | None) -> str:

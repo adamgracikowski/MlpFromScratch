@@ -48,3 +48,12 @@ def test_regression_errors_as_median_and_quartiles(make_study) -> None:
     assert chr(0xB1) not in results
     assert chr(0x2013) in results
     assert "Mediana (w nawiasie kwartyle Q1–Q3)" in results
+
+
+def test_labels_in_results_table(make_study) -> None:
+    report = '[report]\nlabels = { activation = "Aktywacja", tanh = "tangens" }'
+    summary = _summary(make_study(report=report))
+
+    results = summary.split("## Wyniki")[1]
+    assert "| Aktywacja | `dataset` |" in results
+    assert "| tangens | `a` |" in results

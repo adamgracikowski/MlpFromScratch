@@ -15,7 +15,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from analysis import labels
-from analysis.study import StudyResults, primary_metric
+from analysis.study import Study, StudyResults, primary_metric
 from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.style import CATEGORICAL, CM, new_figure
 
@@ -27,9 +27,13 @@ class Panel:
     levels: dict[str, str]  # panel axis -> level
     runs: pl.DataFrame
 
-    @property
-    def title(self) -> str | None:
-        return labels.panel_title(self.levels) if self.levels else None
+    def title(self, study: Study) -> str | None:
+        """The panel axes and their levels, with their labels."""
+        if not self.levels:
+            return None
+        return labels.panel_title(
+            {study.label(axis): study.label(level) for axis, level in self.levels.items()}
+        )
 
 
 def panels(results: StudyResults) -> list[Panel]:

@@ -91,7 +91,8 @@ def _figure(results: StudyResults, x_levels: list[str | None], runs: list[Path |
     for index, (axes, level, run) in enumerate(zip(flat, x_levels, runs, strict=False)):
         if run is None:
             axes.set_axis_off()
-            axes.set_title(labels.gallery_title(level, labels.NO_FINISHED_RUN), color=MUTED)
+            title = labels.gallery_title(results.study.label(level), labels.NO_FINISHED_RUN)
+            axes.set_title(title, color=MUTED)
             continue
         experiment = load_experiment(run)
         if classification:
@@ -100,7 +101,7 @@ def _figure(results: StudyResults, x_levels: list[str | None], runs: list[Path |
         else:
             outside = draw_regression_curve(axes, experiment, max_points=MAX_POINTS)
             handles = regression.legend_handles(axes, outside)
-        axes.set_title(labels.gallery_title(level, _metric_text(results, run)))
+        axes.set_title(labels.gallery_title(results.study.label(level), _metric_text(results, run)))
         _label_outer(axes, experiment, index, columns, len(runs))
 
     figure.legend(

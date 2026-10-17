@@ -1,5 +1,7 @@
 //! Schema of `study.toml`.
 
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
 
 use super::Axis;
@@ -39,6 +41,10 @@ pub struct ReportConfig {
     /// Axes with one panel per combination of their levels.
     #[serde(default)]
     pub panels: Vec<String>,
+    /// Texts shown on the plots instead of axis or level names (which are
+    /// directory names, so plain ASCII), keyed by axis or level name.
+    #[serde(default)]
+    pub labels: BTreeMap<String, String>,
 }
 
 #[cfg(test)]
@@ -53,6 +59,7 @@ mod tests {
         assert_eq!(study.axes.len(), 2);
         assert_eq!(study.report.x.as_deref(), Some("activation"));
         assert_eq!(study.report.panels, ["layers"]);
+        assert_eq!(study.report.labels["layers"], "Hidden layers");
         assert_eq!(study.base["task"].as_str(), Some("classification"));
     }
 
@@ -60,7 +67,11 @@ mod tests {
     fn report_and_description_are_optional() {
         let text = STUDY
             .replace("description = \"Activation and depth\"", "")
-            .replace("[report]\nx = \"activation\"\npanels = [\"layers\"]", "");
+            .replace(
+                "[report]\nx = \"activation\"\npanels = [\"layers\"]\n\
+                 labels = { layers = \"Hidden layers\" }",
+                "",
+            );
         let study: StudyConfig = toml::from_str(&text).unwrap();
         assert_eq!(study.description, None);
         assert_eq!(study.report, ReportConfig::default());

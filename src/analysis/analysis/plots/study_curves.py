@@ -135,8 +135,8 @@ def _plot_curves(
     figure, axes_list = panel_figure(len(study_panels))
     for axes, panel in zip(axes_list, study_panels, strict=True):
         drawn = _draw_panel(axes, results, panel.runs, column, scale, log, bounds)
-        if panel.title:
-            axes.set_title(panel.title)
+        if title := panel.title(results.study):
+            axes.set_title(title)
         axes.set_xlabel(labels.EPOCH)
         axes.set_ylabel(label)
         axes.xaxis.set_major_locator(MaxNLocator(integer=True, steps=[1, 2, 5, 10]))
@@ -205,7 +205,7 @@ def _draw_panel(
             center,
             color=color,
             linestyle=line_style_of(index),
-            label=series_label(x, None),
+            label=series_label(results.study.label(x), None),
         )
         if bounds is not None:
             lower, upper = np.clip(lower, *bounds), np.clip(upper, *bounds)

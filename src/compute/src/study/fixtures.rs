@@ -24,6 +24,7 @@ values = [[], [8, 8]]
 [report]
 x = "activation"
 panels = ["layers"]
+labels = { layers = "Hidden layers" }
 
 [base]
 task = "classification"

@@ -32,7 +32,7 @@ cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experim
 uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/<study> --plot-runs
 ```
 
-The comparison plots compare the test accuracy (classification) or the test MSE in the original scale (regression): losses of different loss functions are not comparable. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels. The learning curves put the `color` levels into panels too.
+The comparison plots compare the test accuracy (classification) or the test MSE in the original scale (regression): losses of different loss functions are not comparable. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels. The learning curves put the `color` levels into panels too. `labels` of `[report]` (axis or level name -> text, e.g. Polish names) replace the names on the plots and in the results table of `summary.md`.
 
 | File | Content | When |
 |---|---|---|

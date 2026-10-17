@@ -34,18 +34,19 @@ def plot_study_seeds(results: StudyResults, column: str | None = None) -> Figure
     """One panel per panel level: categories of the `x` axis, colors of the `color` axis.
     `column` selects another metric than the primary one (see `metric_of`)."""
     metric = metric_of(results, column)
+    study = results.study
     study_panels = panels(results)
     figure, axes_list = panel_figure(len(study_panels))
     x_levels = levels(results, "x")
     color_levels = levels(results, "color")
     for axes, panel in zip(axes_list, study_panels, strict=True):
         values = _draw_panel(axes, results, metric, panel.runs, x_levels, color_levels)
-        if panel.title:
-            axes.set_title(panel.title)
-        category_ticks(axes, [level or "" for level in x_levels])
+        if title := panel.title(study):
+            axes.set_title(title)
+        category_ticks(axes, [study.label(level) or "" for level in x_levels])
         axes.set_xlim(-0.5, len(x_levels) - 0.5)
         axes.grid(axis="x", visible=False)
-        axes.set_xlabel(results.study.roles.x or "")
+        axes.set_xlabel(study.label(study.roles.x) or "")
         axes.set_ylabel(metric.label)
         if metric.log:
             fit_log_axis(axes, [values])
@@ -151,7 +152,7 @@ def _legend(
                 color=color_of(index),
                 linestyle="none",
                 markersize=6,
-                label=level,
+                label=results.study.label(level),
             )
             for index, level in enumerate(color_levels)
         ]
