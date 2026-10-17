@@ -26,6 +26,26 @@
 \usepackage{newfloat}
 \usepackage{fancyvrb}
 \usepackage{multirow}
+\usepackage{siunitx}
+
+% Liczby po polsku: przecinek dziesiętny, spójniki i półpauza w listach i zakresach
+\sisetup{
+    output-decimal-marker = {,},
+    exponent-product = \cdot,
+    group-separator = {\,},
+    group-minimum-digits = 5,
+    uncertainty-mode = separate,
+    list-separator = {,~},
+    list-pair-separator = {~i~},
+    list-final-separator = {~i~},
+    range-phrase = {--},
+    range-units = single,
+}
+% Procent bez odstępu, jak na wykresach (94,1%)
+\DeclareSIUnit[quantity-product = {}]\percent{\%}
+
+% Wykresy brane wprost z katalogów eksperymentów i badań
+\graphicspath{{../data/experiments/}}
 
 % Definicje kolorów
 \definecolor{consoleGreen}{RGB}{22, 198, 12}
@@ -99,13 +119,29 @@
 \end{titlepage}
 
 %----------------------------------------------------------------------
+\input{sections/00-abstract}
+
 \tableofcontents
 \newpage
 
 %----------------------------------------------------------------------
+\input{sections/01-introduction}
+\input{sections/02-problem}
+\input{sections/03-mlp}
+\input{sections/04-implementation}
+\input{sections/05-showcase}
+\input{sections/06-methodology}
+\input{sections/07-classification}
+\input{sections/08-regression}
+\input{sections/09-cross-analysis}
+\input{sections/10-conclusions}
 
 %----------------------------------------------------------------------
 \newpage
 \printbibliography[heading=bibintoc]
+
+%----------------------------------------------------------------------
+\appendix
+\input{sections/appendix-reproduction}
 
 \end{document}

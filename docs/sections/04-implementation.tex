@@ -1,0 +1,37 @@
+\section{Implementacja}
+\label{sec:implementation}
+
+\subsection{Architektura rozwiązania}
+\label{sec:implementation-architecture}
+% Plan (etap 5): warstwa obliczeniowa (Rust) i warstwa prezentacji (Python)
+% komunikujące się przez pliki; przepływ config -> train -> artefakty -> wykresy.
+
+\subsection{Konfiguracja eksperymentu}
+\label{sec:implementation-config}
+% Plan (etap 5): plik config.toml (listing, tabela sekcji i kluczy), walidacja
+% z diagnostyką wskazującą linię.
+
+\subsection{Przygotowanie danych}
+\label{sec:implementation-data}
+% Plan (etap 5): wczytywanie CSV, kodowanie klas, normalizacja dopasowana do zbioru
+% uczącego, podzbiór i wydzielenie walidacji.
+
+\subsection{Sieć i uczenie}
+\label{sec:implementation-network}
+% Plan (etap 5): warstwy jako macierze ndarray, asercje wymiarów, pętla uczenia,
+% obserwator, wykrywanie dywergencji, opcjonalny early stopping.
+
+\subsection{Powtarzalność}
+\label{sec:implementation-reproducibility}
+% Plan (etap 5): jedno ziarno, osobne strumienie RNG (dane, inicjalizacja, tasowanie,
+% próbkowanie wag), wersja kodu w metadata.json.
+
+\subsection{Weryfikacja poprawności}
+\label{sec:implementation-verification}
+% Plan (etap 5): numeryczny gradient check (różnice centralne), testy determinizmu,
+% CI.
+
+\subsection{Artefakty, wizualizacja i automatyzacja badań}
+\label{sec:implementation-analysis}
+% Plan (etap 5): artefakty (.npy, epochs.csv, metadata.json), wykresy w Pythonie,
+% study.toml -> generate -> train -> aggregate.
