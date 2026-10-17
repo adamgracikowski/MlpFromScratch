@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
-from analysis.plots.study_panels import category_ticks, fits
+from analysis.plots.study_panels import category_ticks, center_and_spread, fits
 from analysis.style import new_figure
 
 
@@ -30,3 +31,16 @@ def test_short_tick_labels_stay_horizontal() -> None:
 
     assert all(label.get_rotation() == 0 for label in axes.get_xticklabels())
     plt.close(figure)
+
+
+def test_mean_and_deviation_of_accuracy() -> None:
+    center, low, high = center_and_spread(np.array([1.0, 2.0, 3.0]), log=False)
+
+    assert (center, low, high) == (2.0, 1.0, 3.0)
+
+
+def test_median_and_quartiles_of_errors() -> None:
+    # The outlier moves the mean (25,75) but not the median.
+    center, low, high = center_and_spread(np.array([1.0, 2.0, 3.0, 100.0]), log=True)
+
+    assert (center, low, high) == (2.5, 1.75, 27.25)

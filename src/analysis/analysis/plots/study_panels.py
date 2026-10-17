@@ -162,3 +162,21 @@ def metric_of(results: StudyResults, column: str | None = None) -> Metric:
 
 def finite(values: np.ndarray) -> np.ndarray:
     return values[np.isfinite(values)]
+
+
+def center_and_spread(values: np.ndarray, log: bool) -> tuple[float, float, float]:
+    """Center and spread of a metric over seeds as `(center, low, high)`: the mean and
+    mean +- sample standard deviation, or for metrics on a log axis (errors) the median and
+    the quartiles: errors over seeds have a long tail, the mean follows a few bad seeds and
+    mean - sd is often negative. The spread is the center itself for a single value."""
+    if log:
+        low, center, high = np.percentile(values, [25, 50, 75])
+        return float(center), float(low), float(high)
+    mean = float(values.mean())
+    sd = float(values.std(ddof=1)) if values.size > 1 else 0.0
+    return mean, mean - sd, mean + sd
+
+
+def spread_label(log: bool) -> str:
+    """Legend entry of the center with its spread (see `center_and_spread`)."""
+    return labels.MEDIAN_AND_QUARTILES if log else labels.MEAN_AND_SD

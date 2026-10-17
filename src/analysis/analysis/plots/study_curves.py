@@ -1,4 +1,6 @@
-"""Learning curves of every variant: mean over seeds with a +-1 standard deviation band.
+"""Learning curves of every variant: mean over seeds with a +-1 standard deviation band, or
+for metrics on a log axis (errors, losses) the median with a band between the quartiles
+(see `center_and_spread`).
 
 Unlike the other comparison plots, the levels of the `color` axis get panels of their own
 (next to the `panels` axes), so a panel holds one curve per `x` level: levels of `color`
@@ -68,18 +70,39 @@ def mean_and_sd(series: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np.nd
     """Mean and sample standard deviation per epoch of series of different lengths (early
     stopping): each epoch uses the runs that reached it. Returns the epochs too; the
     deviation is NaN where fewer than two runs are left."""
-    length = max(len(values) for values in series)
-    table = np.full((len(series), length), np.nan)
-    for row, values in enumerate(series):
-        table[row, : len(values)] = values
-    table[~np.isfinite(table)] = np.nan
-    counts = np.sum(np.isfinite(table), axis=0)
+    table, counts = _epoch_table(series)
     with np.errstate(invalid="ignore", divide="ignore"):
         mean = np.nansum(table, axis=0) / counts
         sd = np.sqrt(np.nansum((table - mean) ** 2, axis=0) / (counts - 1))
     mean[counts == 0] = np.nan
     sd[counts < 2] = np.nan
-    return np.arange(length), mean, sd
+    return np.arange(table.shape[1]), mean, sd
+
+
+def median_and_quartiles(
+    series: list[np.ndarray],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Median and quartiles per epoch, like `mean_and_sd`; the quartiles are NaN where
+    fewer than two runs are left."""
+    table, counts = _epoch_table(series)
+    quartiles = np.full((3, table.shape[1]), np.nan)
+    reached = counts > 0
+    quartiles[:, reached] = np.nanpercentile(table[:, reached], [25, 50, 75], axis=0)
+    low, median, high = quartiles
+    low[counts < 2] = np.nan
+    high[counts < 2] = np.nan
+    return np.arange(table.shape[1]), median, low, high
+
+
+def _epoch_table(series: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+    """Series as rows of a table padded with NaN (non-finite values too), and the number
+    of values per epoch."""
+    length = max(len(values) for values in series)
+    table = np.full((len(series), length), np.nan)
+    for row, values in enumerate(series):
+        table[row, : len(values)] = values
+    table[~np.isfinite(table)] = np.nan
+    return table, np.sum(np.isfinite(table), axis=0)
 
 
 def curve_panels(results: StudyResults) -> list[Panel]:
@@ -111,7 +134,7 @@ def _plot_curves(
     study_panels = curve_panels(results)
     figure, axes_list = panel_figure(len(study_panels))
     for axes, panel in zip(axes_list, study_panels, strict=True):
-        drawn = _draw_panel(axes, results, panel.runs, column, scale, bounds)
+        drawn = _draw_panel(axes, results, panel.runs, column, scale, log, bounds)
         if panel.title:
             axes.set_title(panel.title)
         axes.set_xlabel(labels.EPOCH)
@@ -156,6 +179,7 @@ def _draw_panel(
     runs: pl.DataFrame,
     column: str,
     scale: float,
+    log: bool,
     bounds: tuple[float, float] | None,
 ) -> list[np.ndarray]:
     """One curve per `x` level; a level keeps its color and line style in every panel."""
@@ -170,18 +194,21 @@ def _draw_panel(
         ]
         if not series:
             continue
-        epochs, mean, sd = mean_and_sd(series)
+        if log:
+            epochs, center, lower, upper = median_and_quartiles(series)
+        else:
+            epochs, center, sd = mean_and_sd(series)
+            lower, upper = center - sd, center + sd
         color = color_of(index)
         axes.plot(
             epochs,
-            mean,
+            center,
             color=color,
             linestyle=line_style_of(index),
             label=series_label(x, None),
         )
-        lower, upper = mean - sd, mean + sd
         if bounds is not None:
             lower, upper = np.clip(lower, *bounds), np.clip(upper, *bounds)
         axes.fill_between(epochs, lower, upper, color=color, alpha=0.18, linewidth=0)
-        drawn += [lower, upper, mean]
+        drawn += [lower, upper, center]
     return drawn

@@ -168,6 +168,7 @@ def code_version(package: str, commit: str, dirty: bool) -> str:
 # Studies: comparison plots and results/summary.md
 
 MEAN_AND_SD = "Średnia ± odchylenie standardowe"
+MEDIAN_AND_QUARTILES = "Mediana i kwartyle (Q1–Q3)"
 SINGLE_SEED = "Pojedyncze ziarno"
 
 
@@ -230,11 +231,23 @@ MISSING = "Bez artefaktów"
 MEAN_EPOCHS = "Epoki (średnio)"
 MEAN_TIME = "Czas uczenia (średnio)"
 RUN = "Run"
-RESULTS_NOTE = (
-    "Średnia ± odchylenie standardowe (próbkowe) po ziarnach, tylko z runów zakończonych "
-    "normalnie (wszystkie epoki lub early stopping); runy rozbieżne i bez artefaktów są "
-    "policzone osobno."
-)
+
+
+def results_note(median: bool) -> str:
+    """Note under the results table: which statistics it shows and over which runs."""
+    if median:
+        statistics = (
+            "Mediana (w nawiasie kwartyle Q1–Q3) po ziarnach: błędy między ziarnami mają "
+            "długi ogon i kilka złych ziaren zawyża średnią"
+        )
+    else:
+        statistics = "Średnia ± odchylenie standardowe (próbkowe) po ziarnach"
+    return (
+        f"{statistics}; tylko runy zakończone normalnie (wszystkie epoki lub early "
+        "stopping), runy rozbieżne i bez artefaktów są policzone osobno."
+    )
+
+
 REPRESENTATIVE_NOTE = (
     "Dla każdego wariantu run, którego metryka testowa jest najbliższa medianie po ziarnach; "
     "jego wykresy są w katalogu `plots/` runu."

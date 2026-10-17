@@ -67,6 +67,8 @@ def test_variants_aggregate_finished_runs_only(make_study) -> None:
     assert full["test_accuracy_sd"] == pytest.approx(0.001)
     assert full["test_accuracy_min"] == pytest.approx(0.901)
     assert full["test_accuracy_median"] == pytest.approx(0.902)
+    assert full["test_accuracy_q1"] == pytest.approx(0.9015)  # 0.901, 0.902, 0.903
+    assert full["test_accuracy_q3"] == pytest.approx(0.9025)
 
     partial = variants.row(2, named=True)
     assert (partial["finished"], partial["diverged"], partial["missing"]) == (1, 1, 1)

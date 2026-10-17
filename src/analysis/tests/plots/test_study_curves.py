@@ -8,6 +8,7 @@ from analysis.plots.study_curves import (
     curve_panels,
     fit_after_warmup,
     mean_and_sd,
+    median_and_quartiles,
     plot_study_curves,
 )
 from analysis.study import load_results, load_study
@@ -30,6 +31,18 @@ def test_mean_and_sd_ignore_missing_values() -> None:
     assert mean[0] == 2.0
     assert math.isnan(mean[1])
     assert math.isnan(sd[1])
+
+
+def test_median_and_quartiles_of_series_with_different_lengths() -> None:
+    series = [np.array([1.0, 5.0]), np.array([2.0, np.inf]), np.array([3.0])]
+
+    epochs, median, low, high = median_and_quartiles(series)
+
+    assert epochs.tolist() == [0, 1]
+    assert median.tolist() == [2.0, 5.0]
+    assert (low[0], high[0]) == (1.5, 2.5)
+    assert math.isnan(low[1])
+    assert math.isnan(high[1])
 
 
 def test_panel_per_color_level(make_study) -> None:

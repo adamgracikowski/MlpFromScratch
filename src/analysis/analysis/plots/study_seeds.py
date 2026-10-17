@@ -1,4 +1,5 @@
-"""Final test metric of every variant: mean with +-1 standard deviation and every seed."""
+"""Final test metric of every variant: its center and spread over seeds (mean +- standard
+deviation, or median and quartiles for errors) and every seed."""
 
 import numpy as np
 import polars as pl
@@ -11,6 +12,7 @@ from analysis.plots.loss import fit_log_axis
 from analysis.plots.study_panels import (
     Metric,
     category_ticks,
+    center_and_spread,
     color_of,
     finite,
     levels,
@@ -18,6 +20,7 @@ from analysis.plots.study_panels import (
     panel_figure,
     panels,
     select,
+    spread_label,
 )
 from analysis.study import StudyResults
 from analysis.study.run_summary import FINISHED
@@ -46,7 +49,7 @@ def plot_study_seeds(results: StudyResults, column: str | None = None) -> Figure
         axes.set_ylabel(metric.label)
         if metric.log:
             fit_log_axis(axes, [values])
-    _legend(figure, results, color_levels)
+    _legend(figure, results, color_levels, metric.log)
     return figure
 
 
@@ -84,11 +87,11 @@ def _draw_panel(
                     linewidths=0,
                     zorder=2,
                 )
-                sd = values.std(ddof=1) if values.size > 1 else 0.0
+                middle, low, high = center_and_spread(values, metric.log)
                 axes.errorbar(
                     center,
-                    values.mean(),
-                    yerr=sd,
+                    middle,
+                    yerr=[[middle - low], [high - middle]],
                     fmt="o",
                     color=color,
                     markeredgecolor=INK,
@@ -113,8 +116,10 @@ def _draw_panel(
     return np.concatenate(drawn) if drawn else np.array([])
 
 
-def _legend(figure: Figure, results: StudyResults, color_levels: list[str | None]) -> None:
-    """Markers of the mean and of a seed, then the colors of the `color` axis."""
+def _legend(
+    figure: Figure, results: StudyResults, color_levels: list[str | None], log: bool
+) -> None:
+    """Markers of the center and of a seed, then the colors of the `color` axis."""
     handles = [
         Line2D(
             [],
@@ -124,7 +129,7 @@ def _legend(figure: Figure, results: StudyResults, color_levels: list[str | None
             markerfacecolor=MUTED,
             linestyle="-",
             markersize=5,
-            label=labels.MEAN_AND_SD,
+            label=spread_label(log),
         ),
         Line2D(
             [],

@@ -13,6 +13,9 @@ from analysis.summary import config_value, markdown_table, tagged
 
 SUMMARY_FILE = "summary.md"
 PLUS_MINUS = chr(0xB1)
+EN_DASH = chr(0x2013)
+# Statistics of the errors in the results table, in the order of `_median_quartiles`.
+STATISTICS_Q = ("median", "q1", "q3")
 
 
 def write_study_summary(
@@ -64,7 +67,7 @@ def study_summary_markdown(
         markdown_table([labels.PARAMETER, labels.VALUE], _base_rows(results)),
         f"## {labels.SECTION_RESULTS}",
         markdown_table(*_result_rows(results, variants)),
-        labels.RESULTS_NOTE
+        labels.results_note(median=not study.is_classification)
         + ("" if study.is_classification else " " + labels.REGRESSION_METRICS_NOTE),
         *([] if study.is_classification else [labels.RANGE_NOTE]),
     ]
@@ -154,9 +157,10 @@ def _result_rows(
         if missing:
             cells.append(str(row["missing"]))
         for _, column, _ in metrics:
-            cells.append(
-                _mean_sd(row[f"{column}_mean"], row[f"{column}_sd"], study.is_classification)
-            )
+            if study.is_classification:
+                cells.append(_mean_sd(row[f"{column}_mean"], row[f"{column}_sd"]))
+            else:
+                cells.append(_median_quartiles(*(row[f"{column}_{s}"] for s in STATISTICS_Q)))
         epochs = row["epochs_mean"]
         cells.append(DASH if epochs is None else format_number(epochs, 1))
         time = row["training_seconds_mean"]
@@ -165,14 +169,18 @@ def _result_rows(
     return header, rows
 
 
-def _mean_sd(mean: float | None, sd: float | None, percent: bool) -> str:
-    """`97,20% ± 0,40` (accuracy, the deviation in percentage points) or `1234 ± 56`."""
+def _mean_sd(mean: float | None, sd: float | None) -> str:
+    """`97,20% ± 0,40` (accuracy, the deviation in percentage points)."""
     if mean is None:
         return DASH
-    if percent:
-        main = format_percent(mean, 2)
-        spread = None if sd is None else format_number(100 * sd, 2)
-    else:
-        main = format_value(mean)
-        spread = None if sd is None else format_value(sd, 2)
-    return main if spread is None else f"{main} {PLUS_MINUS} {spread}"
+    main = format_percent(mean, 2)
+    return main if sd is None else f"{main} {PLUS_MINUS} {format_number(100 * sd, 2)}"
+
+
+def _median_quartiles(median: float | None, q1: float | None, q3: float | None) -> str:
+    """`1234 (1100-1300)` (errors: median and quartiles); the median alone for one run."""
+    if median is None:
+        return DASH
+    if q1 == q3 == median:
+        return format_value(median)
+    return f"{format_value(median)} ({format_value(q1)}{EN_DASH}{format_value(q3)})"

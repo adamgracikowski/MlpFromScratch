@@ -14,7 +14,7 @@ from analysis.study.study import Study
 CLASSIFICATION_METRICS = ("loss", "accuracy")
 REGRESSION_METRICS = ("loss", "mse", "mae")
 MISSING = "missing"
-STATISTICS = ("mean", "sd", "min", "median", "max")
+STATISTICS = ("mean", "sd", "min", "q1", "median", "q3", "max")
 
 
 def task_metrics(study: Study) -> tuple[str, ...]:
@@ -106,7 +106,8 @@ def variants_table(results: StudyResults) -> pl.DataFrame:
     """One row per variant: run counts and statistics of the metrics over seeds.
 
     Statistics use the finished runs only (completed or early stopped); diverged and
-    missing runs are counted separately. `sd` is the sample standard deviation.
+    missing runs are counted separately. `sd` is the sample standard deviation, `q1` and
+    `q3` are the quartiles (linear interpolation, as `numpy.percentile`).
     """
     finished = pl.col("status").is_in(FINISHED)
     expressions = [
@@ -123,7 +124,9 @@ def variants_table(results: StudyResults) -> pl.DataFrame:
             values.mean().alias(f"{column}_mean"),
             values.std(ddof=1).alias(f"{column}_sd"),
             values.min().alias(f"{column}_min"),
+            values.quantile(0.25, interpolation="linear").alias(f"{column}_q1"),
             values.median().alias(f"{column}_median"),
+            values.quantile(0.75, interpolation="linear").alias(f"{column}_q3"),
             values.max().alias(f"{column}_max"),
         ]
     keys = ["variant", *results.study.axis_names]
