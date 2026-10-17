@@ -14,12 +14,15 @@ from analysis.style import INK, MUTED, class_style, new_figure
 # Opacity of the class color over white, from the least to the most confident prediction.
 # The most confident regions stay pastel, so the samples on top remain readable.
 REGION_ALPHA = (0.06, 0.40)
+# Test samples drawn at most: tens of thousands of markers hide the regions and the boundaries.
+MAX_POINTS = 3000
 
 
 def plot_decision_boundary(experiment: Experiment) -> Figure:
-    """Class regions shaded by confidence, their boundaries and the test samples."""
+    """Class regions shaded by confidence, their boundaries and at most `MAX_POINTS` evenly
+    spaced test samples."""
     figure, axes = new_figure(16, 11)
-    draw_decision_regions(axes, experiment)
+    draw_decision_regions(axes, experiment, max_points=MAX_POINTS)
     axes.set_xlabel(labels.variable(experiment.features[0]))
     axes.set_ylabel(labels.variable(experiment.features[1]))
     axes.legend(

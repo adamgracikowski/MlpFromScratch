@@ -52,7 +52,7 @@ Texts on the plots and in `summary.md` are in Polish, like the report. Figures a
 | File | Content | When |
 |---|---|---|
 | `dataset` | training, validation and test samples | classification with 2 features, regression with 1 |
-| `decision_boundary` | class regions shaded by confidence, boundaries, test samples, misclassified ones | classification with 2 features |
+| `decision_boundary` | class regions shaded by confidence, boundaries, test samples (at most 3000, evenly spaced), misclassified ones | classification with 2 features |
 | `regression` | data, target function (test set) and network output; test residuals | regression with 1 feature |
 | `loss` | loss per iteration window with a moving average; loss per epoch for every split | always |
 | `metrics` | accuracy (classification) or MSE in the original scale (regression) per epoch | always |
