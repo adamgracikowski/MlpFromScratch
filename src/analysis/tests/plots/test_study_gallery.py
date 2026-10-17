@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import pytest
 
 from analysis import labels
 from analysis.plots.study_gallery import gallery_skip_reason, plot_study_gallery
@@ -47,6 +48,8 @@ def test_four_panels_in_two_columns(make_study) -> None:
     visible = [axes for axes in figure.axes if axes.get_visible()]
     assert len(visible) == 4
     assert visible[0].get_gridspec().get_geometry() == (2, 2)
+    # Decision regions keep equal scales: two columns of 6 cm, not the full 16 cm.
+    assert figure.get_figwidth() * 2.54 == pytest.approx(12.0)
     plt.close(figure)
 
 

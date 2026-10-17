@@ -28,6 +28,9 @@ COLUMNS = 3
 MAX_POINTS = 600
 PANEL_HEIGHT_CM = {True: 5.2, False: 4.2}  # by `is_classification`
 LEGEND_HEIGHT_CM = 1.2
+# Width of a column of decision regions: their axes have equal scales, so two columns of a
+# figure 16 cm wide would leave a wide gap between them.
+CLASSIFICATION_COLUMN_CM = 6.0
 
 
 def gallery_skip_reason(results: StudyResults) -> str | None:
@@ -82,7 +85,8 @@ def _figure(results: StudyResults, x_levels: list[str | None], runs: list[Path |
     columns = 2 if len(runs) == 4 else min(COLUMNS, len(runs))
     rows = math.ceil(len(runs) / columns)
     height = rows * PANEL_HEIGHT_CM[classification] + LEGEND_HEIGHT_CM
-    figure, grid = new_figure(16, height, rows=rows, columns=columns, squeeze=False)
+    width = min(16.0, columns * CLASSIFICATION_COLUMN_CM) if classification else 16.0
+    figure, grid = new_figure(width, height, rows=rows, columns=columns, squeeze=False)
     flat = list(grid.ravel())
     for spare in flat[len(runs) :]:
         spare.set_visible(False)
