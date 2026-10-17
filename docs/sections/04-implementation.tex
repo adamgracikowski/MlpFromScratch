@@ -1,37 +1,176 @@
 \section{Implementacja}
 \label{sec:implementation}
 
+W rozdziale opisano budowę programu: podział na warstwy, konfigurację eksperymentu, przygotowanie danych, realizację uczenia, zapewnienie powtarzalności, weryfikację poprawności oraz zapis i analizę wyników.
+
 \subsection{Architektura rozwiązania}
 \label{sec:implementation-architecture}
-% Plan (etap 5): warstwa obliczeniowa (Rust) i warstwa prezentacji (Python)
-% komunikujące się przez pliki; przepływ config -> train -> artefakty -> wykresy.
+
+Program składa się z dwóch warstw, które komunikują się wyłącznie przez pliki na dysku. Warstwa obliczeniowa, napisana w języku Rust, wczytuje konfigurację i dane, uczy sieć i zapisuje surowe wyniki, nazywane dalej artefaktami.
+
+Warstwa prezentacji, napisana w języku Python, czyta artefakty i tworzy z nich wykresy oraz zestawienia. Operacje macierzowe w warstwie obliczeniowej wykonuje biblioteka \texttt{ndarray}, liczby losowe generuje \texttt{rand}, równoległe uczenie wielu sieci zapewnia \texttt{rayon}, a interfejs wiersza poleceń \texttt{clap}. Warstwa prezentacji korzysta z bibliotek \texttt{numpy}, \texttt{polars} i \texttt{matplotlib}.
+
+Przepływ danych pokazano na Rysunku~\ref{fig:architecture}. Pojedynczy eksperyment jest opisany plikiem \texttt{config.toml}. Polecenie \texttt{compute train} zapisuje jego artefakty, a polecenie \texttt{plot} tworzy z nich wykresy. Badanie, czyli siatka eksperymentów różniących się wybranymi parametrami, jest opisane plikiem \texttt{study.toml}. Polecenie \texttt{compute generate} tworzy z niego katalogi pojedynczych eksperymentów, \texttt{compute train} uczy je równolegle, a \texttt{aggregate} zestawia wyniki.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        file/.style={draw, rounded corners=2pt, fill=black!5, font=\ttfamily\small, inner sep=4pt, minimum height=7mm},
+        rust/.style={-{Stealth[length=2mm]}, thick},
+        python/.style={-{Stealth[length=2mm]}, thick, dashed},
+        cmd/.style={font=\ttfamily\footnotesize, above, midway},
+        node distance=6mm and 16mm,
+    ]
+        \node[file] (config) {config.toml};
+        \node[file, right=of config] (artifacts) {artifacts/};
+        \node[file, right=of artifacts] (plots) {plots/};
+        \draw[rust] (config) -- node[cmd] {train} (artifacts);
+        \draw[python] (artifacts) -- node[cmd] {plot} (plots);
+
+        \node[file, below=12mm of config] (study) {study.toml};
+        \node[file, right=of study] (runs) {runs/};
+        \node[file, right=of runs] (runartifacts) {runs/*/artifacts/};
+        \node[file, right=of runartifacts] (results) {results/};
+        \draw[rust] (study) -- node[cmd] {generate} (runs);
+        \draw[rust] (runs) -- node[cmd] {train} (runartifacts);
+        \draw[python] (runartifacts) -- node[cmd] {aggregate} (results);
+
+        \node[below=6mm of runs.south west, anchor=north west, font=\footnotesize] (legend) {
+            \tikz[baseline=-0.5ex]\draw[rust] (0,0) -- (8mm,0); warstwa obliczeniowa (Rust) \qquad
+            \tikz[baseline=-0.5ex]\draw[python] (0,0) -- (8mm,0); warstwa prezentacji (Python)
+        };
+    \end{tikzpicture}
+    \caption{Przepływ danych w programie. Górny wiersz dotyczy pojedynczego eksperymentu, dolny badania złożonego z wielu eksperymentów. Prostokąty oznaczają pliki i katalogi, a strzałki polecenia.}
+    \label{fig:architecture}
+\end{figure}
 
 \subsection{Konfiguracja eksperymentu}
 \label{sec:implementation-config}
-% Plan (etap 5): plik config.toml (listing, tabela sekcji i kluczy), walidacja
-% z diagnostyką wskazującą linię.
+
+Wszystkie parametry eksperymentu, łącznie z ziarnem generatora liczb losowych, zapisuje się w jednym pliku \texttt{config.toml} w formacie TOML. Na Listingu~\ref{lst:config} przedstawiono przykładowy plik eksperymentu pokazowego omawianego w rozdziale~\ref{sec:showcase}. Dostępne klucze i ich dozwolone wartości zestawiono w Tabeli~\ref{tab:config-keys}. Liczbę warstw, liczbę neuronów w warstwach i obecność biasów zmienia się kluczami \texttt{model.hidden\_layers} i \texttt{model.bias}. Przed uczeniem konfiguracja jest sprawdzana, m.in. pod kątem dozwolonych par z Tabeli~\ref{tab:loss-pairs}, a komunikaty o błędach wskazują linię pliku.
+
+\begin{code}
+    \lstinputlisting[style=config, firstline=8]{../data/experiments/classification/showcase-three-gauss/config.toml}
+    \caption{Plik \texttt{config.toml} eksperymentu pokazowego \texttt{showcase-three-gauss}.}
+    \label{lst:config}
+\end{code}
+
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Klucze pliku konfiguracyjnego. W nawiasach podano dodatkowe parametry wariantu, zapisywane obok jego nazwy w kluczu \texttt{kind}, np. \texttt{\{ kind = "leaky\_relu", alpha = 0.01 \}}.}
+    \label{tab:config-keys}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.42\textwidth}X}
+        \toprule
+        Klucz & Dozwolone wartości i znaczenie \\
+        \midrule
+        \texttt{task} & \texttt{classification}, \texttt{regression} \\
+        \texttt{data.train}, \texttt{data.test} & ścieżki plików CSV o tych samych kolumnach \\
+        \texttt{data.target} & nazwa kolumny celu, pozostałe kolumny są cechami \\
+        \texttt{data.input\_normalization}, \texttt{data.target\_normalization} & \texttt{none}, \texttt{standard}, \texttt{min\_max} (cel w klasyfikacji: \texttt{none}) \\
+        \texttt{data.train\_subset} & opcjonalna liczność losowego podzbioru zbioru uczącego \\
+        \texttt{data.validation\_fraction} & część zbioru uczącego wydzielana do walidacji, z przedziału $[0, 1)$ \\
+        \texttt{model.hidden\_layers} & liczności od $0$ do $4$ warstw ukrytych, np. \texttt{[16, 16]} \\
+        \texttt{model.bias} & \texttt{true}, \texttt{false} \\
+        \texttt{model.hidden\_activation} & \texttt{sigmoid}, \texttt{tanh}, \texttt{relu}, \texttt{leaky\_relu} (\texttt{alpha}) \\
+        \texttt{model.output\_activation} & \texttt{identity}, \texttt{sigmoid}, \texttt{softmax} \\
+        \texttt{model.init} & \texttt{xavier}, \texttt{he}, \texttt{uniform} (\texttt{limit}) \\
+        \texttt{optimizer.kind}, \texttt{optimizer.learning\_rate} & \texttt{sgd}, \texttt{momentum} (\texttt{momentum}), \texttt{adam} (\texttt{beta1}, \texttt{beta2}, \texttt{epsilon}) oraz współczynnik uczenia $\eta$ \\
+        \texttt{training.loss} & \texttt{cross\_entropy}, \texttt{mse}, \texttt{mae} \\
+        \texttt{training.epochs}, \texttt{training.batch\_size}, \texttt{training.seed} & liczba epok, rozmiar paczki, ziarno generatora \\
+        \texttt{training.early\_stopping} & opcjonalne wczesne zatrzymanie (\texttt{patience}, \texttt{min\_delta}) \\
+        \texttt{logging.loss\_every}, \texttt{logging.weights\_every} & co ile iteracji zapisywać stratę i wagi \\
+        \texttt{logging.max\_weights\_per\_layer} & największa liczba zapisywanych parametrów warstwy \\
+        \texttt{output.grid\_resolution}, \texttt{output.grid\_margin} & liczba punktów na oś i margines siatki predykcji dla jednej lub dwóch cech \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Program obsługuje się z wiersza poleceń. Polecenie \texttt{validate} sprawdza konfigurację, \texttt{train} uczy jeden lub wiele eksperymentów, a \texttt{generate} tworzy eksperymenty badania. Polecenie \texttt{train} przyjmuje m.in. liczbę równolegle uczonych sieci (\texttt{-{}-jobs}) i opcję pomijania eksperymentów już nauczonych z bieżącą konfiguracją (\texttt{-{}-skip-trained}).
 
 \subsection{Przygotowanie danych}
 \label{sec:implementation-data}
-% Plan (etap 5): wczytywanie CSV, kodowanie klas, normalizacja dopasowana do zbioru
-% uczącego, podzbiór i wydzielenie walidacji.
+
+Zbiory wczytuje się z plików CSV z nagłówkiem. Kolumnę celu wskazuje konfiguracja, a pozostałe kolumny są cechami. Każda wartość musi być skończoną liczbą, a błąd wskazuje wiersz i kolumnę pliku. W klasyfikacji etykietami muszą być liczby całkowite. Klasami są różne etykiety zbioru uczącego posortowane rosnąco, więc etykiety $1, 2, 3$ otrzymują indeksy $0, 1, 2$. Cele są kodowane jako wektory \textit{one-hot}, w których jedynka stoi na pozycji klasy, a pozostałe elementy są zerami \cite[rozdz.~4]{bishop2006}. Etykieta zbioru testowego nieobecna w zbiorze uczącym jest błędem.
+
+Konfiguracja pozwala uczyć sieć na losowym podzbiorze zbioru uczącego i wydzielić z niego zbiór walidacyjny. W klasyfikacji oba losowania są stratyfikowane, tzn. zachowują proporcje klas.
+
+Cechy, a w regresji także cel, mogą być normalizowane osobno dla każdej kolumny: standaryzacją $x' = (x - \mu)/s$ albo przekształceniem zakresu do przedziału $[0, 1]$. Parametry normalizacji wyznacza się wyłącznie na zbiorze uczącym i stosuje bez zmian do pozostałych zbiorów, więc informacja ze zbioru testowego nie trafia do uczenia. Sieć regresyjna przewiduje cel w skali znormalizowanej, dlatego błędy MSE i MAE raportuje się po odwróceniu normalizacji, w oryginalnej skali odpowiedzi, zgodnie ze wzorem \eqref{eq:mse}. W badaniach standaryzowano wejścia oraz cel w regresji.
 
 \subsection{Sieć i uczenie}
 \label{sec:implementation-network}
-% Plan (etap 5): warstwy jako macierze ndarray, asercje wymiarów, pętla uczenia,
-% obserwator, wykrywanie dywergencji, opcjonalny early stopping.
+
+Warstwy są przechowywane jako macierze liczb zmiennoprzecinkowych podwójnej precyzji, w których wiersz odpowiada próbce, zgodnie z notacją z podrozdziału~\ref{sec:mlp-model}. Propagacja wsteczna realizuje Algorytm~\ref{alg:backprop}. Każdy jej krok ma komentarz z wymiarami mnożonych macierzy i asercję, która przerywa program, gdy wymiary wyniku są niezgodne z oczekiwanymi.
+
+Pętla uczenia realizuje Algorytm~\ref{alg:training}. Przed uczeniem i po każdej epoce program wyznacza na zbiorach uczącym, walidacyjnym i testowym wartość straty oraz dokładność w klasyfikacji albo MSE i MAE w oryginalnej skali w regresji. Zbiór testowy jest tylko obserwowany i nie wpływa na przebieg uczenia. Jeśli strata przyjmie wartość nieokreśloną lub nieskończoną, uczenie kończy się ze statusem rozbieżności (ang. \textit{diverged}), a krok optymalizatora z taką stratą nie jest wykonywany. Opcjonalne wczesne zatrzymanie przerywa uczenie, gdy strata walidacyjna nie poprawi się o więcej niż \texttt{min\_delta} przez \texttt{patience} kolejnych epok, i przywraca sieć z najlepszej epoki. W badaniach wczesnego zatrzymania nie używano.
+
+W trakcie uczenia program wypisuje konfigurację, liczbę parametrów sieci i w równych odstępach, domyślnie około 20 razy, wartości metryk. Przykład dla eksperymentu z Listingu~\ref{lst:config} przedstawiono na Listingu~\ref{lst:train-output}.
+
+\begin{code}
+\begin{Verbatim}[fontsize=\small]
+config:     data/experiments/classification/showcase-three-gauss\config.toml
+task:       classification
+train:      data/datasets/classification/data.three_gauss.train.500.csv
+test:       data/datasets/classification/data.three_gauss.test.10000.csv
+columns:    2 feature(s), target `cls`
+normalize:  inputs standard, target none
+network:    2 -> 16 -> 16 -> classes
+layers:     hidden tanh, output softmax, init xavier, bias on
+loss:       cross_entropy
+optimizer:  adam(lr=0.003, beta1=0.9, beta2=0.999, epsilon=1e-8)
+training:   300 epoch(s), batch size 32, seed 1
+samples:    train 1500, test 30000
+classes:    1, 2, 3
+  train      500 / 500 / 500
+  test       10000 / 10000 / 10000
+parameters: 371 (2x16+16, 16x16+16, 16x3+3)
+epoch   0/300  train loss 1.2328 acc 36.27% | test loss 1.2409 acc 35.91%
+epoch  60/300  train loss 0.1458 acc 94.40% | test loss 0.1683 acc 93.60%
+epoch 120/300  train loss 0.1402 acc 94.60% | test loss 0.1652 acc 93.51%
+epoch 180/300  train loss 0.1389 acc 94.60% | test loss 0.1693 acc 93.34%
+epoch 240/300  train loss 0.1378 acc 94.60% | test loss 0.1675 acc 93.49%
+epoch 300/300  train loss 0.1358 acc 94.67% | test loss 0.1708 acc 93.31%
+stop:       completed after 300 epoch(s), 14100 iteration(s) in 4.74 s
+result:     train loss 0.1358 acc 94.67% | test loss 0.1708 acc 93.31%
+\end{Verbatim}
+    \caption{Wyjście polecenia \texttt{compute train} dla eksperymentu \texttt{showcase-three-gauss} z wypisywaniem metryk co 60 epok.}
+    \label{lst:train-output}
+\end{code}
 
 \subsection{Powtarzalność}
 \label{sec:implementation-reproducibility}
-% Plan (etap 5): jedno ziarno, osobne strumienie RNG (dane, inicjalizacja, tasowanie,
-% próbkowanie wag), wersja kodu w metadata.json.
+
+Przebieg uczenia jest w pełni wyznaczony przez konfigurację, w tym ziarno. Liczby losowe pochodzą z generatora ChaCha8 z biblioteki \texttt{rand} \cite{rand}, opartego na szyfrze strumieniowym ChaCha z ośmioma rundami \cite{bernstein2008}. Z jednego ziarna tworzy się cztery niezależne strumienie tego generatora: dla losowań danych (podzbiór i walidacja), inicjalizacji wag, tasowania paczek oraz wyboru zapisywanych wag. Dzięki temu zmiana jednego elementu nie zmienia pozostałych losowań. Przykładem są eksperymenty pokazowe z rozdziału~\ref{sec:showcase}, które zapisują wagi dziesięć razy częściej niż eksperymenty badań, a mimo to dają wyniki identyczne co do bitu z odpowiadającymi im eksperymentami badań. Wynik nie zależy też od liczby równolegle uczonych sieci. Do artefaktów zapisywana jest kopia konfiguracji i wersja kodu.
 
 \subsection{Weryfikacja poprawności}
 \label{sec:implementation-verification}
-% Plan (etap 5): numeryczny gradient check (różnice centralne), testy determinizmu,
-% CI.
+
+Implementację propagacji wstecznej sprawdzono testami, które porównują gradient analityczny z numerycznym, liczonym różnicami centralnymi $(\mathcal{L}(\theta + h) - \mathcal{L}(\theta - h)) / (2h)$. Testy obejmują wszystkie funkcje aktywacji warstw ukrytych, wszystkie pary z Tabeli~\ref{tab:loss-pairs} oraz sieci z różną liczbą warstw ukrytych, w tym bez warstw ukrytych i bez biasów. Osobne testy sprawdzają, że to samo ziarno daje ten sam przebieg uczenia.
 
 \subsection{Artefakty, wizualizacja i automatyzacja badań}
 \label{sec:implementation-analysis}
-% Plan (etap 5): artefakty (.npy, epochs.csv, metadata.json), wykresy w Pythonie,
-% study.toml -> generate -> train -> aggregate.
+
+Po uczeniu program zapisuje artefakty w katalogu \texttt{artifacts/} eksperymentu. Ich zawartość zestawiono w Tabeli~\ref{tab:artifacts}. Tablice zapisuje się w binarnym formacie \texttt{.npy}, metryki epok w pliku CSV, a metadane w formacie JSON. Dla dużych warstw zapis wszystkich wag w każdej iteracji byłby zbyt kosztowny. Dlatego zapisywany jest stały, losowo wybrany podzbiór co najwyżej \texttt{max\_weights\_per\_layer} parametrów warstwy, co \texttt{weights\_every} iteracji. Normy wag liczy się zawsze ze wszystkich parametrów.
+
+\begin{table}[H]
+    \centering
+    \caption{Zawartość katalogu \texttt{artifacts/} eksperymentu.}
+    \label{tab:artifacts}
+    \begin{tabularx}{\textwidth}{lX}
+        \toprule
+        Plik lub katalog & Zawartość \\
+        \midrule
+        \texttt{metadata.json} & kopia konfiguracji, wersja kodu, opis danych i sieci, powód zatrzymania, liczba epok i iteracji, końcowe metryki, czas uczenia \\
+        \texttt{epochs.csv} & strata i metryki każdego zbioru przed uczeniem i po każdej epoce \\
+        \texttt{history/} & strata paczek uśredniona w oknach \texttt{loss\_every} iteracji \\
+        \texttt{weights/} & wartości zapisywanych parametrów w kolejnych zapisach oraz normy $\lVert W \rVert_F$ i $\lVert b \rVert_2$ każdej warstwy \\
+        \texttt{model/} & końcowe wagi i biasy \\
+        \texttt{predictions/} & wyjścia sieci, cele lub etykiety oraz numery wierszy pliku CSV dla każdego zbioru \\
+        \texttt{grid/} & wyjścia sieci na siatce punktów przestrzeni wejść (dla jednej lub dwóch cech) \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Warstwa prezentacji tworzy dla pojedynczego eksperymentu wykresy zbioru danych, granicy decyzyjnej albo krzywej regresji, straty w kolejnych iteracjach i epokach, metryk, trajektorii i norm wag, mapy wartości wag oraz macierze pomyłek.
+
+Badanie opisuje plik \texttt{study.toml}, który zawiera konfigurację bazową bez ziarna, osie badanych parametrów z ich poziomami i listę ziaren. Polecenie \texttt{generate} tworzy po jednym eksperymencie dla każdej kombinacji poziomów i każdego ziarna oraz sprawdza każdą wygenerowaną konfigurację. Polecenie \texttt{aggregate} zestawia wyniki wszystkich eksperymentów badania w tabelach (wynik każdego eksperymentu oraz statystyki po ziarnach dla każdego wariantu), wykresach porównawczych i podsumowaniu. Skrypt \texttt{run-studies.ps1} wykonuje te kroki kolejno dla wszystkich badań i po przerwaniu wznawia pracę od eksperymentów jeszcze nienauczonych. Plan badań opisano w rozdziale~\ref{sec:methodology}.

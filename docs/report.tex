@@ -47,6 +47,29 @@
 % Wykresy brane wprost z katalogów eksperymentów i badań
 \graphicspath{{../data/experiments/}}
 
+% Diagramy
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+
+% Listingi plików konfiguracyjnych TOML
+\lstdefinelanguage{toml}{
+    morecomment=[l]{\#},
+    morestring=[b]",
+    sensitive=true,
+}
+\lstdefinestyle{config}{
+    language=toml,
+    basicstyle=\ttfamily\footnotesize,
+    commentstyle=\color{consoleGray},
+    stringstyle=\color{consoleBlue},
+    columns=fullflexible,
+    keepspaces=true,
+    breaklines=true,
+    breakatwhitespace=true,
+}
+% Proste apostrofy i grawisy w listingach i Verbatim, tak jak w plikach
+\usepackage{upquote}
+
 % Definicje kolorów
 \definecolor{consoleGreen}{RGB}{22, 198, 12}
 \definecolor{consoleRed}{RGB}{197, 15, 31}
