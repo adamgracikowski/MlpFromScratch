@@ -26,3 +26,8 @@ logs/
 # MNIST is downloaded locally
 data/datasets/mnist/*
 !data/datasets/mnist/README.md
+
+# Report build output (the final PDF is added with git add -f)
+docs/.latexbuild/
+docs/*.pdf
+docs/*.log

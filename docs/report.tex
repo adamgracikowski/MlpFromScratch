@@ -1,0 +1,111 @@
+\documentclass{article}
+%----------------------------------------------------------------------
+\usepackage[polish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{etoolbox}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=black, citecolor=black]{hyperref}
+\usepackage{csquotes}
+\usepackage[backend=biber,style=numeric,sorting=none,maxbibnames=4]{biblatex}
+\addbibresource{references.bib}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{newfloat}
+\usepackage{fancyvrb}
+\usepackage{multirow}
+
+% Definicje kolorów
+\definecolor{consoleGreen}{RGB}{22, 198, 12}
+\definecolor{consoleRed}{RGB}{197, 15, 31}
+\definecolor{consoleYellow}{RGB}{193, 156, 0}
+\definecolor{consoleBlue}{RGB}{0, 55, 218}
+\definecolor{consoleGray}{RGB}{100, 100, 100}
+\definecolor{consolePurple}{RGB}{136, 23, 152}
+
+% Pomocnicze komendy do kolorowania
+\newcommand{\txtGreen}[1]{\textcolor{consoleGreen}{#1}}
+\newcommand{\txtRed}[1]{\textcolor{consoleRed}{#1}}
+\newcommand{\txtYellow}[1]{\textcolor{consoleYellow}{#1}}
+\newcommand{\txtBlue}[1]{\textcolor{consoleBlue}{#1}}
+\newcommand{\txtGray}[1]{\textcolor{consoleGray}{#1}}
+\newcommand{\txtPurple}[1]{\textcolor{consolePurple}{#1}}
+
+\newfloat{code}{H}{loc}[section]
+\floatname{code}{Listing}
+
+% Algorytmy po polsku
+\floatname{algorithm}{Algorytm}
+\renewcommand{\algorithmicrequire}{\textbf{Wejście:}}
+\renewcommand{\algorithmicensure}{\textbf{Wyjście:}}
+
+% Oznaczenia używane w tekście
+\newcommand{\yhat}{\hat{y}}
+\newcommand{\RCS}{RCS}
+
+\emergencystretch=1.5em
+
+% Sekcje zaczynają się od nowej strony, dopóki nie wyłączymy tego przez \sekcjebezpodzialu
+\newif\ifsekcjanowastrona
+\sekcjanowastronatrue
+\newcommand{\sekcjebezpodzialu}{\sekcjanowastronafalse}
+\pretocmd{\section}{\ifsekcjanowastrona\clearpage\fi}{}{}
+
+\lstset{
+    basicstyle=\ttfamily, % Ustawienie czcionki monospaced
+}
+
+\newcommand{\nazwaprzedmiotu}{Sieci neuronowe}
+\newcommand{\tytulprojektu}{Klasyfikacja i regresja z użyciem perceptronu wielowarstwowego}
+\newcommand{\nazwadokumentu}{Raport}
+\newcommand{\prowadzacy}{dr inż. Maksymilian Bujok \\ mgr inż. Grzegorz Zakrzewski}
+%----------------------------------------------------------------------
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace{1.5cm}
+    \includegraphics[width=0.9\textwidth]{university-logo.png} \\
+    \vspace{2.5cm}
+    {\fontsize{30}{20}\selectfont \textbf{\nazwaprzedmiotu} \par}
+    \vspace{1.5cm}
+    {\fontsize{25}{20}\selectfont \tytulprojektu \par}
+    \vspace{1.5cm}
+    {\fontsize{18}{20}\selectfont \nazwadokumentu \par}
+    \vspace{1.5cm}
+    {\fontsize{12}{20}\selectfont Zespół: \\ Adam Grącikowski \par}
+    \vspace{0.5cm}
+    {\fontsize{12}{20}\selectfont Prowadzący: \\ \prowadzacy \par}
+    
+    \vfill
+    Oświadczam, że niniejsza praca, stanowiąca podstawę do uznania osiągnięcia efektów uczenia się z przedmiotu \textit{\nazwaprzedmiotu}, została wykonana samodzielnie. 
+
+    \vspace{1cm}
+    
+    Warszawa, \today
+    
+\end{titlepage}
+
+%----------------------------------------------------------------------
+\tableofcontents
+\newpage
+
+%----------------------------------------------------------------------
+
+%----------------------------------------------------------------------
+\newpage
+\printbibliography[heading=bibintoc]
+
+\end{document}
