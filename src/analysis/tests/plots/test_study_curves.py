@@ -2,8 +2,14 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
-from analysis.plots.study_curves import curve_panels, mean_and_sd, plot_study_curves
+from analysis.plots.study_curves import (
+    curve_panels,
+    fit_after_warmup,
+    mean_and_sd,
+    plot_study_curves,
+)
 from analysis.study import load_results, load_study
 
 REPORT = '[report]\nx = "activation"\ncolor = "dataset"'
@@ -67,3 +73,27 @@ def test_without_color_one_panel(make_study) -> None:
     results = load_results(load_study(make_study(axes={"activation": ["sigmoid", "tanh"]})))
 
     assert [panel.title for panel in curve_panels(results)] == [None]
+
+
+def test_axis_fitted_without_first_epochs() -> None:
+    figure, axes = plt.subplots()
+    # 21 epochs: the first 2 (10 %) are left out.
+    climb = np.array([20.0, 60.0, *np.linspace(90.0, 94.0, 19)])
+
+    fit_after_warmup(axes, [climb])
+
+    assert axes.get_ylim() == pytest.approx((90.0 - 0.2, 94.0 + 0.2))
+    plt.close(figure)
+
+
+def test_accuracy_bands_within_bounds(make_study) -> None:
+    results = load_results(load_study(make_study(report=REPORT)))
+
+    figure = plot_study_curves(results)
+
+    for axes in figure.axes:
+        for band in axes.collections:
+            vertices = band.get_paths()[0].vertices
+            assert vertices[:, 1].min() >= 0.0
+            assert vertices[:, 1].max() <= 100.0
+    plt.close(figure)

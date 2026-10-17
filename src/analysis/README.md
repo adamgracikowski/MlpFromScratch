@@ -37,11 +37,11 @@ The comparison plots compare the test accuracy (classification) or the test MSE 
 | File | Content | When |
 |---|---|---|
 | `seeds` | final test metric: mean with +-1 standard deviation and a dot per seed; diverged runs noted | always |
-| `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band; a panel per combination of the `panels` and `color` levels (levels of `color` often differ in the number of epochs), a curve per `x` level | always |
+| `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band; a panel per combination of the `panels` and `color` levels (levels of `color` often differ in the number of epochs), a curve per `x` level; the accuracy axis fits the curves without the first 10 % of epochs (the climb from chance level), the band is clipped to 0-100 % | always |
 | `curves_train_loss` | training loss per epoch, as `curves` | all variants use the same loss |
 | `heatmap` | mean (+- standard deviation) of the test metric, rows `color`, columns `x` | `x` and `color` are set |
 | `seeds_inside`, `seeds_outside`, `heatmap_inside`, `heatmap_outside` | `seeds` and `heatmap` of `test_mse_inside` (interpolation) and `test_mse_outside` (extrapolation) | regression (`heatmap_*`: as `heatmap`) |
-| `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level: decision regions (classification) or network curve (regression) of the representative run, with its test metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |
+| `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level (three columns, four panels as 2 x 2): decision regions (classification) or network curve (regression) of the representative run, with its test metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |
 
 Statistics use the finished runs only. Diverged runs are counted separately, and so are runs without artifacts. Where the standard deviation exceeds the mean on a log axis, the band reaches the bottom of the plot.
 

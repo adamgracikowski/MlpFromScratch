@@ -39,6 +39,17 @@ def test_regression_panels_show_the_mse(make_study) -> None:
     plt.close(figure)
 
 
+def test_four_panels_in_two_columns(make_study) -> None:
+    results = load_results(load_study(make_study(axes={"a": ["w", "x", "y", "z"]}, seeds=(1,))))
+
+    ((_, figure),) = plot_study_gallery(results)
+
+    visible = [axes for axes in figure.axes if axes.get_visible()]
+    assert len(visible) == 4
+    assert visible[0].get_gridspec().get_geometry() == (2, 2)
+    plt.close(figure)
+
+
 def test_variant_without_finished_run(make_study) -> None:
     missing = tuple(f"runs/tanh__a/seed-{seed}" for seed in (1, 2, 3))
     results = load_results(load_study(make_study(missing=missing)))

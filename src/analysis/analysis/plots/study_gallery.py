@@ -78,7 +78,8 @@ def _run(
 
 def _figure(results: StudyResults, x_levels: list[str | None], runs: list[Path | None]) -> Figure:
     classification = results.study.is_classification
-    columns = min(COLUMNS, len(runs))
+    # Four panels as 2 x 2 rather than 3 + 1.
+    columns = 2 if len(runs) == 4 else min(COLUMNS, len(runs))
     rows = math.ceil(len(runs) / columns)
     height = rows * PANEL_HEIGHT_CM[classification] + LEGEND_HEIGHT_CM
     figure, grid = new_figure(16, height, rows=rows, columns=columns, squeeze=False)

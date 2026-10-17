@@ -6,6 +6,8 @@ often differ in the number of epochs (e.g. training set sizes), and a panel with
 combination would be unreadable.
 """
 
+import math
+
 import numpy as np
 import polars as pl
 from matplotlib.axes import Axes
@@ -31,15 +33,20 @@ from analysis.series import finite_or_nan
 from analysis.study import StudyResults
 from analysis.study.run_summary import FINISHED
 
+# Share of the epochs left out when a linear axis is fitted (see `fit_after_warmup`).
+WARMUP_SHARE = 0.1
+
 
 def plot_study_curves(results: StudyResults) -> Figure:
     """The primary test metric (accuracy or MSE) after every epoch."""
+    log = is_log_metric(results)
     return _plot_curves(
         results,
         primary_column(results),
         metric_scale(results),
         metric_label(results),
-        log=is_log_metric(results),
+        log=log,
+        bounds=None if log else (0.0, 100.0),
     )
 
 
@@ -90,11 +97,21 @@ def curve_panels(results: StudyResults) -> list[Panel]:
     return found
 
 
-def _plot_curves(results: StudyResults, column: str, scale: float, label: str, log: bool) -> Figure:
+def _plot_curves(
+    results: StudyResults,
+    column: str,
+    scale: float,
+    label: str,
+    log: bool,
+    bounds: tuple[float, float] | None = None,
+) -> Figure:
+    """`bounds` are the possible values of the metric (accuracy: 0 to 100 %): the deviation
+    bands are clipped to them, and the linear axis is fitted to the curves after the first
+    epochs."""
     study_panels = curve_panels(results)
     figure, axes_list = panel_figure(len(study_panels))
     for axes, panel in zip(axes_list, study_panels, strict=True):
-        drawn = _draw_panel(axes, results, panel.runs, column, scale)
+        drawn = _draw_panel(axes, results, panel.runs, column, scale, bounds)
         if panel.title:
             axes.set_title(panel.title)
         axes.set_xlabel(labels.EPOCH)
@@ -103,10 +120,25 @@ def _plot_curves(results: StudyResults, column: str, scale: float, label: str, l
         axes.set_xlim(left=0)
         if log:
             fit_log_axis(axes, drawn)
+        else:
+            fit_after_warmup(axes, drawn)
     handles, names = _legend_entries(axes_list)
     if handles:
         figure.legend(handles, names, loc="outside lower center", ncols=min(len(handles), 4))
     return figure
+
+
+def fit_after_warmup(axes: Axes, drawn: list[np.ndarray]) -> None:
+    """Fit the y axis to the curves without their first epochs: accuracy climbs from the
+    chance level within a few epochs, and the climb would squeeze the differences between
+    the variants into a thin strip."""
+    tails = [values[math.ceil(WARMUP_SHARE * (len(values) - 1)) :] for values in drawn]
+    values = np.concatenate([values[np.isfinite(values)] for values in tails] or [[]])
+    if values.size == 0:
+        return
+    low, high = values.min(), values.max()
+    margin = 0.05 * (high - low) if high > low else 1.0
+    axes.set_ylim(low - margin, high + margin)
 
 
 def _legend_entries(axes_list: list[Axes]) -> tuple[list, list[str]]:
@@ -119,7 +151,12 @@ def _legend_entries(axes_list: list[Axes]) -> tuple[list, list[str]]:
 
 
 def _draw_panel(
-    axes: Axes, results: StudyResults, runs: pl.DataFrame, column: str, scale: float
+    axes: Axes,
+    results: StudyResults,
+    runs: pl.DataFrame,
+    column: str,
+    scale: float,
+    bounds: tuple[float, float] | None,
 ) -> list[np.ndarray]:
     """One curve per `x` level; a level keeps its color and line style in every panel."""
     drawn = []
@@ -142,6 +179,9 @@ def _draw_panel(
             linestyle=line_style_of(index),
             label=series_label(x, None),
         )
-        axes.fill_between(epochs, mean - sd, mean + sd, color=color, alpha=0.18, linewidth=0)
-        drawn += [mean - sd, mean + sd, mean]
+        lower, upper = mean - sd, mean + sd
+        if bounds is not None:
+            lower, upper = np.clip(lower, *bounds), np.clip(upper, *bounds)
+        axes.fill_between(epochs, lower, upper, color=color, alpha=0.18, linewidth=0)
+        drawn += [lower, upper, mean]
     return drawn
