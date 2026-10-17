@@ -29,6 +29,11 @@ levels = [
 x = "architecture"
 color = "size"
 
+[report.labels]                    # texts on the plots (Polish) instead of axis and level names
+architecture = "Neurony w warstwach ukrytych"
+"0" = "brak"
+size = "Liczność zbioru uczącego"
+
 # Settings not studied here. Keys set by the axes still need a value; it is replaced in every run.
 [base]
 task = "classification"

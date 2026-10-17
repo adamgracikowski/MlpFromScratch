@@ -32,6 +32,12 @@ levels = [
 x = "activation"
 color = "size"
 
+[report.labels]                    # texts on the plots (Polish) instead of axis and level names
+activation = "Funkcja aktywacji"
+relu = "ReLU"
+"leaky-relu" = "leaky ReLU"
+size = "Liczność zbioru uczącego"
+
 # Settings not studied here. Keys set by the axes still need a value; it is replaced in every run.
 [base]
 task = "regression"

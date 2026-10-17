@@ -28,6 +28,12 @@ levels = [
 x = "loss"
 color = "size"
 
+[report.labels]                    # texts on the plots (Polish) instead of axis and level names
+loss = "Funkcja straty"
+cross_entropy = "entropia krzyżowa"
+mse = "MSE"
+size = "Liczność zbioru uczącego"
+
 # Settings not studied here. Keys set by the axes still need a value; it is replaced in every run.
 [base]
 task = "classification"
