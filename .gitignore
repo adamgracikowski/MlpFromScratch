@@ -19,6 +19,8 @@ data/experiments/**/artifacts/
 data/experiments/**/runs/
 # PNG copies of the study plots (the PDFs, tables and summary.md are committed)
 data/experiments/*/*/results/*.png
+# PNG copies of the experiment plots (the PDFs and summary.md are committed)
+data/experiments/**/plots/*.png
 
 # Logs of scripts/run-studies.ps1
 logs/
