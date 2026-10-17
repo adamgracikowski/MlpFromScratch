@@ -22,6 +22,8 @@ def test_writes_tables_plots_and_summary(make_study) -> None:
     assert _names(study_dir) == [
         "curves.png",
         "curves_train_loss.png",
+        "gallery_sigmoid.png",
+        "gallery_tanh.png",
         "runs.csv",
         "seeds.png",
         "summary.md",
@@ -53,14 +55,19 @@ def test_skips_train_loss_of_different_losses(make_study) -> None:
 def test_regression_with_diverged_runs(make_study) -> None:
     study_dir = make_study(
         task="regression",
+        features=1,
         report='[report]\nx = "activation"\ncolor = "dataset"',
         diverged=("runs/sigmoid__a/seed-1", "runs/sigmoid__a/seed-2", "runs/sigmoid__a/seed-3"),
     )
     report = aggregate_study(load_study(study_dir), **PNG)
 
     assert report.skipped == []
+    names = _names(study_dir)
+    for name in ("seeds_inside", "seeds_outside", "heatmap_inside", "heatmap_outside"):
+        assert f"{name}.png" in names
     summary = (study_dir / RESULTS_DIR / "summary.md").read_text(encoding="utf-8")
     assert "| `sigmoid` | `a` | 0/3 | 3 |" in summary
+    assert "MSE w zakresie (testowy)" in summary
 
 
 def test_study_without_axes(make_study) -> None:

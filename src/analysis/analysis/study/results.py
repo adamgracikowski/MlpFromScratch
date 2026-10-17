@@ -7,13 +7,14 @@ import numpy as np
 import polars as pl
 
 from analysis.experiment import SPLITS, ArtifactsError
+from analysis.study.range_errors import RANGE_COLUMNS, InputCache, range_errors
 from analysis.study.run_summary import FINISHED, RunSummary
 from analysis.study.study import Study
 
 CLASSIFICATION_METRICS = ("loss", "accuracy")
 REGRESSION_METRICS = ("loss", "mse", "mae")
 MISSING = "missing"
-STATISTICS = ("mean", "sd", "min", "median", "max")
+STATISTICS = ("mean", "sd", "min", "q1", "median", "q3", "max")
 
 
 def task_metrics(study: Study) -> tuple[str, ...]:
@@ -32,7 +33,8 @@ class StudyResults:
     study: Study
     runs: pl.DataFrame
     summaries: dict[str, RunSummary]  # by `dir` of the index; missing runs left out
-    metric_columns: list[str]  # `<split>_<metric>`; validation only if any run has it
+    metric_columns: list[str]  # `<split>_<metric>`; validation only if any run has it, then
+    # the test MSE inside and outside the training range (regression)
 
     @property
     def missing(self) -> list[str]:
@@ -40,8 +42,11 @@ class StudyResults:
 
 
 def load_results(study: Study) -> StudyResults:
-    """Read the summary of every run in the index; runs without artifacts are `missing`."""
+    """Read the summary of every run in the index; runs without artifacts are `missing`.
+    Regression runs also get the test MSE inside and outside their training range."""
     metrics = task_metrics(study)
+    range_columns = [] if study.is_classification else list(RANGE_COLUMNS)
+    inputs = InputCache()
     summaries: dict[str, RunSummary] = {}
     rows = []
     for row in study.index.iter_rows(named=True):
@@ -59,6 +64,7 @@ def load_results(study: Study) -> StudyResults:
         for split in SPLITS:
             for metric in metrics:
                 record[f"{split}_{metric}"] = None
+        record |= dict.fromkeys(range_columns)
         if summary is not None:
             summaries[row["dir"]] = summary
             result = summary.metadata["result"]
@@ -71,6 +77,8 @@ def load_results(study: Study) -> StudyResults:
             for split in SPLITS:
                 for metric in metrics:
                     record[f"{split}_{metric}"] = summary.metric(split, metric)
+            if range_columns:
+                record.update(range_errors(summary, inputs))
         rows.append(record)
 
     schema: dict[str, pl.DataType] = dict(study.index.schema)
@@ -81,7 +89,7 @@ def load_results(study: Study) -> StudyResults:
         "training_seconds": pl.Float64(),
     }
     all_metrics = [f"{split}_{metric}" for split in SPLITS for metric in metrics]
-    schema |= {column: pl.Float64() for column in all_metrics}
+    schema |= {column: pl.Float64() for column in [*all_metrics, *range_columns]}
     runs = pl.DataFrame(rows, schema=schema, orient="row")
     validation = any(
         summary.metadata["data"]["samples"]["validation"] is not None
@@ -89,7 +97,7 @@ def load_results(study: Study) -> StudyResults:
     )
     metric_columns = [
         column for column in all_metrics if validation or not column.startswith("validation_")
-    ]
+    ] + range_columns
     runs = runs.drop([column for column in all_metrics if column not in metric_columns])
     return StudyResults(study, runs, summaries, metric_columns)
 
@@ -98,7 +106,8 @@ def variants_table(results: StudyResults) -> pl.DataFrame:
     """One row per variant: run counts and statistics of the metrics over seeds.
 
     Statistics use the finished runs only (completed or early stopped); diverged and
-    missing runs are counted separately. `sd` is the sample standard deviation.
+    missing runs are counted separately. `sd` is the sample standard deviation, `q1` and
+    `q3` are the quartiles (linear interpolation, as `numpy.percentile`).
     """
     finished = pl.col("status").is_in(FINISHED)
     expressions = [
@@ -115,7 +124,9 @@ def variants_table(results: StudyResults) -> pl.DataFrame:
             values.mean().alias(f"{column}_mean"),
             values.std(ddof=1).alias(f"{column}_sd"),
             values.min().alias(f"{column}_min"),
+            values.quantile(0.25, interpolation="linear").alias(f"{column}_q1"),
             values.median().alias(f"{column}_median"),
+            values.quantile(0.75, interpolation="linear").alias(f"{column}_q3"),
             values.max().alias(f"{column}_max"),
         ]
     keys = ["variant", *results.study.axis_names]

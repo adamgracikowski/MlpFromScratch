@@ -168,11 +168,22 @@ def code_version(package: str, commit: str, dirty: bool) -> str:
 # Studies: comparison plots and results/summary.md
 
 MEAN_AND_SD = "Średnia ± odchylenie standardowe"
+MEDIAN_AND_QUARTILES = "Mediana i kwartyle (Q1–Q3)"
 SINGLE_SEED = "Pojedyncze ziarno"
 
 
 TEST_ACCURACY = "Dokładność testowa [%]"
 TEST_MSE = "MSE testowe (skala oryginalna)"
+TEST_MSE_INSIDE = "MSE testowe (interpolacja)"
+TEST_MSE_OUTSIDE = "MSE testowe (ekstrapolacja)"
+MSE_INSIDE_COLUMN = "MSE w zakresie"
+MSE_OUTSIDE_COLUMN = "MSE poza zakresem"
+RANGE_NOTE = (
+    "MSE w zakresie i poza zakresem: punkty testowe, których wejścia leżą w zakresie "
+    "(od minimum do maksimum) wejść zbioru uczącego runu, i pozostałe; na wykresach "
+    "`seeds_inside`, `heatmap_inside` (interpolacja) i `seeds_outside`, `heatmap_outside` "
+    "(ekstrapolacja)."
+)
 
 
 def train_loss(loss: str) -> str:
@@ -188,6 +199,19 @@ def diverged_runs(diverged: int, runs: int) -> str:
 def panel_title(levels: dict[str, str]) -> str:
     """Title of a panel: the panel axes and their levels, e.g. `dataset: simple-100`."""
     return ", ".join(f"{axis}: {level}" for axis, level in levels.items())
+
+
+NO_FINISHED_RUN = "Brak ukończonego runu"
+
+
+def gallery_title(level: str | None, metric: str) -> str:
+    """Title of a gallery panel: the `x` level and the test metric of its run, e.g.
+    `relu · 97,2%`."""
+    return metric if level is None else f"{level} · {metric}"
+
+
+def gallery_mse(value: str) -> str:
+    return f"MSE {value}"
 
 
 STUDY_TITLE = "Badanie"
@@ -207,11 +231,23 @@ MISSING = "Bez artefaktów"
 MEAN_EPOCHS = "Epoki (średnio)"
 MEAN_TIME = "Czas uczenia (średnio)"
 RUN = "Run"
-RESULTS_NOTE = (
-    "Średnia ± odchylenie standardowe (próbkowe) po ziarnach, tylko z runów zakończonych "
-    "normalnie (wszystkie epoki lub early stopping); runy rozbieżne i bez artefaktów są "
-    "policzone osobno."
-)
+
+
+def results_note(median: bool) -> str:
+    """Note under the results table: which statistics it shows and over which runs."""
+    if median:
+        statistics = (
+            "Mediana (w nawiasie kwartyle Q1–Q3) po ziarnach: błędy między ziarnami mają "
+            "długi ogon i kilka złych ziaren zawyża średnią"
+        )
+    else:
+        statistics = "Średnia ± odchylenie standardowe (próbkowe) po ziarnach"
+    return (
+        f"{statistics}; tylko runy zakończone normalnie (wszystkie epoki lub early "
+        "stopping), runy rozbieżne i bez artefaktów są policzone osobno."
+    )
+
+
 REPRESENTATIVE_NOTE = (
     "Dla każdego wariantu run, którego metryka testowa jest najbliższa medianie po ziarnach; "
     "jego wykresy są w katalogu `plots/` runu."

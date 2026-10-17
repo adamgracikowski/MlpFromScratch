@@ -15,8 +15,9 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from analysis import labels
-from analysis.study import StudyResults, primary_metric
-from analysis.style import CATEGORICAL, new_figure
+from analysis.study import Study, StudyResults, primary_metric
+from analysis.study.range_errors import INSIDE, OUTSIDE
+from analysis.style import CATEGORICAL, CM, new_figure
 
 
 @dataclass(frozen=True)
@@ -26,9 +27,13 @@ class Panel:
     levels: dict[str, str]  # panel axis -> level
     runs: pl.DataFrame
 
-    @property
-    def title(self) -> str | None:
-        return labels.panel_title(self.levels) if self.levels else None
+    def title(self, study: Study) -> str | None:
+        """The panel axes and their levels, with their labels."""
+        if not self.levels:
+            return None
+        return labels.panel_title(
+            {study.label(axis): study.label(level) for axis, level in self.levels.items()}
+        )
 
 
 def panels(results: StudyResults) -> list[Panel]:
@@ -79,6 +84,32 @@ def line_style_of(index: int) -> str:
     return ("-", "--", ":", "-.")[(index // len(CATEGORICAL)) % 4]
 
 
+# Rough width of a character of the 9 pt tick labels and of the 8 pt heatmap cells.
+TICK_CHARACTER_CM = 0.17
+CELL_CHARACTER_CM = 0.15
+
+
+def axes_width_cm(axes: Axes) -> float:
+    """Width of the axes in the figure grid (before the constrained layout shrinks it)."""
+    return axes.get_position().width * axes.get_figure().get_figwidth() / CM
+
+
+def fits(texts: list[str], slot_cm: float, character_cm: float) -> bool:
+    """Whether the longest text fits a slot, with a margin of 10 %."""
+    longest = max((len(text) for text in texts), default=0)
+    return longest * character_cm <= 0.9 * slot_cm
+
+
+def category_ticks(axes: Axes, names: list[str]) -> None:
+    """One x tick per category; labels too long for their slot are slanted."""
+    axes.set_xticks(range(len(names)), names)
+    if names and not fits(names, axes_width_cm(axes) / len(names), TICK_CHARACTER_CM):
+        axes.tick_params(axis="x", labelrotation=30)
+        for label in axes.get_xticklabels():
+            label.set_horizontalalignment("right")
+            label.set_rotation_mode("anchor")
+
+
 def panel_figure(count: int, single_height_cm: float = 9.0) -> tuple[Figure, list[Axes]]:
     """A figure 16 cm wide with `count` panels in up to two columns; spare axes hidden."""
     columns = 1 if count == 1 else 2
@@ -109,5 +140,47 @@ def primary_column(results: StudyResults) -> str:
     return f"test_{primary_metric(results.study)}"
 
 
+@dataclass(frozen=True)
+class Metric:
+    """A final metric compared across variants: column of the runs table, axis label,
+    factor of the shown values and whether the axis is logarithmic."""
+
+    column: str
+    label: str
+    scale: float
+    log: bool
+
+
+def metric_of(results: StudyResults, column: str | None = None) -> Metric:
+    """The primary test metric, or the test MSE inside or outside the training range."""
+    if column is None:
+        return Metric(
+            primary_column(results),
+            metric_label(results),
+            metric_scale(results),
+            is_log_metric(results),
+        )
+    label = {INSIDE: labels.TEST_MSE_INSIDE, OUTSIDE: labels.TEST_MSE_OUTSIDE}[column]
+    return Metric(column, label, 1.0, True)
+
+
 def finite(values: np.ndarray) -> np.ndarray:
     return values[np.isfinite(values)]
+
+
+def center_and_spread(values: np.ndarray, log: bool) -> tuple[float, float, float]:
+    """Center and spread of a metric over seeds as `(center, low, high)`: the mean and
+    mean +- sample standard deviation, or for metrics on a log axis (errors) the median and
+    the quartiles: errors over seeds have a long tail, the mean follows a few bad seeds and
+    mean - sd is often negative. The spread is the center itself for a single value."""
+    if log:
+        low, center, high = np.percentile(values, [25, 50, 75])
+        return float(center), float(low), float(high)
+    mean = float(values.mean())
+    sd = float(values.std(ddof=1)) if values.size > 1 else 0.0
+    return mean, mean - sd, mean + sd
+
+
+def spread_label(log: bool) -> str:
+    """Legend entry of the center with its spread (see `center_and_spread`)."""
+    return labels.MEDIAN_AND_QUARTILES if log else labels.MEAN_AND_SD

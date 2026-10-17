@@ -39,3 +39,21 @@ def test_regression_errors_without_percent(make_study) -> None:
     assert "MSE (testowy)" in summary
     assert "MAE (testowy)" in summary
     assert "%" not in summary.split("## Wyniki")[1]
+
+
+def test_regression_errors_as_median_and_quartiles(make_study) -> None:
+    summary = _summary(make_study(task="regression", axes={"a": ["x"]}))
+
+    results = summary.split("## Wyniki")[1]
+    assert chr(0xB1) not in results
+    assert chr(0x2013) in results
+    assert "Mediana (w nawiasie kwartyle Q1–Q3)" in results
+
+
+def test_labels_in_results_table(make_study) -> None:
+    report = '[report]\nlabels = { activation = "Aktywacja", tanh = "tangens" }'
+    summary = _summary(make_study(report=report))
+
+    results = summary.split("## Wyniki")[1]
+    assert "| Aktywacja | `dataset` |" in results
+    assert "| tangens | `a` |" in results

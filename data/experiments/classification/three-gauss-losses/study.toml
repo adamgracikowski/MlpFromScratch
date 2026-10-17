@@ -1,0 +1,72 @@
+# Study: loss x training set size on `three_gauss`, 10 seeds each.
+# Run from the repo root (or all studies at once: pwsh -File scripts/run-studies.ps1):
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/classification/three-gauss-losses
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/three-gauss-losses --skip-trained
+#   uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/three-gauss-losses --plot-runs
+
+description = "Wpływ funkcji straty na klasyfikację zbioru `three_gauss` w czterech rozmiarach."
+seeds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# Shorthand: both losses with the softmax output, so only the loss changes.
+[[axes]]
+name = "loss"
+key = "training.loss"
+values = ["cross_entropy", "mse"]
+
+# Training set size: size points per class (3 x size rows).
+# Larger sets get fewer epochs, so the number of iterations (batches) stays of a similar order.
+[[axes]]
+name = "size"
+levels = [
+  { name = "100", set = { "data.train" = "data/datasets/classification/data.three_gauss.train.100.csv", "training.epochs" = 1000 } },
+  { name = "500", set = { "data.train" = "data/datasets/classification/data.three_gauss.train.500.csv", "training.epochs" = 300 } },
+  { name = "1000", set = { "data.train" = "data/datasets/classification/data.three_gauss.train.1000.csv", "training.epochs" = 200 } },
+  { name = "10000", set = { "data.train" = "data/datasets/classification/data.three_gauss.train.10000.csv", "training.epochs" = 30 } },
+]
+
+[report]                           # factor on the x axis, sizes as colors; heatmap and galleries per size
+x = "loss"
+color = "size"
+
+[report.labels]                    # texts on the plots (Polish) instead of axis and level names
+loss = "Funkcja straty"
+cross_entropy = "entropia krzyżowa"
+mse = "MSE"
+size = "Liczność zbioru uczącego"
+
+# Settings not studied here. Keys set by the axes still need a value; it is replaced in every run.
+[base]
+task = "classification"
+
+[base.data]
+train = "data/datasets/classification/data.three_gauss.train.100.csv"
+test = "data/datasets/classification/data.three_gauss.test.10000.csv"
+target = "cls"
+input_normalization = "standard"
+target_normalization = "none"
+validation_fraction = 0.0
+
+[base.model]
+hidden_layers = [16, 16]
+bias = true
+hidden_activation = { kind = "tanh" }
+output_activation = "softmax"
+init = { kind = "xavier" }
+
+[base.optimizer]
+kind = "adam"
+learning_rate = 0.003
+
+[base.training]
+loss = "cross_entropy"
+epochs = 1000
+batch_size = 32
+
+[base.logging]
+loss_every = 1
+weights_every = 100
+max_weights_per_layer = 32
+
+[base.output]
+grid_resolution = 100
+grid_margin = 0.1

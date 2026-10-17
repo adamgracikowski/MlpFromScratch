@@ -77,18 +77,27 @@ def format_value(value: float | None, digits: int = 4) -> str:
     return text.replace("-", MINUS)
 
 
-def format_significant(value: float, digits: int = 3) -> str:
-    """Round to `digits` significant digits for plot text: `41 600`, `2 470`, `0,0123`.
+def format_significant(value: float, digits: int = 3, max_decimals: int | None = None) -> str:
+    """Round to `digits` significant digits for plot text: `41 600`, `2 470`, `0,0123`;
+    with `max_decimals` to at most that many decimals (`0,0451` -> `0,045` for 3).
 
     Thousands are separated by a thin space; non-finite values as in `format_value`.
     """
     if not math.isfinite(value) or value == 0:
         return format_value(value) if value != 0 else "0"
-    exponent = math.floor(math.log10(abs(value)))
-    decimals = max(digits - 1 - exponent, 0)
-    rounded = round(value, digits - 1 - exponent)
+    places = significant_places(value, digits)
+    if max_decimals is not None:
+        places = min(places, max_decimals)
+    decimals = max(places, 0)
+    rounded = round(value, places)
     text = f"{rounded:,.{decimals}f}".replace(",", THIN_SPACE)
     return text.replace(".", ",").replace("-", MINUS)
+
+
+def significant_places(value: float, digits: int = 3) -> int:
+    """Decimal places that keep `digits` significant digits of a finite non-zero value;
+    negative for rounding to tens, hundreds, ... (`round(41634, -2)`)."""
+    return digits - 1 - math.floor(math.log10(abs(value)))
 
 
 class DecimalCommaFormatter(Formatter):

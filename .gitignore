@@ -17,6 +17,11 @@ __pycache__/
 data/experiments/**/artifacts/
 # Runs of a study, generated from study.toml by `compute generate`
 data/experiments/**/runs/
+# PNG copies of the study plots (the PDFs, tables and summary.md are committed)
+data/experiments/*/*/results/*.png
+
+# Logs of scripts/run-studies.ps1
+logs/
 
 # MNIST is downloaded locally
 data/datasets/mnist/*

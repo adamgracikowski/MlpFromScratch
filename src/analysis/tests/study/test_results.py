@@ -26,7 +26,10 @@ def test_regression_metrics(make_study) -> None:
         "test_loss",
         "test_mse",
         "test_mae",
+        "test_mse_inside",
+        "test_mse_outside",
     ]
+    assert results.runs["test_mse_inside"].null_count() == 0
 
 
 def test_marks_missing_and_diverged_runs(make_study) -> None:
@@ -64,6 +67,8 @@ def test_variants_aggregate_finished_runs_only(make_study) -> None:
     assert full["test_accuracy_sd"] == pytest.approx(0.001)
     assert full["test_accuracy_min"] == pytest.approx(0.901)
     assert full["test_accuracy_median"] == pytest.approx(0.902)
+    assert full["test_accuracy_q1"] == pytest.approx(0.9015)  # 0.901, 0.902, 0.903
+    assert full["test_accuracy_q3"] == pytest.approx(0.9025)
 
     partial = variants.row(2, named=True)
     assert (partial["finished"], partial["diverged"], partial["missing"]) == (1, 1, 1)

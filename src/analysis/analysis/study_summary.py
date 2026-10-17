@@ -7,11 +7,15 @@ import polars as pl
 
 from analysis import labels
 from analysis.formatting import DASH, format_number, format_percent, format_value
-from analysis.study import StudyResults
+from analysis.study import Study, StudyResults
+from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.summary import config_value, markdown_table, tagged
 
 SUMMARY_FILE = "summary.md"
 PLUS_MINUS = chr(0xB1)
+EN_DASH = chr(0x2013)
+# Statistics of the errors in the results table, in the order of `_median_quartiles`.
+STATISTICS_Q = ("median", "q1", "q3")
 
 
 def write_study_summary(
@@ -63,8 +67,9 @@ def study_summary_markdown(
         markdown_table([labels.PARAMETER, labels.VALUE], _base_rows(results)),
         f"## {labels.SECTION_RESULTS}",
         markdown_table(*_result_rows(results, variants)),
-        labels.RESULTS_NOTE
+        labels.results_note(median=not study.is_classification)
         + ("" if study.is_classification else " " + labels.REGRESSION_METRICS_NOTE),
+        *([] if study.is_classification else [labels.RANGE_NOTE]),
     ]
     if representative:
         rows = [
@@ -133,9 +138,11 @@ def _result_rows(
     else:
         metrics = [(labels.MSE_COLUMN, f"{split}_mse", split) for split in splits]
         metrics.append((labels.MAE_COLUMN, "test_mae", "test"))
+        metrics.append((labels.MSE_INSIDE_COLUMN, INSIDE, "test"))
+        metrics.append((labels.MSE_OUTSIDE_COLUMN, OUTSIDE, "test"))
     missing = int(variants["missing"].sum()) > 0
     header = [
-        *(f"`{name}`" for name in study.axis_names or [labels.VARIANT]),
+        *([_name(study, name) for name in study.axis_names] or [labels.VARIANT]),
         labels.FINISHED,
         labels.DIVERGED,
         *([labels.MISSING] if missing else []),
@@ -145,14 +152,15 @@ def _result_rows(
     ]
     rows = []
     for row in variants.iter_rows(named=True):
-        cells = [f"`{row[name]}`" for name in study.axis_names] or [f"`{row['variant']}`"]
+        cells = [_name(study, row[name]) for name in study.axis_names] or [f"`{row['variant']}`"]
         cells += [f"{row['finished']}/{row['runs']}", str(row["diverged"])]
         if missing:
             cells.append(str(row["missing"]))
         for _, column, _ in metrics:
-            cells.append(
-                _mean_sd(row[f"{column}_mean"], row[f"{column}_sd"], study.is_classification)
-            )
+            if study.is_classification:
+                cells.append(_mean_sd(row[f"{column}_mean"], row[f"{column}_sd"]))
+            else:
+                cells.append(_median_quartiles(*(row[f"{column}_{s}"] for s in STATISTICS_Q)))
         epochs = row["epochs_mean"]
         cells.append(DASH if epochs is None else format_number(epochs, 1))
         time = row["training_seconds_mean"]
@@ -161,14 +169,23 @@ def _result_rows(
     return header, rows
 
 
-def _mean_sd(mean: float | None, sd: float | None, percent: bool) -> str:
-    """`97,20% ± 0,40` (accuracy, the deviation in percentage points) or `1234 ± 56`."""
+def _name(study: Study, name: str) -> str:
+    """An axis or level name in the results table: its label, or the name as code."""
+    return study.labels.get(name, f"`{name}`")
+
+
+def _mean_sd(mean: float | None, sd: float | None) -> str:
+    """`97,20% ± 0,40` (accuracy, the deviation in percentage points)."""
     if mean is None:
         return DASH
-    if percent:
-        main = format_percent(mean, 2)
-        spread = None if sd is None else format_number(100 * sd, 2)
-    else:
-        main = format_value(mean)
-        spread = None if sd is None else format_value(sd, 2)
-    return main if spread is None else f"{main} {PLUS_MINUS} {spread}"
+    main = format_percent(mean, 2)
+    return main if sd is None else f"{main} {PLUS_MINUS} {format_number(100 * sd, 2)}"
+
+
+def _median_quartiles(median: float | None, q1: float | None, q3: float | None) -> str:
+    """`1234 (1100-1300)` (errors: median and quartiles); the median alone for one run."""
+    if median is None:
+        return DASH
+    if q1 == q3 == median:
+        return format_value(median)
+    return f"{format_value(median)} ({format_value(q1)}{EN_DASH}{format_value(q3)})"

@@ -12,7 +12,7 @@ use crate::config::Issue;
 /// Key set by `seeds`, which no axis and not `[base]` may set.
 const SEED_KEY: &str = "training.seed";
 
-/// Checks seeds, axis and level names, override keys and report roles.
+/// Checks seeds, axis and level names, override keys, report roles and labels.
 ///
 /// Returns every problem found, so that all of them can be reported at once.
 pub fn validate(study: &StudyConfig) -> Vec<Issue> {
@@ -252,6 +252,25 @@ fn validate_report(study: &StudyConfig, issues: &mut Vec<Issue>) {
         };
         issues.push(Issue { message, ..issue });
     }
+
+    let levels: Vec<String> = study
+        .axes
+        .iter()
+        .flat_map(|axis| axis.levels().into_iter().map(|level| level.name))
+        .collect();
+    let mut names = axes;
+    names.extend(levels.iter().map(String::as_str));
+    for key in report.labels.keys() {
+        if !names.contains(key.as_str()) {
+            issues.push(
+                Issue::error(
+                    &["report", "labels"],
+                    format!("`{key}` is not an axis or level of the study"),
+                )
+                .with_help("the keys of `labels` are names of axes or levels"),
+            );
+        }
+    }
 }
 
 fn axis_issue(index: usize, message: &str) -> Issue {
@@ -332,6 +351,7 @@ mod tests {
                 "`axes[1].name`: duplicate axis `activation`",
                 "`axes[1].values[0]`: level name `a/b` derived from the value is not a valid directory name",
                 "`report.panels[0]`: `layers` is not an axis of the study",
+                "`report.labels`: `layers` is not an axis or level of the study",
             ]
         );
     }
@@ -386,6 +406,18 @@ mod tests {
                 "`report.color`: `depth` is not an axis of the study",
                 "`report.panels[0]`: axis `activation` already has a role",
             ]
+        );
+    }
+
+    #[test]
+    fn rejects_labels_of_unknown_names() {
+        let text = STUDY.replace(
+            "labels = { layers = \"Hidden layers\" }",
+            "labels = { layers = \"Layers\", tanh = \"Tanh\", depth = \"Depth\" }",
+        );
+        assert_eq!(
+            errors(&text),
+            ["`report.labels`: `depth` is not an axis or level of the study"]
         );
     }
 }

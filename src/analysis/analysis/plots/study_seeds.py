@@ -1,4 +1,5 @@
-"""Final test metric of every variant: mean with +-1 standard deviation and every seed."""
+"""Final test metric of every variant: its center and spread over seeds (mean +- standard
+deviation, or median and quartiles for errors) and every seed."""
 
 import numpy as np
 import polars as pl
@@ -9,16 +10,17 @@ from matplotlib.lines import Line2D
 from analysis import labels
 from analysis.plots.loss import fit_log_axis
 from analysis.plots.study_panels import (
+    Metric,
+    category_ticks,
+    center_and_spread,
     color_of,
     finite,
-    is_log_metric,
     levels,
-    metric_label,
-    metric_scale,
+    metric_of,
     panel_figure,
     panels,
-    primary_column,
     select,
+    spread_label,
 )
 from analysis.study import StudyResults
 from analysis.study.run_summary import FINISHED
@@ -28,37 +30,39 @@ GROUP_WIDTH = 0.8  # share of a category taken by its color groups
 SEED_SPREAD = 0.5  # share of a color group taken by the seed dots
 
 
-def plot_study_seeds(results: StudyResults) -> Figure:
-    """One panel per panel level: categories of the `x` axis, colors of the `color` axis."""
+def plot_study_seeds(results: StudyResults, column: str | None = None) -> Figure:
+    """One panel per panel level: categories of the `x` axis, colors of the `color` axis.
+    `column` selects another metric than the primary one (see `metric_of`)."""
+    metric = metric_of(results, column)
+    study = results.study
     study_panels = panels(results)
     figure, axes_list = panel_figure(len(study_panels))
     x_levels = levels(results, "x")
     color_levels = levels(results, "color")
     for axes, panel in zip(axes_list, study_panels, strict=True):
-        values = _draw_panel(axes, results, panel.runs, x_levels, color_levels)
-        if panel.title:
-            axes.set_title(panel.title)
-        axes.set_xticks(range(len(x_levels)), [level or "" for level in x_levels])
+        values = _draw_panel(axes, results, metric, panel.runs, x_levels, color_levels)
+        if title := panel.title(study):
+            axes.set_title(title)
+        category_ticks(axes, [study.label(level) or "" for level in x_levels])
         axes.set_xlim(-0.5, len(x_levels) - 0.5)
         axes.grid(axis="x", visible=False)
-        axes.set_xlabel(results.study.roles.x or "")
-        axes.set_ylabel(metric_label(results))
-        if is_log_metric(results):
+        axes.set_xlabel(study.label(study.roles.x) or "")
+        axes.set_ylabel(metric.label)
+        if metric.log:
             fit_log_axis(axes, [values])
-    _legend(figure, results, color_levels)
+    _legend(figure, results, color_levels, metric.log)
     return figure
 
 
 def _draw_panel(
     axes: Axes,
     results: StudyResults,
+    metric: Metric,
     runs: pl.DataFrame,
     x_levels: list[str | None],
     color_levels: list[str | None],
 ) -> np.ndarray:
     """Draw every variant of the panel; return the drawn values (for the log axis)."""
-    column = primary_column(results)
-    scale = metric_scale(results)
     group_width = GROUP_WIDTH / len(color_levels)
     drawn = []
     for position, x in enumerate(x_levels):
@@ -69,7 +73,7 @@ def _draw_panel(
             center = position + (group - (len(color_levels) - 1) / 2) * group_width
             color = color_of(group) if results.study.roles.color else BLUE
             finished = variant.filter(pl.col("status").is_in(FINISHED)).sort("seed")
-            values = scale * finished[column].cast(float).fill_null(np.nan).to_numpy()
+            values = metric.scale * finished[metric.column].cast(float).fill_null(np.nan).to_numpy()
             values = finite(values)
             drawn.append(values)
             if values.size:
@@ -84,11 +88,11 @@ def _draw_panel(
                     linewidths=0,
                     zorder=2,
                 )
-                sd = values.std(ddof=1) if values.size > 1 else 0.0
+                middle, low, high = center_and_spread(values, metric.log)
                 axes.errorbar(
                     center,
-                    values.mean(),
-                    yerr=sd,
+                    middle,
+                    yerr=[[middle - low], [high - middle]],
                     fmt="o",
                     color=color,
                     markeredgecolor=INK,
@@ -113,8 +117,10 @@ def _draw_panel(
     return np.concatenate(drawn) if drawn else np.array([])
 
 
-def _legend(figure: Figure, results: StudyResults, color_levels: list[str | None]) -> None:
-    """Markers of the mean and of a seed, then the colors of the `color` axis."""
+def _legend(
+    figure: Figure, results: StudyResults, color_levels: list[str | None], log: bool
+) -> None:
+    """Markers of the center and of a seed, then the colors of the `color` axis."""
     handles = [
         Line2D(
             [],
@@ -124,7 +130,7 @@ def _legend(figure: Figure, results: StudyResults, color_levels: list[str | None
             markerfacecolor=MUTED,
             linestyle="-",
             markersize=5,
-            label=labels.MEAN_AND_SD,
+            label=spread_label(log),
         ),
         Line2D(
             [],
@@ -146,7 +152,7 @@ def _legend(figure: Figure, results: StudyResults, color_levels: list[str | None
                 color=color_of(index),
                 linestyle="none",
                 markersize=6,
-                label=level,
+                label=results.study.label(level),
             )
             for index, level in enumerate(color_levels)
         ]

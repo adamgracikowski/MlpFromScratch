@@ -261,6 +261,7 @@ def write_study(
     root: Path,
     *,
     task: str = "classification",
+    features: int = 2,
     axes: dict[str, list[str]] | None = None,
     seeds: tuple[int, ...] = (1, 2, 3),
     report: str = "",
@@ -301,6 +302,7 @@ def write_study(
             write_experiment(
                 study,
                 task=task,
+                features=features,
                 name=run,
                 seed=seed,
                 shift=0.02 * number + 0.001 * seed,

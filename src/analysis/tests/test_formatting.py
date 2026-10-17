@@ -145,3 +145,9 @@ def test_format_significant() -> None:
     assert format_significant(0.012345) == "0,0123"
     assert format_significant(-1.5) == MINUS + "1,50"
     assert format_significant(0.0) == "0"
+
+
+def test_format_significant_with_max_decimals() -> None:
+    assert format_significant(0.04512, max_decimals=3) == "0,045"
+    assert format_significant(111.4, max_decimals=1) == "111"
+    assert format_significant(22.71, max_decimals=1) == "22,7"
