@@ -1,30 +1,223 @@
 \section{Perceptron wielowarstwowy}
 \label{sec:mlp}
 
+W rozdziale opisano model sieci, funkcje aktywacji i straty, algorytm propagacji wstecznej, metody optymalizacji oraz inicjalizację wag. Wzory odpowiadają implementacji opisanej w rozdziale~\ref{sec:implementation}. Opisano wszystkie zaimplementowane warianty i przy każdym zaznaczono, czy był używany w badaniach.
+
 \subsection{Model sieci}
 \label{sec:mlp-model}
-% Plan (etap 4): notacja macierzowa, warstwa Z = A W + b (wiersz = próbka), bias
-% opcjonalny, propagacja w przód.
+
+Perceptron wielowarstwowy (ang. \textit{multilayer perceptron}, MLP) jest złożeniem $L$ warstw: $L-1$ warstw ukrytych i warstwy wyjściowej \cite{goodfellow2016}. Implementacja dopuszcza od $0$ do $4$ warstw ukrytych. Kolejne warstwy mają $n_0 = d, n_1, \dots, n_{L-1}, n_L = K$ neuronów, gdzie $d$ to liczba cech wejściowych, a $K$ to liczba wyjść: liczba klas w klasyfikacji i $1$ w regresji. Sieć bez warstw ukrytych składa się z jednej warstwy o wymiarach $d \times K$.
+
+Warstwy są reprezentowane jako macierze, a nie jako zbiory pojedynczych neuronów. Paczkę (ang. \textit{batch}) $n$ próbek zapisuje się jako macierz $X \in \mathbb{R}^{n \times d}$, w której wiersz odpowiada jednej próbce. Oznaczenia zestawiono w Tabeli~\ref{tab:mlp-notation}. Propagacja w przód (ang. \textit{forward pass}) przebiega od $A^{(0)} = X$ według wzoru
+\begin{equation}
+    Z^{(l)} = A^{(l-1)} W^{(l)} + \mathbf{1}_n b^{(l)}, \qquad A^{(l)} = f_l\big(Z^{(l)}\big), \qquad l = 1, \dots, L,
+    \label{eq:forward}
+\end{equation}
+gdzie $\mathbf{1}_n$ jest kolumną jedynek, więc bias $b^{(l)}$ dodaje się do każdego wiersza. Funkcja aktywacji $f_l$ działa na macierz $Z^{(l)}$ element po elemencie, z wyjątkiem funkcji softmax, która działa na całe wiersze. Wyjściem sieci jest $A^{(L)}$. Warstwa ma $n_{l-1} n_l$ wag i $n_l$ biasów. Biasy można wyłączyć jednym przełącznikiem dla wszystkich warstw. Wtedy we wzorze \eqref{eq:forward} pomija się składnik $\mathbf{1}_n b^{(l)}$. W badaniach biasy były zawsze włączone.
+
+\begin{table}[H]
+    \centering
+    \caption{Oznaczenia używane w opisie sieci. Wiersz macierzy odpowiada jednej próbce paczki.}
+    \label{tab:mlp-notation}
+    \begin{tabular}{lll}
+        \toprule
+        Symbol & Wymiar & Znaczenie \\
+        \midrule
+        $n$, $d$, $K$, $L$ & --- & liczba próbek w paczce, cech wejściowych, wyjść i warstw \\
+        $X$ & $n \times d$ & wejścia paczki \\
+        $Y$ & $n \times K$ & cele: kodowanie \textit{one-hot} klas albo wartości funkcji \\
+        $W^{(l)}$ & $n_{l-1} \times n_l$ & wagi warstwy $l$ \\
+        $b^{(l)}$ & $1 \times n_l$ & biasy warstwy $l$ \\
+        $Z^{(l)}$ & $n \times n_l$ & pobudzenia warstwy $l$ (przed aktywacją) \\
+        $A^{(l)}$ & $n \times n_l$ & aktywacje warstwy $l$ ($A^{(0)} = X$) \\
+        $\mathrm{d}M$ & jak $M$ & gradient straty $\partial \mathcal{L} / \partial M$ względem macierzy $M$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \subsection{Funkcje aktywacji}
 \label{sec:mlp-activations}
-% Plan (etap 4): tabela sigmoid, tanh, ReLU, leaky ReLU (wzór, pochodna, zakres);
-% wyjście: identity (regresja), softmax (klasyfikacja).
+
+W warstwach ukrytych dostępne są cztery funkcje aktywacji zestawione w Tabeli~\ref{tab:activations}. Wszystkie były używane w badaniach. Pochodne funkcji sigmoidalnej i tangensa hiperbolicznego zależą tylko od wartości funkcji. W implementacji liczy się je z zapamiętanej aktywacji $a = f(z)$ jako $a(1 - a)$ i $1 - a^2$, więc w propagacji wstecznej nie trzeba ponownie liczyć funkcji wykładniczej. Funkcje ReLU (ang. \textit{rectified linear unit}) i leaky ReLU nie są różniczkowalne w zerze. W implementacji przyjęto w tym punkcie pochodną lewostronną: $0$ dla ReLU i $\alpha$ dla leaky ReLU \cite{goodfellow2016}.
+
+\begin{table}[H]
+    \centering
+    \caption{Funkcje aktywacji warstw ukrytych.}
+    \label{tab:activations}
+    \begin{tabular}{llll}
+        \toprule
+        Funkcja & $f(z)$ & $f'(z)$ & Zbiór wartości \\
+        \midrule
+        sigmoid & $\sigma(z) = \dfrac{1}{1 + e^{-z}}$ & $\sigma(z) \big(1 - \sigma(z)\big)$ & $(0, 1)$ \\[2ex]
+        tanh & $\tanh z$ & $1 - \tanh^2 z$ & $(-1, 1)$ \\[1ex]
+        ReLU & $\max(0, z)$ & $1$ dla $z > 0$, $0$ dla $z \le 0$ & $[0, \infty)$ \\[1ex]
+        leaky ReLU & $z$ dla $z > 0$, $\alpha z$ dla $z \le 0$ & $1$ dla $z > 0$, $\alpha$ dla $z \le 0$ & $\mathbb{R}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Parametr $\alpha$ funkcji leaky ReLU musi należeć do przedziału $(0, 1)$. W badaniach przyjęto $\alpha = \num{0.01}$.
+
+Aktywację wyjściową dobiera się do zadania. W regresji jest nią identyczność $f(z) = z$, więc sieć może zwrócić dowolną wartość rzeczywistą. W klasyfikacji używana jest funkcja softmax, która przekształca wiersz pobudzeń $z \in \mathbb{R}^K$ w rozkład prawdopodobieństwa:
+\begin{equation}
+    \mathrm{softmax}(z)_k = \frac{e^{z_k - m}}{\sum_{j=1}^{K} e^{z_j - m}}, \qquad m = \max_j z_j .
+    \label{eq:softmax}
+\end{equation}
+Odjęcie maksimum $m$ nie zmienia wyniku, a chroni funkcję wykładniczą przed przepełnieniem. Zaimplementowano też funkcję sigmoidalną na wyjściu, której nie używano w badaniach.
+
+Każde wyjście funkcji softmax zależy od wszystkich pobudzeń w wierszu, dlatego jej jakobian nie jest diagonalny: $\partial a_j / \partial z_i = a_j (\delta_{ij} - a_i)$ \cite[rozdz.~4.3.4]{bishop2006}. W propagacji wstecznej potrzebny jest jedynie iloczyn wektora gradientu przez jakobian, który dla całej paczki ma postać
+\begin{equation}
+    \mathrm{d}Z = A \odot \left( \mathrm{d}A - (\mathrm{d}A \odot A) \, \mathbf{1}_K \mathbf{1}_K^{\top} \right),
+    \label{eq:softmax-vjp}
+\end{equation}
+gdzie $\odot$ oznacza mnożenie element po elemencie, a iloczyn $(\mathrm{d}A \odot A) \, \mathbf{1}_K$ to kolumna sum wierszy. Wzór \eqref{eq:softmax-vjp} jest potrzebny dla straty MSE z wyjściem softmax.
 
 \subsection{Funkcje straty}
 \label{sec:mlp-losses}
-% Plan (etap 4): entropia krzyżowa i MSE na kodowaniu one-hot (klasyfikacja),
-% MSE i MAE (regresja).
+
+Funkcja straty jest minimalizowana w trakcie uczenia. W odróżnieniu od miar jakości \eqref{eq:mse} i \eqref{eq:accuracy} liczy się ją na celach w postaci, w jakiej widzi je sieć: w klasyfikacji na kodowaniu \textit{one-hot}, a w regresji na wartościach po normalizacji (podrozdział~\ref{sec:implementation-data}). Zaimplementowano trzy funkcje straty. Entropia krzyżowa (ang. \textit{cross-entropy}) jest uśredniana po próbkach:
+\begin{equation}
+    \mathcal{L}_{\mathrm{CE}} = -\frac{1}{n} \sum_{s=1}^{n} \sum_{k=1}^{K} y_{sk} \ln \mathrm{softmax}\big(z_s\big)_k ,
+    \label{eq:loss-ce}
+\end{equation}
+gdzie $z_s$ to wiersz $s$ macierzy $Z^{(L)}$, a softmax jest dany wzorem \eqref{eq:softmax}. Logarytm funkcji softmax liczy się wprost z pobudzeń, przez $\ln \sum_j e^{z_j}$ z odjętym maksimum, co jest stabilniejsze niż logarytm z prawdopodobieństwa bliskiego zeru \cite{goodfellow2016}. Błąd średniokwadratowy i średni błąd bezwzględny (ang. \textit{mean absolute error}, MAE) są uśredniane po wszystkich $nK$ elementach macierzy wyjść:
+\begin{equation}
+    \mathcal{L}_{\mathrm{MSE}} = \frac{1}{nK} \sum_{s=1}^{n} \sum_{k=1}^{K} \left( a_{sk} - y_{sk} \right)^2 ,
+    \qquad
+    \mathcal{L}_{\mathrm{MAE}} = \frac{1}{nK} \sum_{s=1}^{n} \sum_{k=1}^{K} \left| a_{sk} - y_{sk} \right| ,
+    \label{eq:loss-mse-mae}
+\end{equation}
+gdzie $a_{sk}$ to elementy $A^{(L)}$.
+
+Nie każda strata pasuje do każdej aktywacji wyjściowej. Dozwolone pary, sprawdzane przy wczytywaniu konfiguracji, zestawiono w Tabeli~\ref{tab:loss-pairs}.
+
+\begin{table}[H]
+    \centering
+    \caption{Dozwolone pary funkcji straty i aktywacji wyjściowej.}
+    \label{tab:loss-pairs}
+    \begin{tabular}{llll}
+        \toprule
+        Zadanie & Strata & Aktywacja wyjściowa & Użyta w badaniach \\
+        \midrule
+        regresja & MSE & identyczność & tak \\
+        regresja & MAE & identyczność & tak \\
+        klasyfikacja & entropia krzyżowa & softmax & tak \\
+        klasyfikacja & MSE & softmax & tak \\
+        klasyfikacja & MSE & sigmoid & nie \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \subsection{Propagacja wsteczna}
 \label{sec:mlp-backprop}
-% Plan (etap 4): wzory gradientów warstwa po warstwie, skrót (P - Y)/n dla entropii
-% krzyżowej z softmax, ogólny VJP softmaxu; algorytm.
+
+Gradient straty względem parametrów wszystkich warstw liczy się algorytmem propagacji wstecznej błędu (ang. \textit{backpropagation}) \cite{rumelhart1986}. Polega on na stosowaniu reguły łańcuchowej od warstwy wyjściowej do wejściowej i wykorzystaniu macierzy $Z^{(l)}$ i $A^{(l)}$ zapamiętanych w trakcie propagacji w przód \cite{goodfellow2016}.
+
+Punktem wyjścia jest gradient względem pobudzeń warstwy wyjściowej. Dla entropii krzyżowej z funkcją softmax ma on prostą postać. Pochodna \eqref{eq:loss-ce} po pobudzeniu $z_{si}$ wynosi $\frac{1}{n} \sum_k y_{sk} (a_{si} - \delta_{ik}) = \frac{1}{n} (a_{si} \sum_k y_{sk} - y_{si})$, a ponieważ dla kodowania \textit{one-hot} $\sum_k y_{sk} = 1$, otrzymuje się
+\begin{equation}
+    \mathrm{d}Z^{(L)} = \frac{1}{n} \left( A^{(L)} - Y \right).
+    \label{eq:dz-output}
+\end{equation}
+Dla pozostałych par najpierw liczy się gradient strat \eqref{eq:loss-mse-mae} względem wyjścia: $\mathrm{d}A^{(L)} = \frac{2}{nK} (A^{(L)} - Y)$ dla MSE oraz $\mathrm{d}A^{(L)} = \frac{1}{nK} \operatorname{sign}(A^{(L)} - Y)$ dla MAE, z przyjętym $\operatorname{sign}(0) = 0$. Następnie przekształca się go przez pochodną aktywacji wyjściowej, tak jak w warstwach ukrytych.
+
+Dla kolejnych warstw, od $l = L$ do $l = 1$, gradienty wyznacza się ze wzorów
+\begin{equation}
+    \begin{aligned}
+        \mathrm{d}W^{(l)} &= A^{(l-1)\top} \, \mathrm{d}Z^{(l)}, &
+        \mathrm{d}b^{(l)} &= \mathbf{1}_n^{\top} \, \mathrm{d}Z^{(l)}, \\
+        \mathrm{d}A^{(l-1)} &= \mathrm{d}Z^{(l)} \, W^{(l)\top}, &
+        \mathrm{d}Z^{(l-1)} &= f'_{l-1}\big(Z^{(l-1)}\big) \odot \mathrm{d}A^{(l-1)} ,
+    \end{aligned}
+    \label{eq:backprop}
+\end{equation}
+przy czym dla funkcji softmax ostatni wzór zastępuje się wzorem \eqref{eq:softmax-vjp}. Suma po próbkach w $\mathrm{d}W^{(l)}$ i $\mathrm{d}b^{(l)}$ daje średnią po paczce, bo czynnik $1/n$ jest już zawarty w $\mathrm{d}Z^{(L)}$. Gradientu względem wejść $X$ nie liczy się, bo nie jest potrzebny. Pełną procedurę przedstawiono w Algorytmie~\ref{alg:backprop}.
+
+\begin{algorithm}[H]
+    \caption{Gradient straty dla jednej paczki próbek}
+    \label{alg:backprop}
+    \begin{algorithmic}[1]
+        \Require paczka $X$, cele $Y$, parametry $W^{(l)}, b^{(l)}$ dla $l = 1, \dots, L$
+        \Ensure gradienty $\mathrm{d}W^{(l)}, \mathrm{d}b^{(l)}$ dla $l = 1, \dots, L$
+        \State $A^{(0)} \gets X$
+        \For{$l = 1, \dots, L$} \Comment{propagacja w przód, wzór \eqref{eq:forward}}
+            \State $Z^{(l)} \gets A^{(l-1)} W^{(l)} + \mathbf{1}_n b^{(l)}$
+            \State $A^{(l)} \gets f_l(Z^{(l)})$ \Comment{$Z^{(l)}$ i $A^{(l)}$ są zapamiętywane}
+        \EndFor
+        \If{strata to entropia krzyżowa, a wyjście to softmax}
+            \State $\mathrm{d}Z^{(L)} \gets (A^{(L)} - Y) / n$ \Comment{wzór \eqref{eq:dz-output}}
+        \Else
+            \State $\mathrm{d}A^{(L)} \gets \partial \mathcal{L} / \partial A^{(L)}$
+            \State $\mathrm{d}Z^{(L)} \gets f'_L(Z^{(L)}) \odot \mathrm{d}A^{(L)}$ \Comment{dla funkcji softmax wzór \eqref{eq:softmax-vjp}}
+        \EndIf
+        \For{$l = L, \dots, 1$} \Comment{wzory \eqref{eq:backprop}}
+            \State $\mathrm{d}W^{(l)} \gets A^{(l-1)\top} \mathrm{d}Z^{(l)}$
+            \State $\mathrm{d}b^{(l)} \gets \mathbf{1}_n^{\top} \mathrm{d}Z^{(l)}$
+            \If{$l > 1$}
+                \State $\mathrm{d}A^{(l-1)} \gets \mathrm{d}Z^{(l)} W^{(l)\top}$
+                \State $\mathrm{d}Z^{(l-1)} \gets f'_{l-1}(Z^{(l-1)}) \odot \mathrm{d}A^{(l-1)}$
+            \EndIf
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{Optymalizacja}
 \label{sec:mlp-optimization}
-% Plan (etap 4): mini-batch SGD, momentum, Adam; tasowanie co epokę.
+
+Parametry sieci są aktualizowane metodą stochastycznego spadku wzdłuż gradientu z paczkami (ang. \textit{mini-batch}). Gradient liczony na losowej paczce jest nieobciążonym estymatorem gradientu straty na całym zbiorze uczącym, a jego wyznaczenie kosztuje ułamek pełnego przejścia przez dane \cite{goodfellow2016}. Zaimplementowano trzy reguły aktualizacji ze stałym współczynnikiem uczenia $\eta > 0$. Działają one element po elemencie, tak samo dla wag i biasów. Symbol $\theta$ oznacza dowolny parametr, a $g$ jego gradient z bieżącej paczki. Podstawowa reguła SGD ma postać
+\begin{equation}
+    \theta \gets \theta - \eta \, g .
+    \label{eq:sgd}
+\end{equation}
+Metoda momentum \cite{sutskever2013} gromadzi w buforze $v$ wykładniczo ważoną sumę poprzednich kroków, co tłumi oscylacje i przyspiesza ruch wzdłuż stałego kierunku spadku:
+\begin{equation}
+    v \gets \mu v - \eta \, g, \qquad \theta \gets \theta + v, \qquad \mu \in [0, 1).
+    \label{eq:momentum}
+\end{equation}
+Metoda Adam \cite{kingma2015} utrzymuje wykładnicze średnie pierwszego i drugiego momentu gradientu, koryguje ich obciążenie wynikające ze startu od zera i skaluje krok osobno dla każdego parametru:
+\begin{equation}
+    \begin{gathered}
+        t \gets t + 1, \qquad
+        m \gets \beta_1 m + (1 - \beta_1) \, g, \qquad
+        v \gets \beta_2 v + (1 - \beta_2) \, g^2, \\
+        \hat{m} = \frac{m}{1 - \beta_1^{t}}, \qquad
+        \hat{v} = \frac{v}{1 - \beta_2^{t}}, \qquad
+        \theta \gets \theta - \eta \, \frac{\hat{m}}{\sqrt{\hat{v}} + \epsilon} .
+    \end{gathered}
+    \label{eq:adam}
+\end{equation}
+Domyślne wartości to $\beta_1 = \num{0.9}$, $\beta_2 = \num{0.999}$ i $\epsilon = \num{e-8}$. Bufory $v$, $m$ i licznik $t$ startują od zera. W badaniach używano wyłącznie metody Adam z domyślnymi wartościami $\beta_1$, $\beta_2$ i $\epsilon$.
+
+Przebieg uczenia przedstawiono w Algorytmie~\ref{alg:training}. Na początku każdej epoki kolejność próbek zbioru uczącego jest losowo permutowana, a następnie zbiór dzieli się na kolejne paczki o rozmiarze $B$. Ostatnia, niepełna paczka jest zachowywana, więc epoka liczy $\lceil N / B \rceil$ kroków, gdzie $N$ to liczność zbioru uczącego. Wyznaczanie metryk, wykrywanie rozbieżności uczenia i wczesne zatrzymanie opisano w podrozdziale~\ref{sec:implementation-network}.
+
+\begin{algorithm}[H]
+    \caption{Uczenie sieci metodą mini-batch}
+    \label{alg:training}
+    \begin{algorithmic}[1]
+        \Require zbiór uczący $(X, Y)$ o liczności $N$, liczba epok $E$, rozmiar paczki $B$, reguła aktualizacji \eqref{eq:sgd}, \eqref{eq:momentum} lub \eqref{eq:adam}
+        \Ensure nauczone parametry sieci
+        \State wylosuj wagi (podrozdział~\ref{sec:mlp-init}), wyzeruj biasy i bufory optymalizatora
+        \For{$e = 1, \dots, E$}
+            \State wylosuj permutację $\pi$ indeksów $1, \dots, N$
+            \For{$j = 1, \dots, \lceil N / B \rceil$}
+                \State $I \gets$ indeksy $\pi$ od $(j-1)B + 1$ do $\min(jB, N)$
+                \State oblicz gradienty dla paczki $(X_I, Y_I)$ Algorytmem~\ref{alg:backprop}
+                \State zaktualizuj wszystkie parametry wybraną regułą
+            \EndFor
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{Inicjalizacja wag}
 \label{sec:mlp-init}
-% Plan (etap 4): inicjalizacja Xaviera (sigmoid, tanh) i He (ReLU, leaky ReLU).
+
+Początkowe wagi są losowe, żeby neurony jednej warstwy nie pozostawały identyczne. Ich skalę dobiera się tak, by wariancja sygnału w propagacji w przód i gradientu w propagacji wstecznej nie malała ani nie rosła z warstwy na warstwę. Zaimplementowano trzy schematy, w których $n_{\mathrm{in}} = n_{l-1}$ i $n_{\mathrm{out}} = n_l$ to wymiary macierzy $W^{(l)}$. Inicjalizacja Xaviera \cite{glorot2010} losuje wagi z rozkładu jednostajnego:
+\begin{equation}
+    W^{(l)}_{ij} \sim \mathcal{U}[-r, r], \qquad r = \sqrt{\frac{6}{n_{\mathrm{in}} + n_{\mathrm{out}}}} ,
+    \label{eq:init-xavier}
+\end{equation}
+co daje wariancję $2 / (n_{\mathrm{in}} + n_{\mathrm{out}})$. Została wyprowadzona dla funkcji symetrycznych względem zera, takich jak tangens hiperboliczny. Inicjalizacja He \cite{he2015} uwzględnia, że ReLU zeruje około połowy pobudzeń, i losuje wagi z rozkładu normalnego o dwukrotnie większej wariancji względem $n_{\mathrm{in}}$:
+\begin{equation}
+    W^{(l)}_{ij} \sim \mathcal{N}\left(0, \frac{2}{n_{\mathrm{in}}}\right).
+    \label{eq:init-he}
+\end{equation}
+Trzeci schemat losuje wagi z rozkładu $\mathcal{U}[-r, r]$ o zadanym $r$. Biasy zawsze startują od zera, a wybrany schemat stosuje się do wszystkich warstw. W badaniach inicjalizację Xaviera \eqref{eq:init-xavier} łączono z funkcjami sigmoidalną i tangensem hiperbolicznym, a inicjalizację He \eqref{eq:init-he} z ReLU i leaky ReLU.
