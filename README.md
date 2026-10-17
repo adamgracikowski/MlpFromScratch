@@ -66,7 +66,7 @@ The studies of part one are in `data/experiments/<task>/<dataset>-<factor>/`, on
 | `architectures` | hidden layers: none, 4, 16, 64, 16-16, 64-64, 16-16-16, 16-16-16-16, 64-64-64-64 | `classification/{simple,three-gauss}-architectures`, `regression/{activation,cube}-architectures` |
 | `losses` | cross-entropy and MSE with softmax (classification), MSE and MAE (regression) | `classification/{simple,three-gauss}-losses`, `regression/{activation,cube}-losses` |
 
-Classification studies test every size on the largest test file (10000), so the sizes share one test set; the regression test files are the same for every size. The other settings are shared: tanh, 16-16 (classification) or 32-32 (regression) hidden neurons, Adam with learning rate 0.003, batch size 32.
+Classification studies test every size on the largest test file (10000), so the sizes share one test set; the regression test files are the same for every size. The other settings are shared: tanh, 16-16 (classification) or 32-32 (regression) hidden neurons, Adam with learning rate 0.003, batch size 32. Their `results/` are committed without the PNG copies of the plots (`aggregate` writes them next to the PDFs).
 
 All studies of part one, one after another (PowerShell 7, from any directory):
 
