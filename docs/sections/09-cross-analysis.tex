@@ -31,7 +31,7 @@ Dokładność na zbiorze uczącym i testowym dla wybranych architektur zestawion
     \end{tabular}
 \end{table}
 
-Im więcej parametrów ma sieć w stosunku do liczby próbek uczących, tym większa różnica. Największa jest dla sieci 64-64-64-64, która ma \num{12867} parametrów (Tabela~\ref{tab:architecture-params}), przy $300$ próbkach uczących. Z tego powodu architektura ma największe znaczenie dla małych zbiorów. Rozstęp średnich dokładności sieci z warstwami ukrytymi na zbiorze \texttt{three\_gauss} wynosi \num{1.86} punktu procentowego przy liczności \num{100} i \num{0.26} przy liczności \num{10000}.
+Im więcej parametrów ma sieć w stosunku do liczby próbek uczących, tym większa różnica. Widać to w Tabeli~\ref{tab:cross-size-classification} na przykładzie sieci 64-64-64-64, która ma \num{12867} parametrów (Tabela~\ref{tab:architecture-params}) przy $300$ próbkach uczących. Z tego powodu architektura ma największe znaczenie dla małych zbiorów. Rozstęp średnich dokładności sieci z warstwami ukrytymi na zbiorze \texttt{three\_gauss} wynosi \num{1.86} punktu procentowego przy liczności \num{100} i \num{0.26} przy liczności \num{10000}.
 
 W regresji przeuczenie w tym sensie nie występuje. Mediany MSE na zbiorze uczącym i w zakresie zbioru uczącego na zbiorze testowym są prawie równe dla wszystkich wariantów, a ich stosunek wynosi od \num{0.78} do \num{1.14}. Przykłady zestawiono w Tabeli~\ref{tab:cross-size-regression}. Punkty uczące leżą blisko funkcji docelowej (podrozdział~\ref{sec:problem-datasets}), więc sieć, która dobrze dopasowuje się do nich, dobrze przybliża też tę funkcję w tym samym przedziale.
 

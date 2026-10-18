@@ -6,9 +6,7 @@ W rozdziale opisano budowę programu: podział na warstwy, konfigurację ekspery
 \subsection{Architektura rozwiązania}
 \label{sec:implementation-architecture}
 
-Program składa się z dwóch warstw, które komunikują się wyłącznie przez pliki na dysku. Warstwa obliczeniowa, napisana w języku Rust, wczytuje konfigurację i dane, uczy sieć i zapisuje surowe wyniki, nazywane dalej artefaktami.
-
-Warstwa prezentacji, napisana w języku Python, czyta artefakty i tworzy z nich wykresy oraz zestawienia.
+Program składa się z dwóch warstw, które komunikują się wyłącznie przez pliki na dysku. Warstwa obliczeniowa, napisana w języku Rust, wczytuje konfigurację i dane, uczy sieć i zapisuje surowe wyniki, nazywane dalej artefaktami. Warstwa prezentacji, napisana w języku Python, czyta artefakty i tworzy z nich wykresy oraz zestawienia.
 
 Przepływ danych pokazano na Rysunku~\ref{fig:architecture}. Pojedynczy eksperyment jest opisany plikiem \texttt{config.toml}. Polecenie \texttt{compute train} zapisuje jego artefakty, a polecenie \texttt{plot} tworzy z nich wykresy. Badanie, czyli siatka eksperymentów różniących się wybranymi parametrami, jest opisane plikiem \texttt{study.toml}. Polecenie \texttt{compute generate} tworzy z niego katalogi pojedynczych eksperymentów, \texttt{compute train} uczy je równolegle, a \texttt{aggregate} zestawia wyniki.
 
@@ -87,8 +85,6 @@ Wszystkie parametry eksperymentu, łącznie z ziarnem generatora liczb losowych,
         \bottomrule
     \end{tabularx}
 \end{table}
-
-Program obsługuje się z wiersza poleceń, a polecenie \texttt{train} może uczyć wiele eksperymentów równolegle.
 
 \subsection{Przygotowanie danych}
 \label{sec:implementation-data}
