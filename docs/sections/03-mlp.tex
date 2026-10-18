@@ -6,7 +6,7 @@ W rozdziale opisano model sieci, funkcje aktywacji i straty, algorytm propagacji
 \subsection{Model sieci}
 \label{sec:mlp-model}
 
-Perceptron wielowarstwowy (ang. \textit{multilayer perceptron}, MLP) jest złożeniem $L$ warstw: $L-1$ warstw ukrytych i warstwy wyjściowej \cite{goodfellow2016}. Implementacja dopuszcza od $0$ do $4$ warstw ukrytych. Kolejne warstwy mają $n_0 = d, n_1, \dots, n_{L-1}, n_L = K$ neuronów, gdzie $d$ to liczba cech wejściowych, a $K$ to liczba wyjść: liczba klas w klasyfikacji i $1$ w regresji. Sieć bez warstw ukrytych składa się z jednej warstwy o wymiarach $d \times K$.
+Perceptron wielowarstwowy jest złożeniem $L$ warstw: $L-1$ warstw ukrytych i warstwy wyjściowej \cite{goodfellow2016}. Implementacja dopuszcza od $0$ do $4$ warstw ukrytych. Kolejne warstwy mają $n_0 = d, n_1, \dots, n_{L-1}, n_L = K$ neuronów, gdzie $d$ to liczba cech wejściowych, a $K$ to liczba wyjść: liczba klas w klasyfikacji i $1$ w regresji. Sieć bez warstw ukrytych składa się z jednej warstwy o wymiarach $d \times K$.
 
 Warstwy są reprezentowane jako macierze, a nie jako zbiory pojedynczych neuronów. Paczkę (ang. \textit{batch}) $n$ próbek zapisuje się jako macierz $X \in \mathbb{R}^{n \times d}$, w której wiersz odpowiada jednej próbce. Oznaczenia zestawiono w Tabeli~\ref{tab:mlp-notation}. Propagacja w przód (ang. \textit{forward pass}) przebiega od $A^{(0)} = X$ według wzoru
 \begin{equation}

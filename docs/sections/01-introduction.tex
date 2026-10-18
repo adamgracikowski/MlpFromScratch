@@ -1,12 +1,16 @@
 \section{Wstęp}
 \label{sec:introduction}
 
+W rozdziale przedstawiono cel i zakres projektu oraz strukturę raportu.
+
 \subsection{Cel i zakres projektu}
 \label{sec:introduction-goal}
-% Plan (etap 11): perceptron wielowarstwowy zaimplementowany od podstaw, bez bibliotek
-% sieci neuronowych; regresja f: R -> R i klasyfikacja wektorów w R^2; wymagane
-% wizualizacje i badania.
+
+Perceptron wielowarstwowy (ang. \textit{multilayer perceptron}, MLP) jest siecią neuronową złożoną z kolejnych warstw neuronów, w której każda warstwa przekształca wyjście poprzedniej przez funkcję liniową i nieliniową funkcję aktywacji \cite{goodfellow2016}. Parametry sieci dobiera się metodą spadku wzdłuż gradientu, a gradient funkcji straty względem wszystkich parametrów oblicza się algorytmem propagacji wstecznej błędu \cite{rumelhart1986}.
+
+Celem projektu była implementacja perceptronu wielowarstwowego od podstaw, bez bibliotek implementujących sieci neuronowe, i zbadanie jego działania w dwóch zadaniach: regresji funkcji $f \colon \mathbb{R} \to \mathbb{R}$ oraz klasyfikacji punktów płaszczyzny $\mathbb{R}^2$. Na czterech dostarczonych zbiorach danych zbadano wpływ funkcji aktywacji, liczby warstw ukrytych i neuronów w nich oraz funkcji straty na jakość sieci. Każdy wariant uczono dla wielu ziaren generatora liczb losowych, ponieważ wynik pojedynczego uczenia zależy od losowej inicjalizacji wag i kolejności próbek. Raport dotyczy części pierwszej projektu. Część druga, rozpoznawanie cyfr ze zbioru MNIST, nie jest w nim opisana.
 
 \subsection{Struktura raportu}
 \label{sec:introduction-outline}
-% Plan (etap 11): krótki przegląd rozdziałów z odwołaniami \ref.
+
+W rozdziale~\ref{sec:problem} opisano oba zadania, miary jakości, dostarczone zbiory danych i wymagany zakres badań. W rozdziale~\ref{sec:mlp} przedstawiono model sieci, funkcje aktywacji i straty, propagację wsteczną, metody optymalizacji i inicjalizacji wag, a w rozdziale~\ref{sec:implementation} ich implementację. Rozdział~\ref{sec:showcase} zawiera wymagane wizualizacje procesu uczenia na przykładzie pojedynczych eksperymentów. W rozdziale~\ref{sec:methodology} opisano plan badań, konfigurację bazową i sposób porównywania wariantów. Wyniki badań klasyfikacji i regresji przedstawiono w rozdziałach~\ref{sec:classification} i~\ref{sec:regression}, a zależności wspólne dla wszystkich badań w rozdziale~\ref{sec:cross}. Rozdział~\ref{sec:conclusions} podsumowuje wnioski i ograniczenia badań. W dodatku~\ref{app:reproduction} podano polecenia potrzebne do odtworzenia wyników.
