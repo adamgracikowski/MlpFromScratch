@@ -47,6 +47,14 @@
 % Wykresy brane wprost z katalogów eksperymentów i badań
 \graphicspath{{../data/experiments/}}
 
+% Przełącznik obrazów: \rysunkifalse ukrywa wykresy i diagramy (podpisy i numeracja
+% zostają), żeby ocenić objętość samego tekstu. W repozytorium zawsze \rysunkitrue.
+\newif\ifrysunki
+\rysunkitrue
+\ifrysunki\else
+    \renewcommand{\includegraphics}[2][]{\mbox{}}
+\fi
+
 % Diagramy
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta}

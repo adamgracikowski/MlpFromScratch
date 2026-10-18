@@ -14,6 +14,7 @@ Przepływ danych pokazano na Rysunku~\ref{fig:architecture}. Pojedynczy eksperym
 
 \begin{figure}[H]
     \centering
+    \ifrysunki
     \begin{tikzpicture}[
         file/.style={draw, rounded corners=2pt, fill=black!5, font=\ttfamily\small, inner sep=4pt, minimum height=7mm},
         rust/.style={-{Stealth[length=2mm]}, thick},
@@ -40,6 +41,7 @@ Przepływ danych pokazano na Rysunku~\ref{fig:architecture}. Pojedynczy eksperym
             \tikz[baseline=-0.5ex]\draw[python] (0,0) -- (8mm,0); warstwa prezentacji (Python)
         };
     \end{tikzpicture}
+    \fi
     \caption{Przepływ danych w programie. Górny wiersz dotyczy pojedynczego eksperymentu, dolny badania złożonego z wielu eksperymentów. Prostokąty oznaczają pliki i katalogi, a strzałki polecenia.}
     \label{fig:architecture}
 \end{figure}
