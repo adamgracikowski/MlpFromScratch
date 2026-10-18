@@ -1,8 +1,8 @@
 # Presentation Layer
 
-Data visualization and analysis layer for the custom MLP project, generating training plots and decision boundaries.
+Python package that reads the training artifacts written by the compute layer (`src/compute/`) and turns them into plots, tables and Markdown summaries. It does no training. See the [main README](../../README.md) for an overview of the project.
 
-The code lives in the `analysis` package. `main.py` is the entry point.
+The code lives in the `analysis` package (see [Code layout](#code-layout)). `main.py` is the entry point. Python >= 3.13 and the dependencies (`numpy`, `matplotlib`, `polars`; dev: `pytest`, `ruff`) are managed with `uv` and locked in `uv.lock`.
 
 ## Usage
 
@@ -64,6 +64,23 @@ Texts on the plots and in `summary.md` are in Polish, like the report. Figures a
 
 Plots that do not fit the data (e.g. the decision boundary for MNIST) are skipped with a message.
 
+## Code layout
+
+| Path | Content |
+|---|---|
+| `main.py`, `analysis/cli.py` | entry point and the `argparse` commands `plot` and `aggregate` |
+| `analysis/experiment/` | artifacts of one run: `load_experiment(dir) -> Experiment`, one model per file (`LossHistory`, `WeightHistory`, predictions per split, `Grid`), `ArtifactsError` for missing or broken files; inputs are read from the config's CSV files through `rows.npy` |
+| `analysis/study/` | `study.toml` and `runs/index.csv` of a study, the summary of every run (`metadata.json` and `epochs.csv` only), results over seeds (`variants_table`, representative runs) and the regression errors inside and outside the training range |
+| `analysis/plot_experiment.py` | the list of experiment plots (name, drawing function, when it applies, why it is skipped); writes `plots/` and `summary.md` |
+| `analysis/aggregate_study.py` | the list of study plots, galleries and tables; writes `results/` |
+| `analysis/summary.py`, `analysis/study_summary.py` | `summary.md` of an experiment and of a study |
+| `analysis/plots/` | one module per kind of plot, each `plot_*(...) -> Figure`; `study_panels.py` holds what the study plots share (panels, mean +- sd or median and quartiles) |
+| `analysis/style.py` | rcParams, figure sizes in cm and deterministic saving |
+| `analysis/formatting.py` | decimal comma on ticks and in tables |
+| `analysis/labels.py` | every Polish text of the plots and summaries; the only module with non-ASCII characters |
+| `analysis/series.py` | gaps after divergence, moving average, evenly spaced subsampling |
+| `tests/` | `pytest` tests mirroring the package; `conftest.py` provides `make_experiment` and `make_study`, which write small synthetic runs and studies |
+
 ## Commands
 
 ```bash
@@ -71,7 +88,7 @@ uv sync                       # install dependencies
 uv run main.py --help         # show the CLI help
 uv run pytest                 # run tests
 uv run ruff check             # lint
-uv run ruff format            # format
+uv run ruff format            # format (CI: ruff format --check)
 ```
 
 If `uv` fails with `invalid peer certificate: UnknownIssuer` (for example behind a TLS-intercepting proxy or antivirus), add `--system-certs` to use the system certificate store.
