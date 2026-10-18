@@ -1,0 +1,42 @@
+# Showcase experiment for the report: one training run on `three_gauss` with all single-run plots.
+# Same run as `runs/tanh__500/seed-1` of the study `three-gauss-activations` (its base config,
+# size 500, seed 1); only the weights are logged more often, which does not change training.
+# Run from the repo root:
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/showcase-three-gauss
+#   uv run --project src/analysis src/analysis/main.py plot data/experiments/classification/showcase-three-gauss
+
+task = "classification"
+
+[data]
+train = "data/datasets/classification/data.three_gauss.train.500.csv"
+test = "data/datasets/classification/data.three_gauss.test.10000.csv"  # common test set of the studies
+target = "cls"
+input_normalization = "standard"
+target_normalization = "none"
+validation_fraction = 0.0
+
+[model]
+hidden_layers = [16, 16]
+bias = true
+hidden_activation = { kind = "tanh" }
+output_activation = "softmax"
+init = { kind = "xavier" }
+
+[optimizer]
+kind = "adam"
+learning_rate = 0.003
+
+[training]
+loss = "cross_entropy"
+epochs = 300
+batch_size = 32
+seed = 1
+
+[logging]
+loss_every = 1
+weights_every = 10                 # the studies use 100; denser snapshots give smooth trajectories
+max_weights_per_layer = 32
+
+[output]
+grid_resolution = 100
+grid_margin = 0.1

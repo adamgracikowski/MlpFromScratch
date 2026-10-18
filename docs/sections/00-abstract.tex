@@ -1,0 +1,13 @@
+\section*{Streszczenie}
+\phantomsection
+\label{sec:abstract}
+
+W projekcie zaimplementowano od podstaw, bez bibliotek sieci neuronowych, perceptron wielowarstwowy uczony propagacją wsteczną błędu i zbadano go w zadaniach regresji funkcji jednej zmiennej i klasyfikacji punktów płaszczyzny.
+
+Na czterech zbiorach danych, w czterech licznościach zbioru uczącego, zbadano wpływ funkcji aktywacji, architektury sieci i funkcji straty. Każdy wariant uczono dla $10$ ziaren generatora liczb losowych, łącznie w \num{2400} eksperymentach, a wyniki porównywano na podstawie statystyk po ziarnach.
+
+W klasyfikacji dla klas rozdzielonych prostą wystarczyła sieć bez warstw ukrytych, a dla nakładających się skupisk wystarczała jedna mała warstwa ukryta. Duże sieci uczone na małych zbiorach przeuczały się, a ich dokładność na zbiorze uczącym przewyższała testową nawet o \num{8.19} punktu procentowego. Funkcje aktywacji i funkcje straty dawały w klasyfikacji różnice rzędu dziesiątych części punktu procentowego.
+
+W regresji błąd poza zakresem danych uczących zależał od kształtu przedłużenia funkcji sieci: dla funkcji o kształcie nasycającym sieć z funkcją tanh miała medianę MSE od \num{0.600} do \num{2.33}, a sieci z ReLU i leaky ReLU od \num{1410} do \num{2200}.
+
+Wybór najlepszego wariantu na podstawie jednego ziarna różnił się od wyboru na podstawie $10$ ziaren w \qty{38}{\percent} przypadków w klasyfikacji i \qty{39}{\percent} w regresji, co potwierdza potrzebę uczenia każdego wariantu wielokrotnie.

@@ -1,0 +1,137 @@
+\section{Metodyka eksperymentów}
+\label{sec:methodology}
+
+W rozdziale opisano plan badań, wspólną konfigurację bazową sieci, miary i statystyki używane do porównywania wariantów oraz założenia planu, które należy uwzględnić przy interpretacji wyników przedstawionych w rozdziałach~\ref{sec:classification}--\ref{sec:cross}.
+
+\subsection{Plan badań}
+\label{sec:methodology-plan}
+
+Każde badanie zmienia jeden czynnik względem wspólnej konfiguracji bazowej, a pozostałe ustawienia pozostawia bez zmian (ang. \textit{one-factor-at-a-time}). Badane czynniki i ich poziomy zestawiono w Tabeli~\ref{tab:studies}. Funkcja aktywacji zmienia się razem z inicjalizacją wag dobraną do niej zgodnie z podrozdziałem~\ref{sec:mlp-init}. Obie funkcje straty klasyfikacji są stosowane z funkcją softmax na wyjściu, a obie funkcje straty regresji z identycznością (Tabela~\ref{tab:loss-pairs}), więc w badaniu strat zmienia się tylko minimalizowana wielkość.
+
+\begin{table}[H]
+    \centering
+    \caption{Badane czynniki i ich poziomy. Architekturę podano jako liczby neuronów kolejnych warstw ukrytych.}
+    \label{tab:studies}
+    \begin{tabularx}{\textwidth}{lXc}
+        \toprule
+        Czynnik & Poziomy & Liczba poziomów \\
+        \midrule
+        funkcja aktywacji & funkcja sigmoidalna i tanh z inicjalizacją Xaviera, ReLU i leaky ReLU z $\alpha = \num{0.01}$ z inicjalizacją He & 4 \\
+        architektura & brak warstw ukrytych, 4, 16, 64, 16-16, 64-64, 16-16-16, 16-16-16-16, 64-64-64-64 & 9 \\
+        funkcja straty & klasyfikacja: entropia krzyżowa i MSE, regresja: MSE i MAE & 2 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Każdy czynnik zbadano na każdym z czterech zbiorów, co daje $12$ badań. Drugą osią każdego badania jest liczność zbioru uczącego, z poziomami \numlist{100;500;1000;10000} odpowiadającymi dostarczonym plikom (Tabela~\ref{tab:datasets}). W zbiorze \texttt{three\_gauss} liczność dotyczy jednej klasy. Wariant badania to kombinacja poziomu czynnika i liczności, a każdy wariant uczono dla $10$ ziaren generatora, od $1$ do $10$. Na jeden zbiór przypada więc $60$ wariantów i $600$ eksperymentów, a na wszystkie badania \num{2400} eksperymentów. Wszystkie zakończyły się po zadanej liczbie epok, bez rozbieżności uczenia. Położenie konfiguracji badań podano w dodatku~\ref{app:reproduction}.
+
+Liczbę parametrów sieci o badanych architekturach przedstawiono w Tabeli~\ref{tab:architecture-params}. Zależy ona od liczby wejść i wyjść, więc jest inna dla każdego zbioru klasyfikacji i wspólna dla obu zbiorów regresji. Największa sieć, 64-64-64-64, ma od \num{12673} do \num{12867} parametrów, czyli wielokrotnie więcej niż próbek w najmniejszych zbiorach uczących.
+
+\begin{table}[H]
+    \centering
+    \caption{Liczba parametrów (wag i biasów) sieci o badanych architekturach. Sieć \texttt{simple} ma $2$ wejścia i $2$ wyjścia, \texttt{three\_gauss} $2$ wejścia i $3$ wyjścia, a sieci regresji $1$ wejście i $1$ wyjście.}
+    \label{tab:architecture-params}
+    \begin{tabular}{lrrr}
+        \toprule
+        Warstwy ukryte & \texttt{simple} & \texttt{three\_gauss} & regresja \\
+        \midrule
+        brak & \num{6} & \num{9} & \num{2} \\
+        4 & \num{22} & \num{27} & \num{13} \\
+        16 & \num{82} & \num{99} & \num{49} \\
+        64 & \num{322} & \num{387} & \num{193} \\
+        16-16 & \num{354} & \num{371} & \num{321} \\
+        64-64 & \num{4482} & \num{4547} & \num{4353} \\
+        16-16-16 & \num{626} & \num{643} & \num{593} \\
+        16-16-16-16 & \num{898} & \num{915} & \num{865} \\
+        64-64-64-64 & \num{12802} & \num{12867} & \num{12673} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Konfiguracja bazowa}
+\label{sec:methodology-base}
+
+Konfigurację bazową zestawiono w Tabeli~\ref{tab:base}. Bazowa sieć regresji ma dwie warstwy ukryte po $32$ neurony. Architektura 32-32 nie należy do poziomów badania architektur, które są wspólne dla wszystkich zbiorów. Wariant bazowy występuje więc w trzech badaniach każdego zbioru klasyfikacji i w dwóch badaniach każdego zbioru regresji. W każdym z tych badań daje identyczne wyniki dla tych samych ziaren.
+
+\begin{table}[H]
+    \centering
+    \caption{Konfiguracja bazowa badań. Każde badanie zmienia jeden z tych parametrów zgodnie z Tabelą~\ref{tab:studies} oraz liczność zbioru uczącego i liczbę epok zgodnie z Tabelą~\ref{tab:budget}.}
+    \label{tab:base}
+    \begin{tabular}{lll}
+        \toprule
+        Parametr & Klasyfikacja & Regresja \\
+        \midrule
+        warstwy ukryte & 16-16 & 32-32 \\
+        aktywacja warstw ukrytych & tanh & tanh \\
+        inicjalizacja wag & Xavier & Xavier \\
+        biasy & tak & tak \\
+        aktywacja wyjściowa & softmax & identyczność \\
+        funkcja straty & entropia krzyżowa & MSE \\
+        optymalizator & Adam & Adam \\
+        współczynnik uczenia $\eta$ & \num{0.003} & \num{0.003} \\
+        rozmiar paczki & 32 & 32 \\
+        normalizacja wejść & standaryzacja & standaryzacja \\
+        normalizacja celu & --- & standaryzacja \\
+        zbiór walidacyjny & brak & brak \\
+        zbiór testowy & \texttt{test.10000} & \num{1201} punktów \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Optymalizator Adam działa z domyślnymi wartościami $\beta_1$, $\beta_2$ i $\epsilon$ podanymi w podrozdziale~\ref{sec:mlp-optimization}. Liczbę epok dobrano do liczności zbioru uczącego zgodnie z Tabelą~\ref{tab:budget}. Epoka zbioru o $n$ próbkach składa się z $\lceil n / 32 \rceil$ paczek, więc uczenie przez $E$ epok wykonuje $E \lceil n / 32 \rceil$ iteracji. Liczba epok maleje wolniej, niż rośnie liczność, dzięki czemu nawet dla najmniejszych zbiorów sieć wykonuje kilka tysięcy iteracji. Metryki każdego eksperymentu pochodzą z ostatniej epoki.
+
+\begin{table}[H]
+    \centering
+    \caption{Liczba epok i iteracji w zależności od liczności zbioru uczącego.}
+    \label{tab:budget}
+    \begin{tabular}{rrrr}
+        \toprule
+        Liczność & Epoki & \multicolumn{2}{c}{Iteracje} \\
+        \cmidrule(lr){3-4}
+        & & \texttt{simple}, \texttt{activation}, \texttt{cube} & \texttt{three\_gauss} \\
+        \midrule
+        \num{100} & \num{1000} & \num{4000} & \num{10000} \\
+        \num{500} & \num{300} & \num{4800} & \num{14100} \\
+        \num{1000} & \num{200} & \num{6400} & \num{18800} \\
+        \num{10000} & \num{30} & \num{9390} & \num{28140} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Miary jakości i statystyki}
+\label{sec:methodology-metrics}
+
+W klasyfikacji porównywaną miarą jest dokładność testowa \eqref{eq:accuracy}. Dla każdego wariantu podaje się jej średnią i próbkowe odchylenie standardowe po $10$ ziarnach. W regresji porównywaną miarą jest błąd średniokwadratowy \eqref{eq:mse} na zbiorze testowym, liczony w oryginalnej skali odpowiedzi, czyli po odwróceniu standaryzacji celu. Rozkład MSE po ziarnach jest silnie prawostronnie skośny, bo pojedyncze ziarno może dać błąd o rząd wielkości większy od pozostałych. Na przykład dla sieci 16-16-16 uczonej na \num{10000} próbkach zbioru \texttt{activation} mediana MSE w zakresie zbioru uczącego wynosi \num{0.0054}, a średnia \num{0.54}. Średnią zawyża głównie jedno ziarno z błędem \num{4.64}. Średnia opisuje wtedy to jedno ziarno, a nie typowy wynik, a średnia pomniejszona o odchylenie bywa ujemna. Dlatego dla MSE podaje się medianę i kwartyle $Q_1$ i $Q_3$ (z interpolacją liniową), które są zawsze dodatnie i pozwalają na rysowanie w skali logarytmicznej.
+
+Zbiór testowy regresji pokrywa przedział $[-5, 7]$, szerszy niż zakres wejść zbioru uczącego (podrozdział~\ref{sec:problem-datasets}). MSE na całym zbiorze testowym łączy więc dwie różne własności sieci: dopasowanie do funkcji w obszarze, z którego pochodzą dane uczące, i przebieg funkcji sieci poza nim. Dlatego dla każdego eksperymentu MSE liczy się również osobno dla punktów testowych leżących w zakresie $[x_{\min}, x_{\max}]$ wejść jego zbioru uczącego (interpolacja) i poza tym zakresem (ekstrapolacja):
+\begin{align}
+    \mathrm{MSE}_{\mathrm{w}} &= \frac{1}{\lvert \mathcal{T}_{\mathrm{w}} \rvert} \sum_{i \in \mathcal{T}_{\mathrm{w}}} \left( \yhat_i - y_i \right)^2 , &
+    \mathcal{T}_{\mathrm{w}} &= \{\, i : x_{\min} \le x_i \le x_{\max} \,\} ,
+    \label{eq:mse-inside} \\
+    \mathrm{MSE}_{\mathrm{poza}} &= \frac{1}{\lvert \mathcal{T}_{\mathrm{poza}} \rvert} \sum_{i \in \mathcal{T}_{\mathrm{poza}}} \left( \yhat_i - y_i \right)^2 , &
+    \mathcal{T}_{\mathrm{poza}} &= \{1, \dots, m\} \setminus \mathcal{T}_{\mathrm{w}} ,
+    \label{eq:mse-outside}
+\end{align}
+gdzie $i$ przebiega punkty zbioru testowego, a $x_{\min}$ i $x_{\max}$ to najmniejsze i największe wejście zbioru uczącego danego eksperymentu. Miary \eqref{eq:mse-inside} i \eqref{eq:mse-outside} podsumowuje się po ziarnach tak samo jak MSE.
+
+Wyniki badań przedstawiono na wykresach kilku rodzajów, wspólnych dla wszystkich badań:
+\begin{itemize}
+    \item wykres wyników ziaren: końcowa metryka testowa każdego ziarna jako punkt oraz średnia z odchyleniem albo mediana z kwartylami dla każdego wariantu,
+    \item mapa ciepła: ta sama statystyka w komórkach tabeli o wierszach odpowiadających licznościom i kolumnach odpowiadających poziomom czynnika,
+    \item krzywe uczenia: metryka testowa po kolejnych epokach jako średnia z pasem odchylenia albo mediana z pasem kwartyli, z osobnym panelem dla każdej liczności (oś dokładności pomija pierwsze \qty{10}{\percent} epok, w których dokładność szybko rośnie od poziomu losowego),
+    \item krzywe straty uczącej w tej samej postaci, rysowane tylko w badaniach, w których wszystkie warianty minimalizują tę samą funkcję straty,
+    \item galerie: granice decyzyjne albo krzywe regresji jednego eksperymentu każdego wariantu, tego, którego metryka testowa jest najbliższa medianie po ziarnach (przy równej odległości wybiera się mniejsze ziarno).
+\end{itemize}
+
+Różnice między wariantami porównywalne z odchyleniem standardowym między ziarnami lub mniejsze od rozstępu kwartylowego opisuje się jako słabe. Za istotne uważa się tylko efekty wyraźnie większe od rozrzutu wyników między ziarnami.
+
+\subsection{Założenia i ograniczenia planu}
+\label{sec:methodology-caveats}
+
+Plan badań ma kilka cech, które ograniczają wnioski z porównań:
+\begin{itemize}
+    \item budżet uczenia rośnie z licznością zbioru (Tabela~\ref{tab:budget}), więc efekt liczności obejmuje także większą liczbę iteracji optymalizatora,
+    \item pliki różnych liczności są rozłączne, a mniejszy zbiór nie jest podzbiorem większego, więc zmiana liczności zmienia też konkretną próbkę danych,
+    \item współczynnik uczenia jest jeden dla wszystkich wariantów, wybrany w krótkim badaniu wstępnym jako kompromis między stabilnością głębokich sieci a zbieżnością płytkich, więc wyniki części architektur mogłyby się poprawić przy innym współczynniku uczenia,
+    \item badania nie używają zbioru walidacyjnego ani wczesnego zatrzymania (ang. \textit{early stopping}) \cite[rozdz.~7.8]{goodfellow2016}, więc warianty porównuje się przy stałym budżecie, a przeuczenie przy małych zbiorach jest częścią wyniku.
+\end{itemize}

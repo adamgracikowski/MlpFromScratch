@@ -15,10 +15,14 @@ use crate::network::Mlp;
 use crate::rng::{RngStream, rng};
 use crate::training::{SplitMetrics, StopReason, train};
 
-/// Example configs, relative to the repository root.
-const EXAMPLES: [&str; 2] = [
+/// Example and showcase configs, relative to the repository root.
+const EXAMPLES: [&str; 6] = [
     "data/experiments/classification/example-three-gauss/config.toml",
     "data/experiments/regression/example-cube/config.toml",
+    "data/experiments/classification/showcase-simple/config.toml",
+    "data/experiments/classification/showcase-three-gauss/config.toml",
+    "data/experiments/regression/showcase-activation/config.toml",
+    "data/experiments/regression/showcase-cube/config.toml",
 ];
 
 /// The repository root; dataset paths in configs are relative to it.

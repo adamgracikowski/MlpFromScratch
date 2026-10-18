@@ -78,6 +78,13 @@ pwsh -File scripts/run-studies.ps1 -ForceAggregate  # aggregate again, e.g. afte
 
 For every study the script runs `generate`, `train --skip-trained` and `aggregate --plot-runs`, printing their output and appending it to `logs/run-studies-<date>-<time>.log`; at the end it prints a table of the studies (`done`, `incomplete` when some runs failed, `failed`) and exits with 1 unless all are done. It can be stopped at any time (Ctrl+C) and started again: trained runs are skipped (a run counts as trained once `artifacts/metadata.json`, written last, holds its current config), so only the runs in progress are lost, and aggregation is skipped while `results/summary.md` is newer than `study.toml`, `runs/index.csv` and every `metadata.json` of the study. While it runs, Windows does not go to sleep; closing the lid may still suspend the laptop, depending on the power settings.
 
+The showcase experiments `data/experiments/classification/showcase-{simple,three-gauss}/` and `data/experiments/regression/showcase-{activation,cube}/` provide the single-run plots of the report (training data and result, loss per iteration, weight evolution, confusion matrices). Each one is the run `tanh__500/seed-1` of the matching `*-activations` study, with weights logged every 10 iterations instead of 100. Their `plots/` are committed without the PNG copies:
+
+```bash
+cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/showcase-simple data/experiments/classification/showcase-three-gauss data/experiments/regression/showcase-activation data/experiments/regression/showcase-cube --jobs 4
+uv run --project src/analysis src/analysis/main.py plot data/experiments/classification/showcase-three-gauss   # and the other three
+```
+
 Tests, from `src/compute/`:
 
 ```bash

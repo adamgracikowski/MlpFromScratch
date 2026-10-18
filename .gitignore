@@ -19,6 +19,8 @@ data/experiments/**/artifacts/
 data/experiments/**/runs/
 # PNG copies of the study plots (the PDFs, tables and summary.md are committed)
 data/experiments/*/*/results/*.png
+# PNG copies of the experiment plots (the PDFs and summary.md are committed)
+data/experiments/**/plots/*.png
 
 # Logs of scripts/run-studies.ps1
 logs/
@@ -26,3 +28,8 @@ logs/
 # MNIST is downloaded locally
 data/datasets/mnist/*
 !data/datasets/mnist/README.md
+
+# Report build output (the final PDF is added with git add -f)
+docs/.latexbuild/
+docs/*.pdf
+docs/*.log

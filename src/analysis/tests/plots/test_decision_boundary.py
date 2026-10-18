@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib.colors import to_rgb
 
 from analysis.experiment import load_experiment
+from analysis.plots import decision_boundary
 from analysis.plots.decision_boundary import (
     REGION_ALPHA,
     class_margin,
@@ -46,4 +47,15 @@ def test_plot(make_experiment) -> None:
     texts = [text.get_text() for text in axes.get_legend().get_texts()]
     assert texts == ["Klasa 1", "Klasa 2", "Klasa 3", "Błędnie sklasyfikowane"]
     assert len(axes.get_images()) == 1
+    plt.close(figure)
+
+
+def test_plot_subsamples_test_samples(make_experiment, monkeypatch) -> None:
+    experiment = load_experiment(make_experiment())
+    monkeypatch.setattr(decision_boundary, "MAX_POINTS", 10)
+    figure = plot_decision_boundary(experiment)
+    (axes,) = figure.axes
+
+    scatters = axes.collections[-6:]
+    assert sum(len(points.get_offsets()) for points in scatters[:3]) == 10
     plt.close(figure)

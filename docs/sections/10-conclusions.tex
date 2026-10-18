@@ -1,0 +1,43 @@
+\section{Podsumowanie i wnioski}
+\label{sec:conclusions}
+
+Zaimplementowano od podstaw perceptron wielowarstwowy i zbadano na czterech zbiorach wpływ funkcji aktywacji, architektury i funkcji straty, ucząc każdy wariant dla $10$ ziaren. W rozdziale zebrano najważniejsze wnioski oraz ograniczenia przeprowadzonych badań.
+
+\subsection{Wnioski}
+\label{sec:conclusions-findings}
+
+Za mocne uznano efekty wyraźnie większe od rozrzutu wyników między ziarnami, a pozostałe opisano jako słabe (podrozdział~\ref{sec:methodology-metrics}).
+
+\paragraph{Klasyfikacja.}
+\begin{itemize}
+    \item Sieć bez warstw ukrytych wystarcza dla zbioru \texttt{simple}, w którym klasy rozdziela prosta. Przy licznościach \num{100} i \num{10000} jest najlepsza i ma najmniejszy rozrzut między ziarnami (podrozdział~\ref{sec:classification-architectures}).
+    \item W zbiorze \texttt{three\_gauss} sieć bez warstw ukrytych traci około punktu procentowego, bo nie wyraża krzywych granic. Już jedna warstwa z $4$ neuronami usuwa tę różnicę (efekt mocny). Żaden wariant nie przekracza średnio \qty{93.74}{\percent}, co jest zgodne z nakładaniem się klas.
+    \item Duże sieci przeuczają się przy małym zbiorze uczącym. Sieci 64-64, 16-16-16-16 i 64-64-64-64 przy liczności \num{100} na klasę osiągają na zbiorze testowym od \qty{91.00}{\percent} do \qty{91.28}{\percent}, wobec \qty{92.85}{\percent} dla jednej warstwy z $16$ neuronami (efekt mocny).
+    \item Funkcje aktywacji i funkcje straty różnią się słabo. Różnice między funkcjami straty nie przekraczają \num{0.09} punktu procentowego, a między funkcjami aktywacji wynoszą co najwyżej kilka dziesiątych punktu procentowego i ujawniają się głównie przy najmniejszych zbiorach (podrozdziały~\ref{sec:classification-activations} i~\ref{sec:classification-losses}).
+\end{itemize}
+
+\paragraph{Regresja.}
+\begin{itemize}
+    \item O błędzie poza zakresem zbioru uczącego decyduje kształt przedłużenia funkcji sieci. Sieć z funkcją tanh nasyca się tak jak funkcja docelowa zbioru \texttt{activation} i ma tam medianę MSE od \num{0.600} do \num{2.33}, a sieci z ReLU i leaky ReLU przedłużają funkcję prostą i mają od \num{1410} do \num{2200} (efekt mocny, podrozdział~\ref{sec:regression-activations}).
+    \item Żadna z badanych sieci nie przedłuża funkcji zbioru \texttt{cube}, która na krańcach rośnie szybciej niż prosta. Najmniejszy błąd poza zakresem mają sieci, których przedłużenie najdłużej podąża za wzrostem: z ReLU i leaky ReLU oraz z jedną szeroką warstwą.
+    \item W zakresie zbioru uczącego zbioru \texttt{cube} każda sieć z co najmniej dwiema warstwami ukrytymi jest dokładniejsza od każdej sieci z jedną warstwą, przy każdej liczności (podrozdział~\ref{sec:regression-architectures}).
+    \item Uczenie na MSE daje w zakresie zbioru uczącego od \num{5.91} do \num{22.6} razy mniejsze MSE niż uczenie na MAE. W zbiorze \texttt{activation} sieć uczona na MSE jest lepsza także w mierze MAE (podrozdział~\ref{sec:regression-losses}).
+\end{itemize}
+
+\paragraph{Liczność zbioru i powtarzalność.}
+\begin{itemize}
+    \item Różnica między dokładnością na zbiorze uczącym i testowym maleje z licznością. W zbiorze \texttt{three\_gauss} wynosi do \num{8.19} punktu procentowego przy liczności \num{100} i nie przekracza \num{0.24} przy \num{10000}, a wraz z nią maleje znaczenie wyboru architektury (podrozdział~\ref{sec:cross-size}).
+    \item Większy zbiór uczący poprawia regresję w zakresie danych znacznie bardziej niż poza nim. W zbiorze \texttt{cube} MSE poza zakresem praktycznie nie zależy od liczności.
+    \item Rozrzut wyników między ziarnami jest w klasyfikacji niewielki, a w regresji duży. Wybór najlepszego wariantu na podstawie jednego ziarna różni się od wyboru na podstawie $10$ ziaren w \qty{38}{\percent} przypadków w klasyfikacji i \qty{39}{\percent} w regresji. W regresji taki wybór może wskazać wariant o nawet \num{131} razy większej medianie MSE (podrozdział~\ref{sec:cross-seeds}). Porównania wariantów wymagają więc wielu ziaren i statystyk odpornych na pojedyncze złe wyniki.
+\end{itemize}
+
+\subsection{Ograniczenia i dalsze prace}
+\label{sec:conclusions-limitations}
+
+Wnioski obowiązują w warunkach, w których przeprowadzono badania:
+\begin{itemize}
+    \item każde badanie zmieniało jeden czynnik względem konfiguracji bazowej, więc nie wiadomo, czy czynniki na siebie oddziałują, np. czy inna funkcja aktywacji wymaga innej architektury,
+    \item wszystkie warianty uczono ze stałym budżetem iteracji i jednym współczynnikiem uczenia, bez zbioru walidacyjnego i wczesnego zatrzymania. Dokładność testowa dużych sieci przy małych zbiorach osiągała w trakcie uczenia maksimum wyraźnie wyższe od wartości końcowej (Rysunek~\ref{fig:classification-three-gauss-architectures-curves}), więc z wczesnym zatrzymaniem lub innym współczynnikiem uczenia mogłyby one wypaść lepiej,
+    \item zbiory są proste: wejścia klasyfikacji mają dwa wymiary i są tylko dwie lub trzy klasy, a punkty uczące regresji leżą blisko funkcji docelowej. Część efektów, np. przewaga entropii krzyżowej nad MSE albo odporność MAE na punkty odstające, może ujawnić się dopiero na trudniejszych danych.
+\end{itemize}
+Część druga projektu dotyczy rozpoznawania cyfr ze zbioru MNIST, czyli klasyfikacji wektorów o wielu wymiarach do dziesięciu klas. Wyniki części pierwszej wskazują, że będą tam potrzebne zbiór walidacyjny, wczesne zatrzymanie i dobór współczynnika uczenia, a porównania wariantów powinny nadal opierać się na wielu ziarnach.

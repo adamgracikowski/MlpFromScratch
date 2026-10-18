@@ -1,0 +1,40 @@
+\section{Odtworzenie wyników}
+\label{app:reproduction}
+
+Do odtworzenia wyników potrzebne są kompilator języka Rust w wersji 1.88.0, wskazanej w pliku \texttt{rust-toolchain.toml}, oraz Python w wersji co najmniej 3.13 z menedżerem pakietów \texttt{uv}, który instaluje zależności w wersjach zapisanych w pliku \texttt{uv.lock}. Ścieżki w plikach konfiguracyjnych są względne, dlatego polecenia uruchamia się z katalogu głównego repozytorium. Polecenia przedstawiono na Listingu~\ref{lst:reproduction}.
+
+\begin{code}
+\begin{Verbatim}[fontsize=\small]
+# zbudowanie programu i instalacja zależności Pythona
+cargo build --release --manifest-path src/compute/Cargo.toml
+uv sync --project src/analysis
+
+# eksperyment pokazowy: uczenie i wykresy
+cargo run --release --manifest-path src/compute/Cargo.toml -- \
+    train data/experiments/classification/showcase-three-gauss
+uv run --project src/analysis src/analysis/main.py \
+    plot data/experiments/classification/showcase-three-gauss
+
+# jedno badanie: eksperymenty, uczenie, zestawienie wyników
+cargo run --release --manifest-path src/compute/Cargo.toml -- \
+    generate data/experiments/classification/simple-activations
+cargo run --release --manifest-path src/compute/Cargo.toml -- \
+    train data/experiments/classification/simple-activations
+uv run --project src/analysis src/analysis/main.py \
+    aggregate data/experiments/classification/simple-activations --plot-runs
+
+# wszystkie badania części pierwszej (PowerShell 7)
+pwsh -File scripts/run-studies.ps1
+\end{Verbatim}
+    \caption{Polecenia odtwarzające wyniki, uruchamiane z katalogu głównego repozytorium.}
+    \label{lst:reproduction}
+\end{code}
+
+Konfiguracje i wyniki znajdują się w następujących miejscach:
+\begin{itemize}
+    \item konfiguracje eksperymentów pokazowych:\newline \texttt{data/experiments/<zadanie>/showcase-<zbiór>/config.toml},
+    \item konfiguracje badań:\newline \texttt{data/experiments/<zadanie>/<zbiór>-<czynnik>/study.toml},
+    \item wykresy eksperymentów pokazowych: katalog \texttt{plots/} eksperymentu,
+    \item zestawienia badań: katalog \texttt{results/} badania.
+\end{itemize}
+Katalog \texttt{<zadanie>} to \texttt{classification} albo \texttt{regression}. Eksperymenty pokazowe używają ziarna $1$, a badania ziaren od $1$ do $10$.
