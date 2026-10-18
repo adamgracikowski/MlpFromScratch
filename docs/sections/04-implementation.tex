@@ -8,7 +8,7 @@ W rozdziale opisano budowę programu: podział na warstwy, konfigurację ekspery
 
 Program składa się z dwóch warstw, które komunikują się wyłącznie przez pliki na dysku. Warstwa obliczeniowa, napisana w języku Rust, wczytuje konfigurację i dane, uczy sieć i zapisuje surowe wyniki, nazywane dalej artefaktami.
 
-Warstwa prezentacji, napisana w języku Python, czyta artefakty i tworzy z nich wykresy oraz zestawienia. Operacje macierzowe w warstwie obliczeniowej wykonuje biblioteka \texttt{ndarray}, liczby losowe generuje \texttt{rand}, równoległe uczenie wielu sieci zapewnia \texttt{rayon}, a interfejs wiersza poleceń \texttt{clap}. Warstwa prezentacji korzysta z bibliotek \texttt{numpy}, \texttt{polars} i \texttt{matplotlib}.
+Warstwa prezentacji, napisana w języku Python, czyta artefakty i tworzy z nich wykresy oraz zestawienia.
 
 Przepływ danych pokazano na Rysunku~\ref{fig:architecture}. Pojedynczy eksperyment jest opisany plikiem \texttt{config.toml}. Polecenie \texttt{compute train} zapisuje jego artefakty, a polecenie \texttt{plot} tworzy z nich wykresy. Badanie, czyli siatka eksperymentów różniących się wybranymi parametrami, jest opisane plikiem \texttt{study.toml}. Polecenie \texttt{compute generate} tworzy z niego katalogi pojedynczych eksperymentów, \texttt{compute train} uczy je równolegle, a \texttt{aggregate} zestawia wyniki.
 
@@ -88,12 +88,12 @@ Wszystkie parametry eksperymentu, łącznie z ziarnem generatora liczb losowych,
     \end{tabularx}
 \end{table}
 
-Program obsługuje się z wiersza poleceń. Polecenie \texttt{validate} sprawdza konfigurację, \texttt{train} uczy jeden lub wiele eksperymentów, a \texttt{generate} tworzy eksperymenty badania. Polecenie \texttt{train} przyjmuje m.in. liczbę równolegle uczonych sieci (\texttt{-{}-jobs}) i opcję pomijania eksperymentów już nauczonych z bieżącą konfiguracją (\texttt{-{}-skip-trained}).
+Program obsługuje się z wiersza poleceń, a polecenie \texttt{train} może uczyć wiele eksperymentów równolegle.
 
 \subsection{Przygotowanie danych}
 \label{sec:implementation-data}
 
-Zbiory wczytuje się z plików CSV z nagłówkiem. Kolumnę celu wskazuje konfiguracja, a pozostałe kolumny są cechami. Każda wartość musi być skończoną liczbą, a błąd wskazuje wiersz i kolumnę pliku. W klasyfikacji etykietami muszą być liczby całkowite. Klasami są różne etykiety zbioru uczącego posortowane rosnąco, więc etykiety $1, 2, 3$ otrzymują indeksy $0, 1, 2$. Cele są kodowane jako wektory \textit{one-hot}, w których jedynka stoi na pozycji klasy, a pozostałe elementy są zerami \cite[rozdz.~4]{bishop2006}. Etykieta zbioru testowego nieobecna w zbiorze uczącym jest błędem.
+Zbiory wczytuje się z plików CSV z nagłówkiem. Kolumnę celu wskazuje konfiguracja, a pozostałe kolumny są cechami. W klasyfikacji etykietami muszą być liczby całkowite. Klasami są różne etykiety zbioru uczącego posortowane rosnąco, więc etykiety $1, 2, 3$ otrzymują indeksy $0, 1, 2$. Cele są kodowane jako wektory \textit{one-hot}, w których jedynka stoi na pozycji klasy, a pozostałe elementy są zerami \cite[rozdz.~4]{bishop2006}.
 
 Konfiguracja pozwala uczyć sieć na losowym podzbiorze zbioru uczącego i wydzielić z niego zbiór walidacyjny. W klasyfikacji oba losowania są stratyfikowane, tzn. zachowują proporcje klas.
 
@@ -102,7 +102,7 @@ Cechy, a w regresji także cel, mogą być normalizowane osobno dla każdej kolu
 \subsection{Sieć i uczenie}
 \label{sec:implementation-network}
 
-Warstwy są przechowywane jako macierze liczb zmiennoprzecinkowych podwójnej precyzji, w których wiersz odpowiada próbce, zgodnie z notacją z podrozdziału~\ref{sec:mlp-model}. Propagacja wsteczna realizuje Algorytm~\ref{alg:backprop}. Każdy jej krok ma komentarz z wymiarami mnożonych macierzy i asercję, która przerywa program, gdy wymiary wyniku są niezgodne z oczekiwanymi.
+Warstwy są przechowywane jako macierze liczb zmiennoprzecinkowych podwójnej precyzji, w których wiersz odpowiada próbce, zgodnie z notacją z podrozdziału~\ref{sec:mlp-model}. Propagacja wsteczna realizuje Algorytm~\ref{alg:backprop}.
 
 Pętla uczenia realizuje Algorytm~\ref{alg:training}. Przed uczeniem i po każdej epoce program wyznacza na zbiorach uczącym, walidacyjnym i testowym wartość straty oraz dokładność w klasyfikacji albo MSE i MAE w oryginalnej skali w regresji. Zbiór testowy jest tylko obserwowany i nie wpływa na przebieg uczenia. Jeśli strata przyjmie wartość nieokreśloną lub nieskończoną, uczenie kończy się ze statusem rozbieżności (ang. \textit{diverged}), a krok optymalizatora z taką stratą nie jest wykonywany. Opcjonalne wczesne zatrzymanie przerywa uczenie, gdy strata walidacyjna nie poprawi się o więcej niż \texttt{min\_delta} przez \texttt{patience} kolejnych epok, i przywraca sieć z najlepszej epoki. W badaniach wczesnego zatrzymania nie używano.
 

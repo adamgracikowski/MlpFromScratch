@@ -10,9 +10,9 @@ Za mocne uznano efekty wyraźnie większe od rozrzutu wyników między ziarnami,
 
 \paragraph{Klasyfikacja.}
 \begin{itemize}
-    \item Sieć bez warstw ukrytych wystarcza dla zbioru \texttt{simple}, w którym klasy rozdziela prosta. Przy licznościach \num{100} i \num{10000} jest najlepsza (\qty{99.39}{\percent} i \qty{99.60}{\percent}) i ma najmniejszy rozrzut między ziarnami (podrozdział~\ref{sec:classification-architectures}).
+    \item Sieć bez warstw ukrytych wystarcza dla zbioru \texttt{simple}, w którym klasy rozdziela prosta. Przy licznościach \num{100} i \num{10000} jest najlepsza i ma najmniejszy rozrzut między ziarnami (podrozdział~\ref{sec:classification-architectures}).
     \item W zbiorze \texttt{three\_gauss} sieć bez warstw ukrytych traci około punktu procentowego, bo nie wyraża krzywych granic. Już jedna warstwa z $4$ neuronami usuwa tę różnicę (efekt mocny). Żaden wariant nie przekracza średnio \qty{93.74}{\percent}, co jest zgodne z nakładaniem się klas.
-    \item Duże sieci przeuczają się przy małym zbiorze uczącym. Sieć 64-64 przy liczności \num{100} na klasę osiąga \qty{99.43}{\percent} na zbiorze uczącym i \qty{91.24}{\percent} na testowym, wobec \qty{92.85}{\percent} dla jednej warstwy z $16$ neuronami (efekt mocny).
+    \item Duże sieci przeuczają się przy małym zbiorze uczącym. Sieci 64-64, 16-16-16-16 i 64-64-64-64 przy liczności \num{100} na klasę osiągają na zbiorze testowym od \qty{91.00}{\percent} do \qty{91.28}{\percent}, wobec \qty{92.85}{\percent} dla jednej warstwy z $16$ neuronami (efekt mocny).
     \item Funkcje aktywacji i funkcje straty różnią się słabo. Różnice między funkcjami straty nie przekraczają \num{0.09} punktu procentowego, a między funkcjami aktywacji wynoszą co najwyżej kilka dziesiątych punktu procentowego i ujawniają się głównie przy najmniejszych zbiorach (podrozdziały~\ref{sec:classification-activations} i~\ref{sec:classification-losses}).
 \end{itemize}
 
@@ -28,7 +28,7 @@ Za mocne uznano efekty wyraźnie większe od rozrzutu wyników między ziarnami,
 \begin{itemize}
     \item Różnica między dokładnością na zbiorze uczącym i testowym maleje z licznością. W zbiorze \texttt{three\_gauss} wynosi do \num{8.19} punktu procentowego przy liczności \num{100} i nie przekracza \num{0.24} przy \num{10000}, a wraz z nią maleje znaczenie wyboru architektury (podrozdział~\ref{sec:cross-size}).
     \item Większy zbiór uczący poprawia regresję w zakresie danych znacznie bardziej niż poza nim. W zbiorze \texttt{cube} MSE poza zakresem praktycznie nie zależy od liczności.
-    \item Rozrzut wyników między ziarnami jest w klasyfikacji niewielki (odchylenie od \num{0.01} do \num{0.56} punktu procentowego), a w regresji duży. Wybór najlepszego wariantu na podstawie jednego ziarna różni się od wyboru na podstawie $10$ ziaren w \qty{38}{\percent} przypadków w klasyfikacji i \qty{39}{\percent} w regresji. W regresji taki wybór może wskazać wariant o nawet \num{131} razy większej medianie MSE (podrozdział~\ref{sec:cross-seeds}). Porównania wariantów wymagają więc wielu ziaren i statystyk odpornych na pojedyncze złe wyniki.
+    \item Rozrzut wyników między ziarnami jest w klasyfikacji niewielki, a w regresji duży. Wybór najlepszego wariantu na podstawie jednego ziarna różni się od wyboru na podstawie $10$ ziaren w \qty{38}{\percent} przypadków w klasyfikacji i \qty{39}{\percent} w regresji. W regresji taki wybór może wskazać wariant o nawet \num{131} razy większej medianie MSE (podrozdział~\ref{sec:cross-seeds}). Porównania wariantów wymagają więc wielu ziaren i statystyk odpornych na pojedyncze złe wyniki.
 \end{itemize}
 
 \subsection{Ograniczenia i dalsze prace}

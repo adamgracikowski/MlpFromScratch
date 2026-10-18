@@ -13,7 +13,7 @@ Warstwy są reprezentowane jako macierze, a nie jako zbiory pojedynczych neuron�
     Z^{(l)} = A^{(l-1)} W^{(l)} + \mathbf{1}_n b^{(l)}, \qquad A^{(l)} = f_l\big(Z^{(l)}\big), \qquad l = 1, \dots, L,
     \label{eq:forward}
 \end{equation}
-gdzie $\mathbf{1}_n$ jest kolumną jedynek, więc bias $b^{(l)}$ dodaje się do każdego wiersza. Funkcja aktywacji $f_l$ działa na macierz $Z^{(l)}$ element po elemencie, z wyjątkiem funkcji softmax, która działa na całe wiersze. Wyjściem sieci jest $A^{(L)}$. Warstwa ma $n_{l-1} n_l$ wag i $n_l$ biasów. Biasy można wyłączyć jednym przełącznikiem dla wszystkich warstw. Wtedy we wzorze \eqref{eq:forward} pomija się składnik $\mathbf{1}_n b^{(l)}$. W badaniach biasy były zawsze włączone.
+gdzie $\mathbf{1}_n$ jest kolumną jedynek, więc bias $b^{(l)}$ dodaje się do każdego wiersza. Funkcja aktywacji $f_l$ działa na macierz $Z^{(l)}$ element po elemencie, z wyjątkiem funkcji softmax, która działa na całe wiersze. Wyjściem sieci jest $A^{(L)}$. Warstwa ma $n_{l-1} n_l$ wag i $n_l$ biasów. Biasy można wyłączyć dla wszystkich warstw naraz, ale w badaniach były zawsze włączone.
 
 \begin{table}[H]
     \centering
@@ -38,7 +38,7 @@ gdzie $\mathbf{1}_n$ jest kolumną jedynek, więc bias $b^{(l)}$ dodaje się do 
 \subsection{Funkcje aktywacji}
 \label{sec:mlp-activations}
 
-W warstwach ukrytych dostępne są cztery funkcje aktywacji zestawione w Tabeli~\ref{tab:activations}. Wszystkie były używane w badaniach. Pochodne funkcji sigmoidalnej i tangensa hiperbolicznego zależą tylko od wartości funkcji. W implementacji liczy się je z zapamiętanej aktywacji $a = f(z)$ jako $a(1 - a)$ i $1 - a^2$, więc w propagacji wstecznej nie trzeba ponownie liczyć funkcji wykładniczej. Funkcje ReLU (ang. \textit{rectified linear unit}) i leaky ReLU nie są różniczkowalne w zerze. W implementacji przyjęto w tym punkcie pochodną lewostronną: $0$ dla ReLU i $\alpha$ dla leaky ReLU \cite{goodfellow2016}.
+W warstwach ukrytych dostępne są cztery funkcje aktywacji zestawione w Tabeli~\ref{tab:activations}. Wszystkie były używane w badaniach. Funkcje ReLU (ang. \textit{rectified linear unit}) i leaky ReLU nie są różniczkowalne w zerze. W implementacji przyjęto w tym punkcie pochodną lewostronną: $0$ dla ReLU i $\alpha$ dla leaky ReLU \cite{goodfellow2016}.
 
 \begin{table}[H]
     \centering
@@ -56,7 +56,7 @@ W warstwach ukrytych dostępne są cztery funkcje aktywacji zestawione w Tabeli~
     \end{tabular}
 \end{table}
 
-Parametr $\alpha$ funkcji leaky ReLU musi należeć do przedziału $(0, 1)$. W badaniach przyjęto $\alpha = \num{0.01}$.
+W badaniach przyjęto dla funkcji leaky ReLU $\alpha = \num{0.01}$.
 
 Aktywację wyjściową dobiera się do zadania. W regresji jest nią identyczność $f(z) = z$, więc sieć może zwrócić dowolną wartość rzeczywistą. W klasyfikacji używana jest funkcja softmax, która przekształca wiersz pobudzeń $z \in \mathbb{R}^K$ w rozkład prawdopodobieństwa:
 \begin{equation}
@@ -80,7 +80,7 @@ Funkcja straty jest minimalizowana w trakcie uczenia. W odróżnieniu od miar ja
     \mathcal{L}_{\mathrm{CE}} = -\frac{1}{n} \sum_{s=1}^{n} \sum_{k=1}^{K} y_{sk} \ln \mathrm{softmax}\big(z_s\big)_k ,
     \label{eq:loss-ce}
 \end{equation}
-gdzie $z_s$ to wiersz $s$ macierzy $Z^{(L)}$, a softmax jest dany wzorem \eqref{eq:softmax}. Logarytm funkcji softmax liczy się wprost z pobudzeń, przez $\ln \sum_j e^{z_j}$ z odjętym maksimum, co jest stabilniejsze niż logarytm z prawdopodobieństwa bliskiego zeru \cite{goodfellow2016}. Błąd średniokwadratowy i średni błąd bezwzględny (ang. \textit{mean absolute error}, MAE) są uśredniane po wszystkich $nK$ elementach macierzy wyjść:
+gdzie $z_s$ to wiersz $s$ macierzy $Z^{(L)}$, a softmax jest dany wzorem \eqref{eq:softmax}. Błąd średniokwadratowy i średni błąd bezwzględny (ang. \textit{mean absolute error}, MAE) są uśredniane po wszystkich $nK$ elementach macierzy wyjść:
 \begin{equation}
     \mathcal{L}_{\mathrm{MSE}} = \frac{1}{nK} \sum_{s=1}^{n} \sum_{k=1}^{K} \left( a_{sk} - y_{sk} \right)^2 ,
     \qquad
@@ -130,7 +130,7 @@ Dla kolejnych warstw, od $l = L$ do $l = 1$, gradienty wyznacza się ze wzorów
     \end{aligned}
     \label{eq:backprop}
 \end{equation}
-przy czym dla funkcji softmax ostatni wzór zastępuje się wzorem \eqref{eq:softmax-vjp}. Suma po próbkach w $\mathrm{d}W^{(l)}$ i $\mathrm{d}b^{(l)}$ daje średnią po paczce, bo czynnik $1/n$ jest już zawarty w $\mathrm{d}Z^{(L)}$. Gradientu względem wejść $X$ nie liczy się, bo nie jest potrzebny. Pełną procedurę przedstawiono w Algorytmie~\ref{alg:backprop}.
+przy czym dla funkcji softmax ostatni wzór zastępuje się wzorem \eqref{eq:softmax-vjp}. Suma po próbkach w $\mathrm{d}W^{(l)}$ i $\mathrm{d}b^{(l)}$ daje średnią po paczce, bo czynnik $1/n$ jest już zawarty w $\mathrm{d}Z^{(L)}$. Pełną procedurę przedstawiono w Algorytmie~\ref{alg:backprop}.
 
 \begin{algorithm}[H]
     \caption{Gradient straty dla jednej paczki próbek}

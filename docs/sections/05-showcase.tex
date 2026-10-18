@@ -43,7 +43,7 @@ Wyniki klasyfikacji pokazano na Rysunku~\ref{fig:showcase-decision}. Kolor tła 
     \label{fig:showcase-decision}
 \end{figure}
 
-Przebieg błędu w kolejnych iteracjach uczenia na zbiorze \texttt{three\_gauss} przedstawiono na Rysunku~\ref{fig:showcase-three-gauss-loss}. Górny wykres pokazuje stratę każdej paczki i jej średnią kroczącą z jednej epoki. Zbiór uczący liczy \num{1500} próbek, więc epoka składa się z $\lceil 1500 / 32 \rceil = 47$ paczek, czyli iteracji. Strata pojedynczej paczki jest silnie zaszumiona, bo paczka $32$ próbek trafia raz w obszar łatwy, a raz w obszar nakładania się klas. W ostatniej epoce wahała się od \num{0.026} do \num{0.33}. Dolny wykres pokazuje stratę na całych zbiorach po każdej epoce. Największy spadek następuje w pierwszej epoce, z \num{1.23} do \num{0.30} na zbiorze uczącym. Strata testowa osiąga minimum \num{0.163} w epoce $74$, a następnie nieznacznie rośnie, do \num{0.171} w ostatniej epoce, choć strata ucząca nadal maleje.
+Przebieg błędu w kolejnych iteracjach uczenia na zbiorze \texttt{three\_gauss} przedstawiono na Rysunku~\ref{fig:showcase-three-gauss-loss}. Górny wykres pokazuje stratę każdej paczki i jej średnią kroczącą z jednej epoki. Zbiór uczący liczy \num{1500} próbek, więc epoka składa się z $\lceil 1500 / 32 \rceil = 47$ paczek, czyli iteracji. Strata pojedynczej paczki jest silnie zaszumiona, bo paczka $32$ próbek trafia raz w obszar łatwy, a raz w obszar nakładania się klas. Dolny wykres pokazuje stratę na całych zbiorach po każdej epoce. Największy spadek następuje w pierwszej epoce, z \num{1.23} do \num{0.30} na zbiorze uczącym. Strata testowa osiąga minimum \num{0.163} w epoce $74$, a następnie nieznacznie rośnie, do \num{0.171} w ostatniej epoce, choć strata ucząca nadal maleje.
 
 \begin{figure}[H]
     \centering
@@ -70,7 +70,7 @@ Macierz pomyłek na zbiorze testowym przedstawiono na Rysunku~\ref{fig:showcase-
     \label{fig:showcase-three-gauss-confusion}
 \end{figure}
 
-Ewolucję wartości wag przedstawiono na Rysunku~\ref{fig:showcase-three-gauss-weights}. Dla każdej warstwy zapisywano $32$ losowo wybrane parametry. Biasy startują od zera, a wagi od wartości wylosowanych przy inicjalizacji. Najszybciej parametry zmieniają się w pierwszych kilkuset iteracjach, gdy sieć ustala przybliżony kształt granic. Później zmieniają się wolniej, ale nie zatrzymują się, a drobne wahania wynikają z różnic między kolejnymi paczkami.
+Ewolucję wartości wag przedstawiono na Rysunku~\ref{fig:showcase-three-gauss-weights}. Biasy startują od zera, a wagi od wartości wylosowanych przy inicjalizacji. Najszybciej parametry zmieniają się w pierwszych kilkuset iteracjach, gdy sieć ustala przybliżony kształt granic. Później zmieniają się wolniej, ale nie zatrzymują się, a drobne wahania wynikają z różnic między kolejnymi paczkami.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{classification/showcase-three-gauss/plots/weights_trajectories.pdf}
@@ -78,7 +78,7 @@ Ewolucję wartości wag przedstawiono na Rysunku~\ref{fig:showcase-three-gauss-w
     \label{fig:showcase-three-gauss-weights}
 \end{figure}
 
-Zbiorczy obraz tych zmian dają normy wag i biasów, przedstawione na Rysunku~\ref{fig:showcase-three-gauss-norms}. Liczy się je ze wszystkich parametrów warstwy. Norma Frobeniusa $\lVert W \rVert_F = \sqrt{\sum_{i,j} w_{ij}^2}$ jest odpowiednikiem normy euklidesowej dla macierzy \cite[rozdz.~2.5]{goodfellow2016}, więc mierzy łączną wielkość wag warstwy. Norma Frobeniusa wag drugiej warstwy ukrytej rośnie z \num{3.92} do \num{10.79}, a pozostałych warstw z około $2$ do około $5$. Wzrost trwa do końca uczenia, co odpowiada powolnemu dryfowi parametrów widocznemu na Rysunku~\ref{fig:showcase-three-gauss-weights}.
+Zbiorczy obraz tych zmian dają normy wag i biasów, przedstawione na Rysunku~\ref{fig:showcase-three-gauss-norms}. Norma Frobeniusa $\lVert W \rVert_F = \sqrt{\sum_{i,j} w_{ij}^2}$ jest odpowiednikiem normy euklidesowej dla macierzy \cite[rozdz.~2.5]{goodfellow2016}, więc mierzy łączną wielkość wag warstwy. Norma Frobeniusa wag drugiej warstwy ukrytej rośnie z \num{3.92} do \num{10.79}, a pozostałych warstw z około $2$ do około $5$. Wzrost trwa do końca uczenia, co odpowiada powolnemu dryfowi parametrów widocznemu na Rysunku~\ref{fig:showcase-three-gauss-weights}.
 
 \begin{figure}[H]
     \centering
@@ -90,7 +90,7 @@ Zbiorczy obraz tych zmian dają normy wag i biasów, przedstawione na Rysunku~\r
 \subsection{Regresja}
 \label{sec:showcase-regression}
 
-Wyniki regresji pokazano na Rysunku~\ref{fig:showcase-regression}. Górne wykresy przedstawiają punkty uczące, funkcję docelową wyznaczoną przez zbiór testowy oraz odpowiedź sieci, a dolne resztę $\yhat - y$ na zbiorze testowym. Szare pasy oznaczają przedziały wejść poza zakresem zbioru uczącego. W zakresie zbioru uczącego obie sieci dopasowują funkcję docelową z resztą bliską zeru. Poza nim odpowiedź sieci z funkcją tanh wypłaszcza się. Dla zbioru \texttt{activation}, którego funkcja również się nasyca, reszta pozostaje niewielka. Dla zbioru \texttt{cube}, którego funkcja szybko rośnie co do wartości bezwzględnej, reszta rośnie z odległością od danych uczących. Zależność tę zbadano dokładniej w rozdziale~\ref{sec:regression}.
+Wyniki regresji pokazano na Rysunku~\ref{fig:showcase-regression}. W zakresie zbioru uczącego obie sieci dopasowują funkcję docelową z resztą bliską zeru. Poza nim odpowiedź sieci z funkcją tanh wypłaszcza się. Dla zbioru \texttt{activation}, którego funkcja również się nasyca, reszta pozostaje niewielka. Dla zbioru \texttt{cube}, którego funkcja szybko rośnie co do wartości bezwzględnej, reszta rośnie z odległością od danych uczących. Zależność tę zbadano dokładniej w rozdziale~\ref{sec:regression}.
 
 \begin{figure}[H]
     \centering
@@ -109,7 +109,7 @@ Wyniki regresji pokazano na Rysunku~\ref{fig:showcase-regression}. Górne wykres
     \label{fig:showcase-regression}
 \end{figure}
 
-Przebieg błędu na zbiorze \texttt{cube} przedstawiono na Rysunku~\ref{fig:showcase-cube-loss}. Strata jest liczona na celach po standaryzacji. Średnia krocząca straty paczek maleje w pierwszym tysiącu iteracji o ponad dwa rzędy wielkości, z \num{0.59} do \num{0.0031}, a potem zmniejsza się już powoli, z wyraźnymi wahaniami. Strata na zbiorze uczącym spada z \num{1.64} przed uczeniem do \num{2.0e-4} w ostatniej epoce. Strata testowa pozostaje o kilka rzędów wielkości większa, w ostatniej epoce wynosi \num{8.50}, bo obejmuje punkty spoza zakresu uczącego.
+Przebieg błędu na zbiorze \texttt{cube} przedstawiono na Rysunku~\ref{fig:showcase-cube-loss}. Strata jest liczona na celach po standaryzacji. Średnia krocząca straty paczek maleje w pierwszym tysiącu iteracji o ponad dwa rzędy wielkości, z \num{0.59} do \num{0.0031}, a potem zmniejsza się już powoli, z wyraźnymi wahaniami. Strata testowa pozostaje o kilka rzędów wielkości większa od uczącej (w ostatniej epoce \num{8.50} wobec \num{2.0e-4}), bo obejmuje punkty spoza zakresu uczącego.
 
 \begin{figure}[H]
     \centering
@@ -127,7 +127,7 @@ Błąd średniokwadratowy w oryginalnej skali odpowiedzi przedstawiono na Rysunk
     \label{fig:showcase-cube-metrics}
 \end{figure}
 
-Ewolucję wag sieci uczonej na zbiorze \texttt{cube} przedstawiono na Rysunkach~\ref{fig:showcase-cube-weights} i~\ref{fig:showcase-cube-norms}. W odróżnieniu od klasyfikacji zbioru \texttt{three\_gauss} większość zmian zachodzi w pierwszym tysiącu iteracji. Norma wag pierwszej warstwy ukrytej rośnie w tym czasie z \num{1.47} do \num{2.01}, a do końca uczenia już tylko do \num{2.04}. W drugiej warstwie ukrytej norma rośnie z \num{5.67} do \num{6.82} w pierwszym tysiącu iteracji i do \num{7.48} na końcu. Trajektorie poszczególnych parametrów są przy tym gładsze niż na Rysunku~\ref{fig:showcase-three-gauss-weights}.
+Ewolucję wag sieci uczonej na zbiorze \texttt{cube} przedstawiono na Rysunkach~\ref{fig:showcase-cube-weights} i~\ref{fig:showcase-cube-norms}. W odróżnieniu od klasyfikacji zbioru \texttt{three\_gauss} większość zmian zachodzi w pierwszym tysiącu iteracji. Norma wag pierwszej warstwy ukrytej rośnie w tym czasie z \num{1.47} do \num{2.01}, a do końca uczenia już tylko do \num{2.04}. Trajektorie poszczególnych parametrów są przy tym gładsze niż na Rysunku~\ref{fig:showcase-three-gauss-weights}.
 
 \begin{figure}[H]
     \centering

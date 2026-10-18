@@ -6,7 +6,7 @@ W rozdziale przedstawiono wyniki sześciu badań klasyfikacji, po trzy dla zbior
 \subsection{Funkcje aktywacji}
 \label{sec:classification-activations}
 
-Wyniki badania funkcji aktywacji przedstawiono na Rysunku~\ref{fig:classification-activations-heatmap}. W zbiorze \texttt{simple} wszystkie funkcje dają dokładność od \qty{98.97}{\percent} do \qty{99.50}{\percent}. Funkcja sigmoidalna jest najlepsza przy każdej liczności, ale jej przewaga nad najsłabszą funkcją wynosi co najwyżej \num{0.28} punktu procentowego, a przy licznościach \num{1000} i \num{10000} jest mniejsza niż zmiana wyniku wywołana samą zmianą ziarna (odchylenie standardowe od \num{0.16} do \num{0.37} punktu procentowego). Różnice między funkcjami aktywacji w tym zbiorze są więc słabe.
+Wyniki badania funkcji aktywacji przedstawiono na Rysunku~\ref{fig:classification-activations-heatmap}. W zbiorze \texttt{simple} funkcja sigmoidalna jest najlepsza przy każdej liczności, ale jej przewaga nad najsłabszą funkcją wynosi co najwyżej \num{0.28} punktu procentowego, a przy licznościach \num{1000} i \num{10000} jest mniejsza niż zmiana wyniku wywołana samą zmianą ziarna (odchylenie standardowe od \num{0.16} do \num{0.37} punktu procentowego). Różnice między funkcjami aktywacji w tym zbiorze są więc słabe.
 
 \begin{figure}[H]
     \centering
@@ -25,14 +25,14 @@ Wyniki badania funkcji aktywacji przedstawiono na Rysunku~\ref{fig:classificatio
     \label{fig:classification-activations-heatmap}
 \end{figure}
 
-W zbiorze \texttt{three\_gauss} funkcja aktywacji ma znaczenie tylko dla małych zbiorów uczących. Przy liczności \num{100} kolejność jest następująca: funkcja sigmoidalna (\qty{92.88}{\percent}), tanh (\qty{92.72}{\percent}), leaky ReLU (\qty{92.56}{\percent}) i ReLU (\qty{92.47}{\percent}). Funkcje ReLU i leaky ReLU mają przy tym największy rozrzut między ziarnami (odchylenie \num{0.31} i \num{0.28} punktu procentowego) i najwyższą dokładność na zbiorze uczącym (\qty{97.00}{\percent} i \qty{97.17}{\percent}), a funkcja sigmoidalna najniższą (\qty{95.27}{\percent}). Przy liczności \num{10000} wszystkie funkcje osiągają od \qty{93.64}{\percent} do \qty{93.69}{\percent}, czyli różnią się mniej niż o odchylenie między ziarnami.
+W zbiorze \texttt{three\_gauss} funkcja aktywacji ma znaczenie tylko dla małych zbiorów uczących. Przy liczności \num{100} najlepsza jest funkcja sigmoidalna (\qty{92.88}{\percent}), a najsłabsza ReLU (\qty{92.47}{\percent}). Funkcje ReLU i leaky ReLU mają przy tym największy rozrzut między ziarnami i najwyższą dokładność na zbiorze uczącym (\qty{97.00}{\percent} i \qty{97.17}{\percent}), a funkcja sigmoidalna najniższą (\qty{95.27}{\percent}). Przy liczności \num{10000} wszystkie funkcje osiągają od \qty{93.64}{\percent} do \qty{93.69}{\percent}, czyli różnią się mniej niż o odchylenie między ziarnami.
 
-Sieć z funkcją ReLU jest funkcją kawałkami liniową, więc łatwo tworzy ostre załamania granicy wokół pojedynczych punktów uczących. Przy małym zbiorze sprzyja to dopasowaniu do punktów z obszaru nakładania się klas, co widać jako wyższą dokładność uczącą i niższą testową. Funkcja sigmoidalna przy liczności \num{100} najsłabiej dopasowuje się do zbioru uczącego (\qty{95.27}{\percent}), a najlepiej wypada na zbiorze testowym, czyli przeucza się najmniej. Różnice są jednak niewielkie i dotyczą tylko najmniejszych zbiorów.
+Sieć z funkcją ReLU jest funkcją kawałkami liniową, więc łatwo tworzy ostre załamania granicy wokół pojedynczych punktów uczących. Przy małym zbiorze sprzyja to dopasowaniu do punktów z obszaru nakładania się klas, co widać jako wyższą dokładność uczącą i niższą testową. Funkcja sigmoidalna, najsłabiej dopasowana do zbioru uczącego, przeucza się najmniej. Różnice są jednak niewielkie i dotyczą tylko najmniejszych zbiorów.
 
 \subsection{Architektura sieci}
 \label{sec:classification-architectures}
 
-Wyniki badania architektur dla zbioru \texttt{simple} przedstawiono na Rysunku~\ref{fig:classification-simple-architectures-heatmap}. Sieć bez warstw ukrytych jest najlepsza przy licznościach \num{100} i \num{10000} (\qty{99.39}{\percent} i \qty{99.60}{\percent}), a przy liczności \num{1000} ustępuje tylko sieci z $4$ neuronami, o \num{0.02} punktu procentowego. Ma też najmniejszy rozrzut między ziarnami przy licznościach \num{1000} i \num{10000}. Większe sieci nie poprawiają wyniku, a ich rozrzut rośnie. Przy liczności \num{1000} sieć 64-64 osiąga średnio \qty{99.27}{\percent} z odchyleniem \num{0.49} punktu procentowego, a jej najsłabsze ziarno \qty{98.30}{\percent}.
+Wyniki badania architektur dla zbioru \texttt{simple} przedstawiono na Rysunku~\ref{fig:classification-simple-architectures-heatmap}. Sieć bez warstw ukrytych jest najlepsza przy licznościach \num{100} i \num{10000} (\qty{99.39}{\percent} i \qty{99.60}{\percent}), a przy liczności \num{1000} ustępuje tylko sieci z $4$ neuronami, o \num{0.02} punktu procentowego. Ma też najmniejszy rozrzut między ziarnami przy licznościach \num{1000} i \num{10000}. Większe sieci nie poprawiają wyniku, a ich rozrzut rośnie.
 
 \begin{figure}[H]
     \centering
@@ -45,7 +45,7 @@ Wyjątkiem jest liczność \num{500}, przy której sieć bez warstw ukrytych osi
 
 Sieć bez warstw ukrytych z funkcją softmax na wyjściu jest modelem regresji logistycznej, którego granice decyzyjne są prostymi \cite[rozdz.~4.3]{bishop2006}. Klasy zbioru \texttt{simple} są rozdzielone prostą (podrozdział~\ref{sec:problem-datasets}), więc ten model ma dokładnie potrzebną postać granicy. Większe sieci mogą przedstawić bardziej złożone granice, ale przy granicy prostej nie mają czego poprawić, a pozwalają dopasować granicę do pojedynczych punktów przy prostej. Sposób tego dopasowania zależy od ziarna, stąd większy rozrzut.
 
-Wyniki dla zbioru \texttt{three\_gauss} przedstawiono na Rysunku~\ref{fig:classification-three-gauss-architectures-heatmap}. Sieć bez warstw ukrytych osiąga od \qty{92.24}{\percent} do \qty{92.60}{\percent}, z odchyleniem nie większym niż \num{0.04} punktu procentowego. Już jedna warstwa z $4$ neuronami poprawia wynik o około punkt procentowy (\qty{93.54}{\percent} przy liczności \num{500} i \qty{93.68}{\percent} przy \num{10000}). Przy liczności \num{10000} wszystkie sieci z warstwami ukrytymi mieszczą się w przedziale od \qty{93.45}{\percent} do \qty{93.71}{\percent}, a najsłabsza jest największa sieć 64-64-64-64. Najwyższa średnia w całym badaniu wynosi \qty{93.74}{\percent} (jedna warstwa z $16$ neuronami, liczność \num{1000}). Żadna architektura nie przekracza tego poziomu, co jest zgodne z nakładaniem się klas, w którego obszarze myli się nawet klasyfikator Bayesa (podrozdział~\ref{sec:problem-tasks}).
+Wyniki dla zbioru \texttt{three\_gauss} przedstawiono na Rysunku~\ref{fig:classification-three-gauss-architectures-heatmap}. Sieć bez warstw ukrytych osiąga od \qty{92.24}{\percent} do \qty{92.60}{\percent}, z odchyleniem nie większym niż \num{0.04} punktu procentowego. Już jedna warstwa z $4$ neuronami poprawia wynik o około punkt procentowy (\qty{93.54}{\percent} przy liczności \num{500} i \qty{93.68}{\percent} przy \num{10000}). Najwyższa średnia w całym badaniu wynosi \qty{93.74}{\percent} (jedna warstwa z $16$ neuronami, liczność \num{1000}). Żadna architektura nie przekracza tego poziomu, co jest zgodne z nakładaniem się klas, w którego obszarze myli się nawet klasyfikator Bayesa (podrozdział~\ref{sec:problem-tasks}).
 
 \begin{figure}[H]
     \centering
@@ -54,7 +54,7 @@ Wyniki dla zbioru \texttt{three\_gauss} przedstawiono na Rysunku~\ref{fig:classi
     \label{fig:classification-three-gauss-architectures-heatmap}
 \end{figure}
 
-Przy liczności \num{100} głębokie i szerokie sieci wypadają wyraźnie gorzej od małych. Sieci 64-64, 16-16-16-16 i 64-64-64-64 osiągają \qty{91.24}{\percent}, \qty{91.00}{\percent} i \qty{91.28}{\percent} przy dokładności uczącej \qty{99.43}{\percent}, \qty{99.17}{\percent} i \qty{98.47}{\percent}, a jedna warstwa z $16$ lub $64$ neuronami \qty{92.85}{\percent}. Przebieg tego zjawiska pokazują krzywe uczenia na Rysunku~\ref{fig:classification-three-gauss-architectures-curves}. Przy liczności \num{100} średnia dokładność testowa dużych sieci najpierw rośnie do około \qty{93}{\percent}, np. dla sieci 64-64 do \qty{93.13}{\percent} w epoce $243$, a potem spada do wartości końcowych podanych wyżej. Przy liczności \num{10000} sieć 64-64-64-64 wyróżnia się wahaniami dokładności między kolejnymi epokami. Największa zmiana między epokami w pojedynczym uczeniu wynosi dla niej średnio \num{0.79} punktu procentowego, a dla pozostałych architektur od \num{0.11} do \num{0.49}.
+Przy liczności \num{100} głębokie i szerokie sieci wypadają wyraźnie gorzej od małych. Sieci 64-64, 16-16-16-16 i 64-64-64-64 osiągają od \qty{91.00}{\percent} do \qty{91.28}{\percent}, wobec \qty{92.85}{\percent} dla jednej warstwy z $16$ lub $64$ neuronami, choć na zbiorze uczącym przekraczają \qty{98}{\percent}. Przebieg tego zjawiska pokazują krzywe uczenia na Rysunku~\ref{fig:classification-three-gauss-architectures-curves}. Przy liczności \num{100} średnia dokładność testowa dużych sieci najpierw rośnie do około \qty{93}{\percent}, np. dla sieci 64-64 do \qty{93.13}{\percent} w epoce $243$, a potem spada do wartości końcowych podanych wyżej. Przy liczności \num{10000} sieć 64-64-64-64 wyróżnia się wahaniami dokładności między kolejnymi epokami. Największa zmiana między epokami w pojedynczym uczeniu wynosi dla niej średnio \num{0.79} punktu procentowego, a dla pozostałych architektur od \num{0.11} do \num{0.49}.
 
 \begin{figure}[H]
     \centering
@@ -77,7 +77,7 @@ Wyniki dla zbioru \texttt{three\_gauss} wyjaśniają dwa mechanizmy. Optymalne g
 \subsection{Funkcje straty}
 \label{sec:classification-losses}
 
-Wyniki badania funkcji straty przedstawiono na Rysunku~\ref{fig:classification-losses-heatmap}. Entropia krzyżowa i MSE, obie z funkcją softmax na wyjściu, dają praktycznie tę samą dokładność. Różnica średnich nie przekracza \num{0.05} punktu procentowego w zbiorze \texttt{simple} i \num{0.09} punktu procentowego w zbiorze \texttt{three\_gauss}, a odchylenie między ziarnami wynosi od \num{0.02} do \num{0.37} punktu procentowego. Żadna z funkcji straty nie ma więc przewagi.
+Wyniki badania funkcji straty przedstawiono na Rysunku~\ref{fig:classification-losses-heatmap}. Entropia krzyżowa i MSE, obie z funkcją softmax na wyjściu, dają praktycznie tę samą dokładność. Różnica średnich nie przekracza \num{0.05} punktu procentowego w zbiorze \texttt{simple} i \num{0.09} punktu procentowego w zbiorze \texttt{three\_gauss}, czyli jest mniejsza niż rozrzut między ziarnami. Żadna z funkcji straty nie ma więc przewagi.
 
 \begin{figure}[H]
     \centering
