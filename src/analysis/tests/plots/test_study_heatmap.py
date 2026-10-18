@@ -40,6 +40,18 @@ def test_cells_on_two_lines_when_too_narrow(make_study) -> None:
     plt.close(figure)
 
 
+def test_quartiles_on_own_lines_when_two_lines_too_wide(make_study) -> None:
+    levels = [f"level{index}" for index in range(30)]
+    study = make_study(task="regression", axes={"a": levels, "b": ["1"]}, report=REPORT)
+
+    figure = plot_study_heatmap(load_results(load_study(study)))
+
+    for text in _cell_texts(figure):
+        lines = text.splitlines()
+        assert len(lines) == 3 and lines[1].endswith(EN_DASH) and EN_DASH not in lines[2]
+    plt.close(figure)
+
+
 def test_labels_on_axes_and_ticks(make_study) -> None:
     report = REPORT + '\nlabels = { a = "Czynnik", b = "Rozmiar", x = "iks" }'
     study = make_study(axes={"a": ["x", "y"], "b": ["1"]}, report=report)

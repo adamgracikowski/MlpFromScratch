@@ -133,7 +133,8 @@ def _annotate(
     log: bool,
 ) -> None:
     """Center and spread in every cell: on one line, on two lines when one line is wider
-    than a cell, and in a smaller font when the spread alone is still too wide."""
+    than a cell, in a smaller font when the spread alone is still too wide, and with the
+    quartiles on lines of their own when even that does not fit (many columns)."""
     parts = {
         (row, col): _cell_parts(value, low[row, col], high[row, col], log)
         for (row, col), value in np.ndenumerate(center)
@@ -148,6 +149,9 @@ def _annotate(
         lines = [line for text in texts.values() for line in text.splitlines()]
         if not fits(lines, cell_cm, CELL_CHARACTER_CM):
             font_size = SMALL_CELL_FONT_SIZE
+            small_character_cm = CELL_CHARACTER_CM * SMALL_CELL_FONT_SIZE / CELL_FONT_SIZE
+            if log and not fits(lines, cell_cm, small_character_cm):
+                texts = {cell: _three_lines(main, spread) for cell, (main, spread) in parts.items()}
     for (row, col), value in np.ndenumerate(center):
         if np.isnan(value):
             text, color = DASH, INK
@@ -186,3 +190,12 @@ def _two_lines(main: str, spread: str | None, log: bool) -> str:
     if spread is None:
         return main
     return f"{main}\n{spread}" if log else f"{main}\n{PLUS_MINUS} {spread}"
+
+
+def _three_lines(main: str, spread: str | None) -> str:
+    """Errors only: the median, then each quartile on a line of its own (`0,045-` and
+    `0,200`)."""
+    if spread is None:
+        return main
+    low, high = spread.split(EN_DASH)
+    return f"{main}\n{low}{EN_DASH}\n{high}"
