@@ -1,8 +1,8 @@
 # Compute Layer
 
-Rust crate that trains the multilayer perceptron and writes training artifacts. It is split into a library (`src/lib.rs`) and a thin `compute` binary (`src/main.rs`) that provides the CLI.
+Rust crate that trains the multilayer perceptron and writes training artifacts for the presentation layer (`src/analysis/`). It does no plotting. It is split into a library (`src/lib.rs`) and a thin `compute` binary (`src/main.rs`) that provides the CLI. See the [main README](../../README.md) for an overview of the project.
 
-The Rust version is pinned in `rust-toolchain.toml`.
+The Rust version (1.88.0, edition 2024) is pinned in `rust-toolchain.toml`; dependency versions stay compatible with it.
 
 ## Usage
 
@@ -194,6 +194,36 @@ artifacts/
 
 The same seed and config give identical artifacts, except for times in `metadata.json`. Recording happens in memory and writing after training, so it hardly slows training down; compare with `--no-artifacts`.
 
+## Reproducibility
+
+Every random choice comes from `training.seed`. Each source of randomness has its own ChaCha8 stream of that seed (`rng::RngStream`), so changing one part of the config does not change the others:
+
+| Stream | Id | Used for |
+|---|---|---|
+| `Data` | 0 | training subset and validation split |
+| `Init` | 1 | initial weights |
+| `Shuffle` | 2 | order of the training samples in every epoch |
+| `WeightLog` | 3 | subset of the weights recorded in the artifacts |
+
+The ids are part of the reproducibility contract: changing them would stop old seeds from reproducing old runs. No code uses an unseeded generator, and runs trained in parallel do not share state, so results do not depend on `--jobs`. `build.rs` embeds the git commit and whether the crate sources differed from it, and `metadata.json` stores both with the full config.
+
+## Code layout
+
+Modules of the library in `src/`, each a `<name>.rs` file with a `<name>/` folder of submodules (details in their `//!` docs). Unit tests sit next to the code in `#[cfg(test)] mod tests`.
+
+| Module | Content |
+|---|---|
+| `cli` | `clap` commands `validate`, `train` and `generate`: discovery of experiments, single and parallel (`rayon`) training, progress and summaries |
+| `config` | serde schema of `config.toml` (one file per section), validation rules, loading with diagnostics at the config line; `examples.rs` trains the example and showcase configs end to end |
+| `study` | `study.toml`: axes, validation at its lines, expansion into variants and seeds, writing `runs/`; `examples.rs` checks that every committed study generates valid configs |
+| `data` | CSV reading, class encoding, training subset and validation split, scalers fitted on the training set |
+| `network` | `Layer`, `Mlp` (forward pass with cache, prediction, backpropagation), activations, losses, initialization; gradient checks against central differences |
+| `training` | the training loop, optimizers, batch order, metrics, early stopping and the `TrainingObserver` trait |
+| `artifacts` | `Recorder` (an observer buffering history in memory) and writing of `.npy`, `epochs.csv` and `metadata.json` |
+| `rng` | seeded random streams (see [Reproducibility](#reproducibility)) |
+
+Numbers are `f64` and matrices `ndarray::Array2<f64>` with one row per sample. User-facing errors use `thiserror` and `miette`: all problems are reported at once, each at its source location with a hint.
+
 ## Commands
 
 ```bash
@@ -202,5 +232,5 @@ cargo run --release -- --help                # show the CLI help
 cargo test                                   # run all tests
 cargo test <test_name>                       # run a single test
 cargo clippy --all-targets -- -D warnings    # lint (as in CI)
-cargo fmt                                    # format
+cargo fmt                                    # format (CI: cargo fmt --check)
 ```
