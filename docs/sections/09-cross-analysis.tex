@@ -1,12 +1,88 @@
 \section{Analiza przekrojowa}
 \label{sec:cross}
 
+W rozdziale zestawiono zależności wspólne dla wszystkich badań: wpływ liczności zbioru uczącego na przeuczenie i ekstrapolację oraz rozrzut wyników między ziarnami generatora, który uzasadnia uczenie każdego wariantu wielokrotnie.
+
 \subsection{Rozmiar zbioru uczącego i przeuczenie}
 \label{sec:cross-size}
-% Plan (etap 10): luka między dokładnością uczącą a testową, pojemność sieci a liczba
-% próbek, ekstrapolacja nie poprawia się z liczbą danych.
+
+Dokładność na zbiorze uczącym i testowym dla wybranych architektur zestawiono w Tabeli~\ref{tab:cross-size-classification}. W obu zbiorach różnica między nimi maleje wraz z licznością. W zbiorze \texttt{three\_gauss} przy liczności \num{100} wynosi od \num{0.53} punktu procentowego dla sieci bez warstw ukrytych do \num{8.19} dla sieci 64-64, a przy liczności \num{10000} nie przekracza \num{0.24} dla żadnego wariantu. W zbiorze \texttt{simple} różnica wynosi przy liczności \num{100} od \num{0.61} do \num{1.06} punktu procentowego, a przy liczności \num{10000} co najwyżej \num{0.08}.
+
+\begin{table}[H]
+    \centering
+    \caption{Dokładność na zbiorze uczącym i testowym w zależności od liczności zbioru uczącego: średnia po $10$ ziarnach, w procentach.}
+    \label{tab:cross-size-classification}
+    \begin{tabular}{lllrrrr}
+        \toprule
+        Zbiór & Warstwy ukryte & Zbiór oceny & \num{100} & \num{500} & \num{1000} & \num{10000} \\
+        \midrule
+        \texttt{simple} & 16-16 & uczący & \num{100.00} & \num{99.70} & \num{99.46} & \num{99.44} \\
+        & & testowy & \num{98.97} & \num{99.08} & \num{99.38} & \num{99.40} \\
+        \midrule
+        \texttt{three\_gauss} & brak & uczący & \num{92.77} & \num{92.87} & \num{92.33} & \num{92.65} \\
+        & & testowy & \num{92.24} & \num{92.60} & \num{92.55} & \num{92.55} \\
+        \addlinespace
+        & 16-16 & uczący & \num{96.57} & \num{94.85} & \num{93.71} & \num{93.79} \\
+        & & testowy & \num{92.72} & \num{93.29} & \num{93.51} & \num{93.64} \\
+        \addlinespace
+        & 64-64-64-64 & uczący & \num{98.47} & \num{96.90} & \num{94.04} & \num{93.68} \\
+        & & testowy & \num{91.28} & \num{92.66} & \num{92.87} & \num{93.45} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Im więcej parametrów ma sieć w stosunku do liczby próbek uczących, tym większa różnica. Sieć 64-64-64-64 ma \num{12867} parametrów (Tabela~\ref{tab:architecture-params}) i przy $300$ próbkach uczących osiąga na nich \qty{98.47}{\percent}, a na zbiorze testowym tylko \qty{91.28}{\percent}. Przy \num{30000} próbkach obie dokładności różnią się o \num{0.23} punktu procentowego. Z tego powodu architektura ma największe znaczenie dla małych zbiorów. Rozstęp średnich dokładności sieci z warstwami ukrytymi na zbiorze \texttt{three\_gauss} wynosi \num{1.86} punktu procentowego przy liczności \num{100} i \num{0.26} przy liczności \num{10000}.
+
+W regresji przeuczenie w tym sensie nie występuje. Mediany MSE na zbiorze uczącym i w zakresie zbioru uczącego na zbiorze testowym są prawie równe dla wszystkich wariantów, a ich stosunek wynosi od \num{0.78} do \num{1.14}. Przykłady zestawiono w Tabeli~\ref{tab:cross-size-regression}. Punkty uczące leżą blisko funkcji docelowej (podrozdział~\ref{sec:problem-datasets}), więc sieć, która dobrze dopasowuje się do nich, dobrze przybliża też tę funkcję w tym samym przedziale.
+
+\begin{table}[H]
+    \centering
+    \caption{MSE na zbiorze uczącym oraz na zbiorze testowym w zakresie i poza zakresem zbioru uczącego w zależności od liczności zbioru uczącego: mediana po $10$ ziarnach. Sieci 32-32 mają funkcję aktywacji tanh.}
+    \label{tab:cross-size-regression}
+    \begin{tabular}{lllrrrr}
+        \toprule
+        Zbiór & Warstwy ukryte & MSE & \num{100} & \num{500} & \num{1000} & \num{10000} \\
+        \midrule
+        \texttt{activation} & 32-32 & uczące & \num{0.0407} & \num{0.0209} & \num{0.0324} & \num{0.0257} \\
+        & & w zakresie & \num{0.0372} & \num{0.0208} & \num{0.0323} & \num{0.0253} \\
+        & & poza zakresem & \num{2.33} & \num{2.06} & \num{1.17} & \num{0.600} \\
+        \addlinespace
+        & 64-64-64-64 & uczące & \num{0.104} & \num{0.482} & \num{0.208} & \num{0.0531} \\
+        & & w zakresie & \num{0.104} & \num{0.470} & \num{0.207} & \num{0.0527} \\
+        & & poza zakresem & \num{1.07} & \num{1.41} & \num{1.59} & \num{1.05} \\
+        \midrule
+        \texttt{cube} & 32-32 & uczące & \num{0.836} & \num{0.601} & \num{0.380} & \num{0.272} \\
+        & & w zakresie & \num{0.680} & \num{0.576} & \num{0.403} & \num{0.266} \\
+        & & poza zakresem & \num{94100} & \num{83400} & \num{94500} & \num{91000} \\
+        \addlinespace
+        & 64-64-64-64 & uczące & \num{1.43} & \num{2.37} & \num{0.678} & \num{0.772} \\
+        & & w zakresie & \num{1.60} & \num{2.09} & \num{0.758} & \num{0.772} \\
+        & & poza zakresem & \num{161000} & \num{137000} & \num{151000} & \num{157000} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Większy zbiór uczący poprawia dopasowanie w zakresie danych znacznie bardziej niż poza nim. Dla każdej sieci z warstwami ukrytymi obliczono, ile razy mediana MSE przy liczności \num{100} jest większa niż przy liczności \num{10000}. W zakresie zbioru uczącego mediana tego stosunku po sieciach wynosi \num{4.90} w zbiorze \texttt{activation} i \num{7.81} w zbiorze \texttt{cube}. Poza zakresem te stosunki wynoszą \num{2.86} i \num{1.09}. W zbiorze \texttt{cube} MSE poza zakresem praktycznie nie zależy od liczności. Dodatkowe punkty z tego samego przedziału nie niosą informacji o przebiegu funkcji poza nim, więc o błędzie ekstrapolacji decyduje kształt przedłużenia funkcji sieci (podrozdział~\ref{sec:regression-activations}). We wszystkich tych porównaniach efekt liczności zawiera też większą liczbę iteracji uczenia (Tabela~\ref{tab:budget}).
 
 \subsection{Powtarzalność między ziarnami}
 \label{sec:cross-seeds}
-% Plan (etap 10): rozrzut wyników między 10 ziarnami w klasyfikacji i regresji,
-% brak dywergencji.
+
+Rozrzut dokładności między ziarnami przedstawiono na przykładzie badania architektur na zbiorze \texttt{three\_gauss} na Rysunku~\ref{fig:cross-seeds-classification}. We wszystkich badaniach klasyfikacji odchylenie standardowe dokładności wynosi od \num{0.01} do \num{0.56} punktu procentowego, z medianą \num{0.12}. Największe jest dla dużych sieci przy liczności \num{100} na zbiorze \texttt{three\_gauss} (od \num{0.45} do \num{0.56}) i przy liczności \num{1000} na zbiorze \texttt{simple} (od \num{0.38} do \num{0.49}). Sieć bez warstw ukrytych na zbiorze \texttt{three\_gauss} daje prawie ten sam wynik dla każdego ziarna, z odchyleniem od \num{0.010} do \num{0.040} punktu procentowego. Entropia krzyżowa modelu regresji logistycznej jest wypukłą funkcją jego parametrów, więc nie ma minimów lokalnych gorszych od globalnego \cite[rozdz.~4.3.3]{bishop2006}, więc każde ziarno prowadzi do niemal tego samego rozwiązania.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{classification/three-gauss-architectures/results/seeds.pdf}
+    \caption{Dokładność testowa na zbiorze \texttt{three\_gauss} dla każdej architektury, liczności zbioru uczącego i ziarna: małe punkty to pojedyncze ziarna, duże punkty z wąsami to średnia i odchylenie standardowe po $10$ ziarnach.}
+    \label{fig:cross-seeds-classification}
+\end{figure}
+
+W regresji rozrzut jest znacznie większy, co pokazuje Rysunek~\ref{fig:cross-seeds-regression} dla badania architektur na zbiorze \texttt{activation}. We wszystkich badaniach regresji dla sieci z warstwami ukrytymi stosunek trzeciego kwartyla MSE w zakresie zbioru uczącego do pierwszego wynosi od \num{1.28} do \num{60.2}, z medianą \num{4.28}, i w \qty{82}{\percent} wariantów jest nie mniejszy niż $2$. W \qty{30}{\percent} wariantów najgorsze ziarno ma MSE co najmniej $10$ razy większe od mediany, a w skrajnym przypadku \num{858} razy większe (sieć 16-16-16 na zbiorze \texttt{activation}, liczność \num{10000}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{regression/activation-architectures/results/seeds_inside.pdf}
+    \caption{MSE testowe w zakresie zbioru uczącego na zbiorze \texttt{activation} dla każdej architektury, liczności zbioru uczącego i ziarna: małe punkty to pojedyncze ziarna, duże punkty z wąsami to mediana i kwartyle po $10$ ziarnach.}
+    \label{fig:cross-seeds-regression}
+\end{figure}
+
+Skutki takiego rozrzutu dla porównań sprawdzono, wybierając najlepszy wariant na podstawie wyników tylko jednego ziarna. Dla każdego badania, liczności i ziarna porównano wariant najlepszy dla tego ziarna z wariantem najlepszym według średniej dokładności albo mediany MSE w zakresie z $10$ ziaren. W klasyfikacji wybór różnił się w $92$ z $240$ przypadków (\qty{38}{\percent}), ale średnia dokładność wybranego wariantu była niższa od najlepszej w połowie z nich o nie więcej niż \num{0.046} punktu procentowego, a najwyżej o \num{0.356}. Różnice między najlepszymi wariantami są w klasyfikacji tak małe, że błędny wybór niewiele kosztuje. W regresji wybór różnił się w $94$ z $240$ przypadków (\qty{39}{\percent}). Mediana MSE wybranego wariantu była wtedy w połowie z nich co najmniej \num{2.07} razy większa od najlepszej, w $6$ przypadkach co najmniej $10$ razy, a najwyżej \num{131} razy. Pojedyncze uczenie nie wystarcza więc do porównania wariantów, zwłaszcza w regresji, co uzasadnia uczenie każdego wariantu dla $10$ ziaren i podawanie mediany i kwartyli.
