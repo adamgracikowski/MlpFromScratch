@@ -1,0 +1,43 @@
+# Example MNIST experiment: the base of the tuning studies, trained on a subset of 10000 images.
+# Prepare the dataset first (uv run --project src/analysis src/analysis/main.py mnist).
+# Paths are relative to the current working directory; run from the repo root:
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/mnist/example-mnist
+#   uv run --project src/analysis src/analysis/main.py plot data/experiments/mnist/example-mnist
+
+task = "classification"
+
+[data]
+train = "data/datasets/mnist/data.mnist.train.60000.csv"
+test = "data/datasets/mnist/data.mnist.test.10000.csv"  # only observed, never used for choices
+target = "label"                   # all other columns (pixel0 to pixel783) are input features
+input_normalization = "min_max"    # per pixel, from the training samples
+target_normalization = "none"
+train_subset = 10000               # stratified random subset of the 60000 training images
+validation_fraction = 0.2          # 8000 for training, 2000 for validation
+
+[model]
+hidden_layers = [128]              # 784 -> 128 -> 10
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "softmax"
+init = { kind = "he" }
+
+[optimizer]
+kind = "adam"
+learning_rate = 0.001
+
+[training]
+loss = "cross_entropy"
+epochs = 30
+batch_size = 32
+seed = 1
+early_stopping = { patience = 5 }  # on the validation loss; restores the best epoch
+
+[logging]
+loss_every = 1                     # in iterations (batches); 250 iterations per epoch
+weights_every = 250                # one snapshot per epoch
+max_weights_per_layer = 64
+
+[output]
+grid_resolution = 100              # not used: no prediction grid for more than 2 features
+grid_margin = 0.1
