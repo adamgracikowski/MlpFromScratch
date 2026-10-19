@@ -70,6 +70,8 @@ Texts on the plots and in `summary.md` are in Polish, like the report. Figures a
 | `weight_norms` | Frobenius norm of `W` and Euclidean norm of `b` of every layer | always |
 | `weights_heatmap` | sampled parameters (sorted by final value) over the snapshots | always |
 | `confusion_<split>` | confusion matrix with counts and row percentages | classification |
+| `first_layer_weights` | columns of the trained `W` of the first layer (at most 32 neurons) as images on a shared symmetric scale; pixels constant in the training set (their weights keep the initial values) are masked; without hidden layers one map per class | classification whose features are the pixels of square images (`d = side^2`, `side >= 8`, e.g. MNIST) |
+| `misclassified` | at most 32 misclassified test images, the most confident mistakes first, with the true and the predicted class and the probability of the prediction | as `first_layer_weights`; skipped when no test sample is misclassified |
 | `summary.md` | configuration, course of training, final metrics, code version | always |
 
 Plots that do not fit the data (e.g. the decision boundary for MNIST) are skipped with a message.
@@ -80,7 +82,7 @@ Plots that do not fit the data (e.g. the decision boundary for MNIST) are skippe
 |---|---|
 | `main.py`, `analysis/cli.py` | entry point and the `argparse` commands `plot`, `aggregate` and `mnist` |
 | `analysis/datasets/` | `mnist` command: IDX reader (`read_idx`), download or local source, SHA-256 verification and conversion to CSV (`prepare_mnist`), `DatasetError` |
-| `analysis/experiment/` | artifacts of one run: `load_experiment(dir) -> Experiment`, one model per file (`LossHistory`, `WeightHistory`, predictions per split, `Grid`), `ArtifactsError` for missing or broken files; inputs are read from the config's CSV files through `rows.npy` |
+| `analysis/experiment/` | artifacts of one run: `load_experiment(dir) -> Experiment`, one model per file (`LossHistory`, `WeightHistory`, `Model` with the trained parameters, predictions per split, `Grid`), `ArtifactsError` for missing or broken files; inputs are read from the config's CSV files through `rows.npy` |
 | `analysis/study/` | `study.toml` and `runs/index.csv` of a study, the summary of every run (`metadata.json` and `epochs.csv` only), results over seeds (`variants_table`, representative runs) and the regression errors inside and outside the training range |
 | `analysis/plot_experiment.py` | the list of experiment plots (name, drawing function, when it applies, why it is skipped); writes `plots/` and `summary.md` |
 | `analysis/aggregate_study.py` | the list of study plots, galleries and tables; writes `results/` |

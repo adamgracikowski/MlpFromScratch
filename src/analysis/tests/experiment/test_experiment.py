@@ -44,3 +44,8 @@ def test_early_stopped(make_experiment) -> None:
 def test_missing_artifacts(tmp_path) -> None:
     with pytest.raises(ArtifactsError, match="compute train"):
         load_experiment(tmp_path)
+
+
+@pytest.mark.parametrize(("features", "side"), [(64, 8), (2, None), (49, None), (65, None)])
+def test_image_side(make_experiment, features: int, side: int | None) -> None:
+    assert load_experiment(make_experiment(features=features)).image_side == side

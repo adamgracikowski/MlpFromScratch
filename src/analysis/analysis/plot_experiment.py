@@ -13,7 +13,9 @@ from analysis.experiment import SPLITS, Experiment
 from analysis.plots.confusion import plot_confusion
 from analysis.plots.dataset import plot_dataset
 from analysis.plots.decision_boundary import plot_decision_boundary
+from analysis.plots.first_layer_weights import plot_first_layer_weights
 from analysis.plots.loss import plot_loss, plot_metrics
+from analysis.plots.misclassified import misclassified_reason, plot_misclassified
 from analysis.plots.regression import plot_regression
 from analysis.plots.weights import (
     plot_weight_heatmap,
@@ -68,6 +70,11 @@ def _regression(experiment: Experiment) -> bool:
     return not experiment.is_classification
 
 
+def _classified_images(experiment: Experiment) -> bool:
+    """Plots of images need classification with the pixels of square images as inputs."""
+    return experiment.is_classification and experiment.image_side is not None
+
+
 def _confusion(split: str) -> Plot:
     return Plot(
         f"confusion_{split}",
@@ -85,6 +92,8 @@ PLOTS = [
     Plot("weights_trajectories", plot_weight_trajectories),
     Plot("weight_norms", plot_weight_norms),
     Plot("weights_heatmap", plot_weight_heatmap),
+    Plot("first_layer_weights", plot_first_layer_weights, _classified_images),
+    Plot("misclassified", plot_misclassified, _classified_images, misclassified_reason),
     *(_confusion(split) for split in SPLITS),
 ]
 

@@ -40,6 +40,23 @@ TRUE_CLASS = "Prawdziwa klasa"
 PREDICTED_CLASS = "Przewidziana klasa"
 ROW_SHARE = "Udział w klasie prawdziwej [%]"
 
+
+def misclassified_title(true: int, predicted: int, confidence: str) -> str:
+    """Title of a misclassified image: the true class, the predicted one and the probability
+    the network gave to it, e.g. `7 jako 2` over `97,1%`."""
+    return f"{true} jako {predicted}\n{confidence}"
+
+
+def neuron_title(number: int) -> str:
+    """Title of the weight map of a neuron numbered from 1."""
+    return f"Neuron {number}"
+
+
+def class_title(label: int) -> str:
+    """Title of the weight map of an output neuron (no hidden layers)."""
+    return f"Klasa {label}"
+
+
 LOSS_NAMES = {
     "cross_entropy": "entropia krzyżowa",
     "mse": "MSE",

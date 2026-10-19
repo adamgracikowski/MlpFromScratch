@@ -1,6 +1,7 @@
 """All artifacts of one experiment and their loader."""
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,10 +11,12 @@ import polars as pl
 from analysis.experiment.error import ArtifactsError
 from analysis.experiment.grid import Grid
 from analysis.experiment.loss_history import LossHistory
+from analysis.experiment.model import Model
 from analysis.experiment.predictions import SplitPredictions
 from analysis.experiment.weight_history import WeightHistory
 
 ARTIFACTS_DIR = "artifacts"
+MIN_IMAGE_SIDE = 8
 
 
 @dataclass(frozen=True)
@@ -25,6 +28,7 @@ class Experiment:
     epochs: pl.DataFrame
     history: LossHistory
     weights: WeightHistory
+    model: Model
     predictions: dict[str, SplitPredictions]  # keys in `SPLITS` order, validation only if any
     grid: Grid | None
 
@@ -39,6 +43,13 @@ class Experiment:
     @property
     def features(self) -> list[str]:
         return self.metadata["data"]["features"]
+
+    @property
+    def image_side(self) -> int | None:
+        """Side of the square images whose pixels are the input features (`d = side^2`,
+        e.g. 28 for MNIST), or `None` when the features are not an image."""
+        side = math.isqrt(len(self.features))
+        return side if side >= MIN_IMAGE_SIDE and side * side == len(self.features) else None
 
     @property
     def classes(self) -> list[int] | None:
@@ -70,6 +81,7 @@ def load_experiment(experiment_dir: Path) -> Experiment:
         epochs=pl.read_csv(artifacts / "epochs.csv"),
         history=LossHistory.load(artifacts / "history"),
         weights=WeightHistory.load(artifacts / "weights", layer_count),
+        model=Model.load(artifacts / "model", layer_count, metadata["network"]["bias"]),
         predictions=SplitPredictions.load_all(artifacts / "predictions", metadata),
         grid=Grid.load(artifacts / "grid", len(metadata["data"]["features"])),
     )

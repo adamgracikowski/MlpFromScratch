@@ -90,3 +90,11 @@ def test_files_are_reproducible(make_experiment) -> None:
     second = {path.name: path.read_bytes() for path in plot_experiment(experiment).files}
 
     assert first == second
+
+
+def test_image_plots_for_square_inputs(make_experiment) -> None:
+    report = plot_experiment(load_experiment(make_experiment(features=64)), **FAST)
+
+    assert file_names(report) == expected(
+        CLASSIFICATION | {"first_layer_weights", "misclassified"}, formats=["png"]
+    )
