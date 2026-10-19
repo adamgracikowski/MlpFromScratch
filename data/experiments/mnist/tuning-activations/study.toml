@@ -1,0 +1,66 @@
+# Study: activation of the hidden layer on a subset of MNIST, 5 seeds each.
+# Third tuning study (earlier choices: min_max, 512); compared on the validation set.
+# Run from the repo root:
+#   pwsh -File scripts/run-studies.ps1 -Jobs 8 data/experiments/mnist/tuning-activations
+
+description = "Wpływ funkcji aktywacji warstwy ukrytej na klasyfikację MNIST: sieć 784-512-10, podzbiór 10000 obrazów uczących, wybór na zbiorze walidacyjnym."
+seeds = [1, 2, 3, 4, 5]
+
+# Every activation gets the initialization meant for it: Xavier for sigmoid and tanh,
+# He for the ReLU family.
+[[axes]]
+name = "activation"
+levels = [
+  { name = "sigmoid", set = { "model.hidden_activation" = { kind = "sigmoid" }, "model.init" = { kind = "xavier" } } },
+  { name = "tanh", set = { "model.hidden_activation" = { kind = "tanh" }, "model.init" = { kind = "xavier" } } },
+  { name = "relu", set = { "model.hidden_activation" = { kind = "relu" }, "model.init" = { kind = "he" } } },
+  { name = "leaky_relu", set = { "model.hidden_activation" = { kind = "leaky_relu", alpha = 0.01 }, "model.init" = { kind = "he" } } },
+]
+
+[report]
+x = "activation"
+split = "validation"               # the test set is only for the final evaluation
+
+[report.labels]
+activation = "Funkcja aktywacji"
+leaky_relu = "leaky ReLU"
+relu = "ReLU"
+
+# Settings not studied here: the base of the tuning with the choices of the earlier studies.
+[base]
+task = "classification"
+
+[base.data]
+train = "data/datasets/mnist/data.mnist.train.60000.csv"
+test = "data/datasets/mnist/data.mnist.test.10000.csv"
+target = "label"
+input_normalization = "min_max"    # tuning-normalization
+target_normalization = "none"
+train_subset = 10000
+validation_fraction = 0.2
+
+[base.model]
+hidden_layers = [512]              # tuning-architectures
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "softmax"
+init = { kind = "he" }
+
+[base.optimizer]
+kind = "adam"
+learning_rate = 0.001
+
+[base.training]
+loss = "cross_entropy"
+epochs = 30
+batch_size = 32
+early_stopping = { patience = 5 }
+
+[base.logging]
+loss_every = 1
+weights_every = 250
+max_weights_per_layer = 64
+
+[base.output]
+grid_resolution = 100
+grid_margin = 0.1
