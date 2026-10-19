@@ -11,6 +11,8 @@ STUDY_FILE = "study.toml"
 RUNS_DIR = "runs"
 INDEX_FILE = "index.csv"
 INDEX_COLUMNS = ("dir", "variant", "seed")
+SPLITS = ("train", "validation", "test")
+DEFAULT_SPLIT = "test"
 
 
 class StudyError(Exception):
@@ -48,6 +50,7 @@ class Study:
     base: dict[str, Any]
     index: pl.DataFrame  # dir, variant, seed, then one column per axis
     labels: dict[str, str]  # plot texts by axis or level name (`labels` of `[report]`)
+    split: str = DEFAULT_SPLIT  # split whose metric compares the variants (`split` of `[report]`)
 
     @property
     def task(self) -> str:
@@ -102,15 +105,23 @@ def load_study(study_dir: Path) -> Study:
         Axis(axis["name"], list(dict.fromkeys(index[axis["name"]].to_list())), _keys(axis))
         for axis in raw_axes
     ]
+    report = config.get("report", {})
+    split = report.get("split", DEFAULT_SPLIT)
+    if split not in SPLITS:
+        raise StudyError(
+            f"{study_path.as_posix()}: `report.split` is {split!r}, expected one of "
+            f"{', '.join(SPLITS)}"
+        )
     return Study(
         directory=study_dir,
         description=config.get("description"),
         seeds=list(config["seeds"]),
         axes=axes,
-        roles=_roles(config.get("report", {}), axis_names),
+        roles=_roles(report, axis_names),
         base=config["base"],
         index=index,
-        labels=dict(config.get("report", {}).get("labels", {})),
+        labels=dict(report.get("labels", {})),
+        split=split,
     )
 
 

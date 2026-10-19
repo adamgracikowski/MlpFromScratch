@@ -52,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--plot-runs",
         action="store_true",
         help="also plot the representative run of every variant (closest to the median of "
-        "the test metric) into its plots/; needs the datasets, so run from the repository root",
+        "the compared metric) into its plots/; needs the datasets, so run from the repository root",
     )
 
     mnist = commands.add_parser(

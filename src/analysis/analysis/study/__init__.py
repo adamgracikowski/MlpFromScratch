@@ -3,6 +3,7 @@
 from analysis.study.results import (
     StudyResults,
     load_results,
+    primary_column,
     primary_metric,
     representative_runs,
     task_metrics,
@@ -20,6 +21,7 @@ __all__ = [
     "StudyResults",
     "load_results",
     "load_study",
+    "primary_column",
     "primary_metric",
     "representative_runs",
     "task_metrics",

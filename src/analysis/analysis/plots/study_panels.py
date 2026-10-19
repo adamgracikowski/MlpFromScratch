@@ -15,7 +15,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from analysis import labels
-from analysis.study import Study, StudyResults, primary_metric
+from analysis.study import Study, StudyResults
+from analysis.study import primary_column as study_primary_column
 from analysis.study.range_errors import INSIDE, OUTSIDE
 from analysis.style import CATEGORICAL, CM, new_figure
 
@@ -133,11 +134,12 @@ def metric_scale(results: StudyResults) -> float:
 
 
 def metric_label(results: StudyResults) -> str:
-    return labels.TEST_ACCURACY if results.study.is_classification else labels.TEST_MSE
+    """Axis label of the compared metric on the split of `[report]`."""
+    return labels.compared_metric(results.study.split, results.study.is_classification)
 
 
 def primary_column(results: StudyResults) -> str:
-    return f"test_{primary_metric(results.study)}"
+    return study_primary_column(results.study)
 
 
 @dataclass(frozen=True)
@@ -152,7 +154,8 @@ class Metric:
 
 
 def metric_of(results: StudyResults, column: str | None = None) -> Metric:
-    """The primary test metric, or the test MSE inside or outside the training range."""
+    """The compared metric (on the split of `[report]`), or the test MSE inside or outside
+    the training range."""
     if column is None:
         return Metric(
             primary_column(results),

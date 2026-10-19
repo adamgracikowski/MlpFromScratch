@@ -61,6 +61,7 @@ def study_summary_markdown(
                     labels.RUN_COUNT,
                     f"{study.index.height} ({len(study.variants)} x {len(study.seeds)})",
                 ],
+                [labels.COMPARED_SPLIT, labels.compared_split(study.split)],
             ],
         ),
         f"## {labels.SECTION_BASE}",
@@ -79,7 +80,7 @@ def study_summary_markdown(
         sections += [
             f"## {labels.SECTION_REPRESENTATIVE}",
             markdown_table([labels.VARIANT, labels.RUN], rows),
-            labels.REPRESENTATIVE_NOTE,
+            labels.representative_note(study.split),
         ]
     return "\n\n".join(sections) + "\n"
 

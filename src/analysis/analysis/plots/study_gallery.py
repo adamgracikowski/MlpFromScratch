@@ -2,7 +2,7 @@
 
 One figure per combination of the levels of the axes other than `x` (`gallery`, or
 `gallery_<level>__<level>`), with a panel per `x` level. Every panel shows the
-representative run of its variant (`representative_runs`) and its test metric.
+representative run of its variant (`representative_runs`) and its compared metric.
 """
 
 import itertools
@@ -117,9 +117,10 @@ def _figure(results: StudyResults, x_levels: list[str | None], runs: list[Path |
 
 
 def _metric_text(results: StudyResults, run: Path) -> str:
-    """Final test metric of a run: accuracy in percent or the MSE in the original scale."""
+    """Final compared metric of a run (on the split of `[report]`): accuracy in percent or
+    the MSE in the original scale."""
     summary = results.summaries[run.relative_to(results.study.directory).as_posix()]
-    value = summary.metric("test", primary_metric(results.study))
+    value = summary.metric(results.study.split, primary_metric(results.study))
     if results.study.is_classification:
         return format_percent(value)
     return labels.gallery_mse(format_significant(value))

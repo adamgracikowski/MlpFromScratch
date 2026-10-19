@@ -79,6 +79,7 @@ levels = [
 x = "activation"                                     # categories on the x axis
 panels = ["dataset"]                                 # one panel per level; `color = "..."` colors an axis within a panel
 labels = { dataset = "Zbiór danych", "three-gauss-500" = "three_gauss (500)" }  # optional: plot texts for axis or level names
+split = "test"                                       # optional: split whose metric compares the variants: train | validation | test (default)
 
 [base]                                               # a complete config.toml under `base.`, without training.seed
 task = "classification"
@@ -102,7 +103,7 @@ task = "classification"
 
 - A level replaces the whole value under its dotted key, e.g. `{ kind = "leaky_relu", alpha = 0.01 }` for `model.hidden_activation`. In the full form, quote the dotted keys: `"data.train" = ...`. The parent table must exist in `[base]`.
 - Shorthand level names come from the values: strings as they are, numbers and booleans as written, arrays joined by `-` (`[]` is `0`, `[64, 16]` is `64-16`), tables as their `kind` followed by the other values (`leaky_relu-0.01`). Names may use letters, digits, `.`, `_` and `-`; values such as paths need the full form with explicit names.
-- Every problem of `study.toml` is reported at its line: empty or duplicate seeds, duplicate axis or level names, an axis with both or neither form, a key without a parent table, `training.seed` in `[base]` or in an axis, two axes setting the same value, report roles that name no axis or one axis twice, and `labels` keys that are neither an axis nor a level name.
+- Every problem of `study.toml` is reported at its line: empty or duplicate seeds, duplicate axis or level names, an axis with both or neither form, a key without a parent table, `training.seed` in `[base]` or in an axis, two axes setting the same value, report roles that name no axis or one axis twice, `labels` keys that are neither an axis nor a level name, and `split = "validation"` with a variant whose `data.validation_fraction` is 0.
 - Every generated config is then checked like `compute validate` would, including the dataset headers. Nothing is written if any is invalid; variants failing for the same reason are reported once. Warnings are printed once per variant.
 - Generating again rewrites only the configs whose text changed, so unchanged runs keep their artifacts, and removes the run directories that the study no longer generates, artifacts included.
 

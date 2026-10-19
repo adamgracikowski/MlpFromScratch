@@ -172,8 +172,29 @@ MEDIAN_AND_QUARTILES = "Mediana i kwartyle (Q1–Q3)"
 SINGLE_SEED = "Pojedyncze ziarno"
 
 
-TEST_ACCURACY = "Dokładność testowa [%]"
-TEST_MSE = "MSE testowe (skala oryginalna)"
+COMPARED_ACCURACY = {
+    "train": "Dokładność na zbiorze uczącym [%]",
+    "validation": "Dokładność walidacyjna [%]",
+    "test": "Dokładność testowa [%]",
+}
+COMPARED_MSE = {
+    "train": "MSE na zbiorze uczącym (skala oryginalna)",
+    "validation": "MSE walidacyjne (skala oryginalna)",
+    "test": "MSE testowe (skala oryginalna)",
+}
+COMPARED_METRIC = {
+    "train": "metryka na zbiorze uczącym",
+    "validation": "metryka walidacyjna",
+    "test": "metryka testowa",
+}
+COMPARED_SPLIT = "Porównanie wariantów"
+
+
+def compared_metric(split: str, classification: bool) -> str:
+    """Axis label of the metric compared across variants, e.g. `Dokładność walidacyjna [%]`."""
+    return (COMPARED_ACCURACY if classification else COMPARED_MSE)[split]
+
+
 TEST_MSE_INSIDE = "MSE testowe (interpolacja)"
 TEST_MSE_OUTSIDE = "MSE testowe (ekstrapolacja)"
 MSE_INSIDE_COLUMN = "MSE w zakresie"
@@ -248,10 +269,17 @@ def results_note(median: bool) -> str:
     )
 
 
-REPRESENTATIVE_NOTE = (
-    "Dla każdego wariantu run, którego metryka testowa jest najbliższa medianie po ziarnach; "
-    "jego wykresy są w katalogu `plots/` runu."
-)
+def representative_note(split: str) -> str:
+    """Note under the table of representative runs."""
+    return (
+        f"Dla każdego wariantu run, którego {COMPARED_METRIC[split]} jest najbliższa medianie "
+        "po ziarnach; jego wykresy są w katalogu `plots/` runu."
+    )
+
+
+def compared_split(split: str) -> str:
+    """Value of the plan row naming the split whose metric compares the variants."""
+    return f"{SPLIT_NAMES[split]} ({COMPARED_METRIC[split]})"
 
 
 def set_by_axis(axis: str) -> str:

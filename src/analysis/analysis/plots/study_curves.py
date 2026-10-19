@@ -40,7 +40,7 @@ WARMUP_SHARE = 0.1
 
 
 def plot_study_curves(results: StudyResults) -> Figure:
-    """The primary test metric (accuracy or MSE) after every epoch."""
+    """The compared metric (accuracy or MSE on the split of `[report]`) after every epoch."""
     log = is_log_metric(results)
     return _plot_curves(
         results,

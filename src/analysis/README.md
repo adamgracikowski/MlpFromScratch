@@ -24,7 +24,7 @@ uv run --project src/analysis src/analysis/main.py plot data/experiments/classif
 - `variants.csv`: one row per variant: numbers of runs, finished, diverged and missing runs, and the mean, sample standard deviation, minimum, first quartile, median, third quartile and maximum of every metric over the finished runs (completed or early stopped).
 - the comparison plots and galleries below and `summary.md` (plan, base config, results table, representative runs).
 
-Options: `--format` and `--dpi` as for `plot`; `--plot-runs` also runs `plot` for the representative run of every variant: the finished run whose test metric is closest to the median over seeds (the smaller seed on a tie). Runs without artifacts are listed as a warning; a study without any trained run is an error.
+Options: `--format` and `--dpi` as for `plot`; `--plot-runs` also runs `plot` for the representative run of every variant: the finished run whose compared metric (see below) is closest to the median over seeds (the smaller seed on a tie). Runs without artifacts are listed as a warning; a study without any trained run is an error.
 
 ```bash
 cargo run --release --manifest-path src/compute/Cargo.toml -- generate data/experiments/classification/<study>
@@ -32,16 +32,16 @@ cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experim
 uv run --project src/analysis src/analysis/main.py aggregate data/experiments/classification/<study> --plot-runs
 ```
 
-The comparison plots compare the test accuracy (classification) or the test MSE in the original scale (regression): losses of different loss functions are not comparable. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels. The learning curves put the `color` levels into panels too. `labels` of `[report]` (axis or level name -> text, e.g. Polish names) replace the names on the plots and in the results table of `summary.md`.
+The comparison plots compare the accuracy (classification) or the MSE in the original scale (regression): losses of different loss functions are not comparable. They use the test set, or the split named by `split` of `[report]` (`train`, `validation` or `test`): tuning compares on the validation set, so that the test set is used only to evaluate the chosen network. `summary.md` names the compared split; its results table lists every split. `[report]` of `study.toml` places the axes: one panel per combination of the `panels` levels, the `x` levels as categories and the `color` levels as colors; by default the last axis is `x` and the others are panels. The learning curves put the `color` levels into panels too. `labels` of `[report]` (axis or level name -> text, e.g. Polish names) replace the names on the plots and in the results table of `summary.md`.
 
 | File | Content | When |
 |---|---|---|
-| `seeds` | final test metric: mean with +-1 standard deviation (accuracy) or median with the quartiles (errors) and a dot per seed; diverged runs noted | always |
-| `curves` | test metric per epoch: mean over seeds with a +-1 standard deviation band (accuracy) or median with a band between the quartiles (errors); a panel per combination of the `panels` and `color` levels (levels of `color` often differ in the number of epochs), a curve per `x` level; the accuracy axis fits the curves without the first 10 % of epochs (the climb from chance level), the band is clipped to 0-100 % | always |
+| `seeds` | final compared metric: mean with +-1 standard deviation (accuracy) or median with the quartiles (errors) and a dot per seed; diverged runs noted | always |
+| `curves` | compared metric per epoch: mean over seeds with a +-1 standard deviation band (accuracy) or median with a band between the quartiles (errors); a panel per combination of the `panels` and `color` levels (levels of `color` often differ in the number of epochs), a curve per `x` level; the accuracy axis fits the curves without the first 10 % of epochs (the climb from chance level), the band is clipped to 0-100 % | always |
 | `curves_train_loss` | training loss per epoch, as `curves` (median and quartiles, log axis) | all variants use the same loss |
-| `heatmap` | mean +- standard deviation (accuracy) or median (quartiles) (errors) of the test metric, rows `color`, columns `x` | `x` and `color` are set |
+| `heatmap` | mean +- standard deviation (accuracy) or median (quartiles) (errors) of the compared metric, rows `color`, columns `x` | `x` and `color` are set |
 | `seeds_inside`, `seeds_outside`, `heatmap_inside`, `heatmap_outside` | `seeds` and `heatmap` of `test_mse_inside` (interpolation) and `test_mse_outside` (extrapolation) | regression (`heatmap_*`: as `heatmap`) |
-| `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level (three columns, four panels as 2 x 2; decision regions 6 cm per column): decision regions (classification) or network curve (regression) of the representative run, with its test metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |
+| `gallery[_<level>__<level>]` | one figure per combination of the levels of the axes other than `x`, a panel per `x` level (three columns, four panels as 2 x 2; decision regions 6 cm per column): decision regions (classification) or network curve (regression) of the representative run, with its compared metric; at most 600 test (classification) or training (regression) samples per panel | classification with 2 features, regression with 1 |
 
 Statistics use the finished runs only. Diverged runs are counted separately, and so are runs without artifacts. Errors (log axes) are summarized by the median and the quartiles: over seeds they have a long tail, a few bad seeds pull the mean up, and mean - standard deviation is often negative. The results table of `summary.md` uses the same statistics.
 

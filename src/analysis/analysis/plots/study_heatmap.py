@@ -1,4 +1,5 @@
-"""Final test metric over two axes: rows are the `color` levels, columns the `x` levels.
+"""Final compared metric (`split` of `[report]`, test by default) over two axes: rows are
+the `color` levels, columns the `x` levels.
 
 Cells show the mean and the standard deviation over seeds, or for errors (log color scale)
 the median and the quartiles (see `center_and_spread`).
