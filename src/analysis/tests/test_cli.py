@@ -66,6 +66,24 @@ def test_aggregate_reports_missing_runs(make_study, capsys) -> None:
     assert (study_dir / "results" / "variants.csv").is_file()
 
 
+def test_parses_mnist() -> None:
+    args = build_parser().parse_args(["mnist"])
+
+    assert args.command == "mnist"
+    assert args.output.as_posix() == "data/datasets/mnist"
+    assert args.source is None
+    assert not args.force
+
+
+def test_mnist_with_bad_source_exit_code(tmp_path, capsys) -> None:
+    source = tmp_path / "missing.zip"
+    with pytest.raises(SystemExit) as exit_info:
+        main(["mnist", "--output", str(tmp_path / "mnist"), "--source", str(source)])
+
+    assert exit_info.value.code == 2
+    assert "neither a directory nor a ZIP" in capsys.readouterr().err
+
+
 def test_aggregate_without_index_exit_code(make_study, capsys) -> None:
     study_dir = make_study()
     (study_dir / "runs" / "index.csv").unlink()

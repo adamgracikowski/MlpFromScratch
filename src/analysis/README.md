@@ -1,6 +1,6 @@
 # Presentation Layer
 
-Python package that reads the training artifacts written by the compute layer (`src/compute/`) and turns them into plots, tables and Markdown summaries. It does no training. See the [main README](../../README.md) for an overview of the project.
+Python package that reads the training artifacts written by the compute layer (`src/compute/`) and turns them into plots, tables and Markdown summaries. It does no training. It also downloads MNIST and converts it to the CSV format of the compute layer. See the [main README](../../README.md) for an overview of the project.
 
 The code lives in the `analysis` package (see [Code layout](#code-layout)). `main.py` is the entry point. Python >= 3.13 and the dependencies (`numpy`, `matplotlib`, `polars`; dev: `pytest`, `ruff`) are managed with `uv` and locked in `uv.lock`.
 
@@ -45,6 +45,16 @@ The comparison plots compare the test accuracy (classification) or the test MSE 
 
 Statistics use the finished runs only. Diverged runs are counted separately, and so are runs without artifacts. Errors (log axes) are summarized by the median and the quartiles: over seeds they have a long tail, a few bad seeds pull the mean up, and mean - standard deviation is often negative. The results table of `summary.md` uses the same statistics.
 
+`mnist` prepares the MNIST dataset in `data/datasets/mnist/` (see [its README](../../data/datasets/mnist/README.md)): it puts the four IDX files into `raw/`, downloaded from the mirror `https://storage.googleapis.com/cvdf-datasets/mnist/` or taken from a local copy, checks their SHA-256 and writes `data.mnist.train.60000.csv` and `data.mnist.test.10000.csv` (column `label`, then the raw pixel values 0-255 in `pixel0` to `pixel783`). Raw files that pass the checksum and existing CSV files are kept. Options:
+
+- `--source <path>`: directory or ZIP archive with the IDX files (e.g. the archive from Kaggle, under the original names or as `train-images.idx3-ubyte`, optionally gzipped, at any depth) instead of downloading them.
+- `--output <dir>` (default `data/datasets/mnist`): directory of the dataset.
+- `--force`: write the CSV files even if they exist.
+
+```bash
+uv run --project src/analysis src/analysis/main.py mnist
+```
+
 ## Plots
 
 Texts on the plots and in `summary.md` are in Polish, like the report. Figures are drawn at their final print size (16 cm wide, 10 pt STIX font), with a decimal comma, the Okabe-Ito palette and no titles. Files are reproducible: the same artifacts give byte-identical files.
@@ -68,7 +78,8 @@ Plots that do not fit the data (e.g. the decision boundary for MNIST) are skippe
 
 | Path | Content |
 |---|---|
-| `main.py`, `analysis/cli.py` | entry point and the `argparse` commands `plot` and `aggregate` |
+| `main.py`, `analysis/cli.py` | entry point and the `argparse` commands `plot`, `aggregate` and `mnist` |
+| `analysis/datasets/` | `mnist` command: IDX reader (`read_idx`), download or local source, SHA-256 verification and conversion to CSV (`prepare_mnist`), `DatasetError` |
 | `analysis/experiment/` | artifacts of one run: `load_experiment(dir) -> Experiment`, one model per file (`LossHistory`, `WeightHistory`, predictions per split, `Grid`), `ArtifactsError` for missing or broken files; inputs are read from the config's CSV files through `rows.npy` |
 | `analysis/study/` | `study.toml` and `runs/index.csv` of a study, the summary of every run (`metadata.json` and `epochs.csv` only), results over seeds (`variants_table`, representative runs) and the regression errors inside and outside the training range |
 | `analysis/plot_experiment.py` | the list of experiment plots (name, drawing function, when it applies, why it is skipped); writes `plots/` and `summary.md` |

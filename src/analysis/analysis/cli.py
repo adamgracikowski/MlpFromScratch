@@ -6,10 +6,13 @@ from pathlib import Path
 
 from analysis import __version__
 from analysis.aggregate_study import aggregate_study
+from analysis.datasets import DatasetError, prepare_mnist
 from analysis.experiment import ArtifactsError, load_experiment
 from analysis.plot_experiment import DEFAULT_DPI, DEFAULT_FORMATS, plot_experiment
 from analysis.study import StudyError, load_study
 from analysis.style import FORMATS
+
+MNIST_DIR = "data/datasets/mnist"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -50,6 +53,33 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also plot the representative run of every variant (closest to the median of "
         "the test metric) into its plots/; needs the datasets, so run from the repository root",
+    )
+
+    mnist = commands.add_parser(
+        "mnist",
+        help="download MNIST and convert it to CSV",
+        description=(
+            "Put the four IDX files of MNIST into <output>/raw/ (downloaded from the mirror, or "
+            "taken from --source), verify their SHA-256 and write the CSV files read by the "
+            "compute layer. Verified raw files and existing CSV files are kept."
+        ),
+    )
+    mnist.add_argument(
+        "--source",
+        type=Path,
+        metavar="<path>",
+        help="directory or ZIP archive with the IDX files (e.g. the archive downloaded from "
+        "Kaggle) instead of downloading them",
+    )
+    mnist.add_argument(
+        "--output",
+        type=Path,
+        default=Path(MNIST_DIR),
+        metavar="<dir>",
+        help=f"directory of the dataset (default: {MNIST_DIR})",
+    )
+    mnist.add_argument(
+        "--force", action="store_true", help="write the CSV files even if they exist"
     )
     return parser
 
@@ -99,9 +129,11 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.command == "plot":
             _plot(args)
-        else:
+        elif args.command == "aggregate":
             _aggregate(args)
-    except (ArtifactsError, StudyError) as error:
+        else:
+            _mnist(args)
+    except (ArtifactsError, StudyError, DatasetError) as error:
         print(f"error: {error}", file=sys.stderr)
         raise SystemExit(2) from error
 
@@ -128,3 +160,9 @@ def _aggregate(args: argparse.Namespace) -> None:
     print(f"results: {report.directory.as_posix()} ({len(report.files)} files)")
     for variant, run in report.plotted_runs.items():
         print(f"plotted: {variant}: {run.as_posix()}/plots")
+
+
+def _mnist(args: argparse.Namespace) -> None:
+    report = prepare_mnist(args.output, source=args.source, force=args.force)
+    for path, description in report.files:
+        print(f"{path.as_posix()}: {description}")

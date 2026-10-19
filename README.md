@@ -114,7 +114,7 @@ Prerequisites:
 
 - [rustup](https://rustup.rs/). The toolchain (Rust 1.88.0) is pinned in `src/compute/rust-toolchain.toml` and installed automatically.
 - [uv](https://docs.astral.sh/uv/). It installs Python 3.13 and the locked dependencies.
-- MNIST is not in the repository, see [`data/datasets/mnist/README.md`](data/datasets/mnist/README.md).
+- MNIST is not in the repository. `uv run --project src/analysis src/analysis/main.py mnist` downloads it and converts it to CSV, see [`data/datasets/mnist/README.md`](data/datasets/mnist/README.md).
 
 Run everything from the repository root, since the dataset paths in the configs are relative to the current working directory:
 
