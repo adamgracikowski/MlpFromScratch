@@ -1,13 +1,53 @@
 \section{Opis problemu}
 \label{sec:problem}
 
+W rozdziale opisano zbiór MNIST, sposób oceny klasyfikatora oraz wymagania postawione w części drugiej projektu.
+
 \subsection{Zbiór MNIST}
 \label{sec:problem-dataset}
-% Plan (etap 1): obrazy 28x28 w skali szarości 0-255, 10 klas (\cite{lecun1998}),
-% 60000 obrazów uczących i 10000 testowych, tabela liczności klas.
+
+Zbiór MNIST (ang. \textit{Modified National Institute of Standards and Technology}) zawiera obrazy odręcznie pisanych cyfr \cite{lecun1998}. Każdy obraz ma $28 \times 28$ pikseli w skali szarości o wartościach całkowitych od $0$ (tło) do $255$, a cyfra jest przeskalowana do jednakowego rozmiaru i wyśrodkowana w polu obrazu. Zadaniem jest klasyfikacja: wejściem sieci jest wektor $\mathbf{x} \in \mathbb{R}^{784}$ jasności pikseli obrazu, a odpowiedzią jedna z $K = 10$ klas odpowiadających cyfrom od $0$ do $9$.
+
+Zbiór dzieli się na \num{60000} obrazów uczących i \num{10000} testowych. Liczności klas przedstawiono w Tabeli~\ref{tab:mnist-classes}.
+
+\begin{table}[H]
+    \centering
+    \caption{Liczba obrazów każdej cyfry w zbiorze uczącym i testowym MNIST oraz jej udział w zbiorze.}
+    \label{tab:mnist-classes}
+    \begin{tabular}{crrrr}
+        \toprule
+        Cyfra & \multicolumn{2}{c}{Zbiór uczący} & \multicolumn{2}{c}{Zbiór testowy} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+        & Liczba & Udział [\%] & Liczba & Udział [\%] \\
+        \midrule
+        0 & \num{5923} & \num{9.87} & \num{980} & \num{9.80} \\
+        1 & \num{6742} & \num{11.24} & \num{1135} & \num{11.35} \\
+        2 & \num{5958} & \num{9.93} & \num{1032} & \num{10.32} \\
+        3 & \num{6131} & \num{10.22} & \num{1010} & \num{10.10} \\
+        4 & \num{5842} & \num{9.74} & \num{982} & \num{9.82} \\
+        5 & \num{5421} & \num{9.04} & \num{892} & \num{8.92} \\
+        6 & \num{5918} & \num{9.86} & \num{958} & \num{9.58} \\
+        7 & \num{6265} & \num{10.44} & \num{1028} & \num{10.28} \\
+        8 & \num{5851} & \num{9.75} & \num{974} & \num{9.74} \\
+        9 & \num{5949} & \num{9.91} & \num{1009} & \num{10.09} \\
+        \midrule
+        suma & \num{60000} & & \num{10000} & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Obrazy są rzadkie: około \qty{81}{\percent} wartości pikseli zbioru uczącego to zera. Ponadto $67$ pikseli przy brzegu obrazu ma wartość $0$ we wszystkich obrazach uczących. Takie wejście jest stałe także po normalizacji, więc wagi łączące je z pierwszą warstwą sieci nie otrzymują gradientu i pozostają równe wartościom początkowym. Rzadkość pikseli ma znaczenie przy wyborze normalizacji wejść (podrozdział~\ref{sec:tuning-normalization}) i przy interpretacji wag pierwszej warstwy (podrozdział~\ref{sec:final-network}).
+
+Miarą jakości klasyfikatora jest dokładność, czyli odsetek poprawnie sklasyfikowanych obrazów, zdefiniowana tak samo jak w części pierwszej \cite[rozdz.~2.1]{gracikowski2026}. Uzupełnia ją macierz pomyłek (ang. \textit{confusion matrix}), której element w wierszu $k$ i kolumnie $l$ jest liczbą obrazów klasy $k$ zaklasyfikowanych jako klasa $l$. Elementy poza przekątną wskazują, które cyfry sieć ze sobą myli.
 
 \subsection{Wymagania}
 \label{sec:problem-requirements}
-% Plan (etap 1): uczenie tylko na zbiorze uczącym, test tylko do oceny gotowej sieci,
-% bez nowych funkcjonalności (zmieniają się tylko parametry), powtarzalność uczenia
-% (konfiguracja i ziarno).
+
+Część druga projektu polega na użyciu sieci z części pierwszej do rozpoznawania cyfr MNIST. Treść zadania stawia następujące wymagania:
+\begin{itemize}
+    \item implementację z części pierwszej wolno optymalizować, ale nie wolno rozszerzać jej o nowe funkcjonalności, a zmieniać się mogą tylko parametry sieci i uczenia, np. liczba warstw i neuronów albo funkcje aktywacji (rozdział~\ref{sec:implementation}),
+    \item w uczeniu wolno korzystać tylko ze zbioru uczącego, a zbiór testowy służy wyłącznie do oceny już nauczonej sieci, dlatego wszystkie wybory podejmowano na zbiorze walidacyjnym wydzielonym ze zbioru uczącego (rozdział~\ref{sec:methodology}),
+    \item wstępne eksperymenty mogą korzystać z podzbioru danych uczących, a pełne uczenie przeprowadza się po wstępnym rozpoznaniu (podrozdział~\ref{sec:methodology-tuning}),
+    \item uczenie zgłoszonej sieci musi być powtarzalne, więc należy podać wszystkie parametry programu i ziarno generatora liczb losowych (dodatek~\ref{app:reproduction}),
+    \item wynik uczenia zależy od ziarna, więc powtarzalność wyników należy sprawdzić dla wielu ziaren (rozdział~\ref{sec:final}).
+\end{itemize}
