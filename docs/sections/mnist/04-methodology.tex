@@ -1,14 +1,64 @@
 \section{Metodyka eksperymentów}
 \label{sec:methodology}
 
+W rozdziale opisano, jak dobrano konfigurację sieci na podzbiorze zbioru uczącego bez użycia zbioru testowego oraz jak oceniono wybraną konfigurację po uczeniu na pełnym zbiorze uczącym.
+
 \subsection{Strojenie}
 \label{sec:methodology-tuning}
-% Plan (etap 3): badania jeden-czynnik-naraz po kolei, każde dziedziczy wybory
-% poprzednich, podzbiór 10000 (8000 uczących i 2000 walidacyjnych), 5 ziaren,
-% wczesne zatrzymanie, porównanie po dokładności walidacyjnej (średnia i sd),
-% tabela konfiguracji bazowej i tabela badań z poziomami.
+
+Konfigurację sieci dobrano w serii badań, z których każde zmienia jeden czynnik (ang. \textit{one-factor-at-a-time}). Badania przeprowadzono kolejno, a każde zaczynało od konfiguracji zawierającej poziomy wybrane w badaniach poprzednich. Kolejność badań i poziomy czynników przedstawiono w Tabeli~\ref{tab:tuning-studies}. Funkcja aktywacji zmienia się razem z dobraną do niej inicjalizacją wag \cite[rozdz.~3.6]{gracikowski2026}. Współczynniki uczenia SGD i SGD z momentum dobrano tak, aby kroki obu metod były porównywalne. Przy współczynniku momentum $\mu = \num{0.9}$ krok w kierunku stałego gradientu rośnie do około $1/(1 - \mu) = 10$ razy większego niż w SGD \cite[rozdz.~8.3.2]{goodfellow2016}, więc $\eta = \num{0.01}$ odpowiada w SGD współczynnikowi $\eta = \num{0.1}$. Dla optymalizatora Adam sprawdzono domyślną wartość $\eta = \num{0.001}$ \cite{kingma2015} oraz wartości około trzy razy mniejszą i większą. W badaniu rozmiaru paczki maksymalna liczba epok jest stała, więc mniejsza paczka oznacza więcej iteracji w każdej epoce.
+
+\begin{table}[H]
+    \centering
+    \caption{Badania strojenia w kolejności ich przeprowadzenia. Architekturę podano jako liczby neuronów kolejnych warstw ukrytych, a w nawiasach współczynniki uczenia $\eta$.}
+    \label{tab:tuning-studies}
+    \begin{tabularx}{\textwidth}{rlXc}
+        \toprule
+        Nr & Czynnik & Poziomy & Liczba poziomów \\
+        \midrule
+        1 & normalizacja wejść & min-max, standaryzacja & 2 \\
+        2 & architektura & brak warstw ukrytych, 32, 128, 512, \mbox{128-64}, \mbox{256-128}, \mbox{128-128-128} & 7 \\
+        3 & funkcja aktywacji & funkcja sigmoidalna i tanh z inicjalizacją Xaviera, ReLU i leaky ReLU z $\alpha = \num{0.01}$ z inicjalizacją He & 4 \\
+        4 & optymalizator & SGD (\num{0.1}), SGD z momentum $\mu = \num{0.9}$ (\num{0.01}), Adam (\numlist{0.0003;0.001;0.003}) & 5 \\
+        5 & rozmiar paczki & \numlist{16;32;64;128} & 4 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+Konfigurację, od której zaczęło się pierwsze badanie, przedstawiono w Tabeli~\ref{tab:configs}. Każdy wariant uczono na stratyfikowanym losowym podzbiorze \num{10000} obrazów zbioru uczącego. Z podzbioru wydzielono stratyfikowany zbiór walidacyjny \num{2000} obrazów, a na pozostałych \num{8000} obrazach uczono sieć. Każdy wariant uczono dla $5$ ziaren generatora liczb losowych, od $1$ do $5$. Ziarno wyznacza nie tylko inicjalizację wag i kolejność paczek, ale także wylosowany podzbiór i podział na część uczącą i walidacyjną, więc rozrzut wyników między ziarnami obejmuje również zmienność danych. Uczenie trwało co najwyżej $30$ epok. Wczesne zatrzymanie przerywało je, gdy strata walidacyjna nie zmalała przez $5$ kolejnych epok, i przywracało sieć z epoki o najmniejszej stracie walidacyjnej \cite[rozdz.~7.8]{goodfellow2016}. Metryki eksperymentu pochodzą z tej epoki. Wszystkie $110$ eksperymentów strojenia zakończyło się wczesnym zatrzymaniem przed limitem epok. Wariant z poziomami wybranymi we wcześniejszych badaniach występuje w kilku kolejnych badaniach i dla tych samych ziaren daje w nich identyczne wyniki.
+
+\begin{table}[H]
+    \centering
+    \caption{Konfiguracja na początku strojenia i konfiguracja uczenia końcowego. Gwiazdką oznaczono parametry zmieniane w strojeniu (Tabela~\ref{tab:tuning-studies}).}
+    \label{tab:configs}
+    \begin{tabular}{lll}
+        \toprule
+        Parametr & Początek strojenia & Uczenie końcowe \\
+        \midrule
+        obrazy uczące / walidacyjne & \num{8000} / \num{2000} & \num{54000} / \num{6000} \\
+        normalizacja wejść* & min-max & min-max \\
+        warstwy ukryte* & 128 & 512 \\
+        aktywacja warstw ukrytych* & ReLU & ReLU \\
+        inicjalizacja wag* & He & He \\
+        biasy & tak & tak \\
+        aktywacja wyjściowa & softmax & softmax \\
+        funkcja straty & entropia krzyżowa & entropia krzyżowa \\
+        optymalizator* & Adam & Adam \\
+        współczynnik uczenia $\eta$* & \num{0.001} & \num{0.001} \\
+        rozmiar paczki* & 32 & 32 \\
+        iteracje w epoce & \num{250} & \num{1688} \\
+        maksymalna liczba epok & 30 & 50 \\
+        cierpliwość wczesnego zatrzymania & 5 epok & 5 epok \\
+        ziarna & \numrange{1}{5} & \numrange{1}{5} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Warianty porównuje się na podstawie dokładności walidacyjnej, podając jej średnią i próbkowe odchylenie standardowe po $5$ ziarnach. Wybierano poziom o największej średniej. Tak jak w części pierwszej \cite[rozdz.~6.3]{gracikowski2026}, różnice porównywalne z odchyleniem standardowym między ziarnami opisuje się jako słabe. Wyniki każdego badania przedstawiono na wykresie wyników ziaren, na którym każde ziarno jest punktem, a średnia z odchyleniem standardowym odcinkiem, oraz w razie potrzeby na wykresie dokładności walidacyjnej po kolejnych epokach (średnia z pasem odchylenia standardowego). Zbiór testowy był w trakcie strojenia oceniany przez program, ale jego wyników nie używano przy wyborach i nie przedstawiono ich w rozdziale~\ref{sec:tuning}.
 
 \subsection{Uczenie końcowe}
 \label{sec:methodology-final}
-% Plan (etap 3): pełny zbiór uczący (54000 i 6000 walidacyjnych), 50 epok, 5 ziaren,
-% zgłoszona sieć z ziarnem 1 ustalonym z góry, jednorazowa ocena na zbiorze testowym.
+
+Konfigurację wybraną w strojeniu nauczono na pełnym zbiorze uczącym (Tabela~\ref{tab:configs}). Z \num{60000} obrazów wydzielono stratyfikowany zbiór walidacyjny \num{6000} obrazów, używany tylko do wczesnego zatrzymania, a sieć uczono na pozostałych \num{54000}. Maksymalną liczbę epok zwiększono do $50$, a pozostałe ustawienia uczenia nie zmieniły się. Uczenie przeprowadzono dla $5$ ziaren, od $1$ do $5$. Zbiór testowy nie wpływał na przebieg uczenia ani na żaden wybór, a jego wyniki odczytano po zakończeniu uczenia. Wynik podaje się jako średnią i próbkowe odchylenie standardowe dokładności testowej.
+
+Sieć zgłoszoną do oceny uczono z ziarnem $1$. Ziarno ustalono przed uczeniem, a nie wybrano na podstawie wyniku testowego, więc dokładność testowa zgłoszonej sieci nie jest zawyżona przez wybór najlepszego z kilku uczeń. Zgłoszona sieć jest tym samym uczeniem co ziarno $1$ z pięciu opisanych wyżej.
