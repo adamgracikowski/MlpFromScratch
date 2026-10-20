@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
+use strum::Display;
 
 use super::Axis;
 
@@ -45,6 +46,25 @@ pub struct ReportConfig {
     /// directory names, so plain ASCII), keyed by axis or level name.
     #[serde(default)]
     pub labels: BTreeMap<String, String>,
+    /// Split whose metric compares the variants.
+    #[serde(default)]
+    pub split: Split,
+}
+
+/// A split of the data whose final metric compares the variants of a study.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Display)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum Split {
+    /// The training set.
+    Train,
+    /// The validation set held out from the training set; every variant
+    /// needs `data.validation_fraction > 0`.
+    Validation,
+    /// The test set (default). Choices made on it leak the test set into
+    /// the results, so tuning should compare on the validation set.
+    #[default]
+    Test,
 }
 
 #[cfg(test)]
@@ -75,6 +95,22 @@ mod tests {
         let study: StudyConfig = toml::from_str(&text).unwrap();
         assert_eq!(study.description, None);
         assert_eq!(study.report, ReportConfig::default());
+    }
+
+    #[test]
+    fn split_defaults_to_test() {
+        let study: StudyConfig = toml::from_str(STUDY).unwrap();
+        assert_eq!(study.report.split, Split::Test);
+        let text = STUDY.replace("[report]\n", "[report]\nsplit = \"validation\"\n");
+        let study: StudyConfig = toml::from_str(&text).unwrap();
+        assert_eq!(study.report.split, Split::Validation);
+        assert_eq!(study.report.split.to_string(), "validation");
+    }
+
+    #[test]
+    fn rejects_unknown_split() {
+        let text = STUDY.replace("[report]\n", "[report]\nsplit = \"holdout\"\n");
+        assert!(toml::from_str::<StudyConfig>(&text).is_err());
     }
 
     #[test]

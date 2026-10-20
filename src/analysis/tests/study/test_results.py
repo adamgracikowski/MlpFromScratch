@@ -1,6 +1,15 @@
+import json
+from dataclasses import replace
+
 import pytest
 
-from analysis.study import load_results, load_study, representative_runs, variants_table
+from analysis.study import (
+    load_results,
+    load_study,
+    primary_column,
+    representative_runs,
+    variants_table,
+)
 
 
 def test_runs_table_has_one_row_per_run(make_study) -> None:
@@ -93,3 +102,22 @@ def test_representative_run_is_closest_to_median(make_study) -> None:
     assert runs["sigmoid__a"] == study_dir / "runs/sigmoid__a/seed-2"
     # Seeds 2-4 finished: seed 3 is the median.
     assert runs["tanh__b"] == study_dir / "runs/tanh__b/seed-3"
+
+
+def test_representative_run_on_validation_split(make_study) -> None:
+    report = '[report]\nsplit = "validation"'
+    study_dir = make_study(validation=True, report=report)
+    metadata_path = study_dir / "runs/sigmoid__a/seed-3/artifacts/metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata["result"]["metrics"]["validation"]["accuracy"] = 0.0
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    study = load_study(study_dir)
+    runs = representative_runs(load_results(study))
+
+    assert primary_column(study) == "validation_accuracy"
+    assert runs["sigmoid__a"] == study_dir / "runs/sigmoid__a/seed-1"
+    test_study = replace(study, split="test")
+    assert representative_runs(load_results(test_study))["sigmoid__a"] == (
+        study_dir / "runs/sigmoid__a/seed-2"
+    )

@@ -1,0 +1,60 @@
+# Study: number and size of the hidden layers on a subset of MNIST, 5 seeds each.
+# Second tuning study (tuning-normalization chose min_max); compared on the validation set.
+# Run from the repo root:
+#   pwsh -File scripts/run-studies.ps1 -Jobs 8 data/experiments/mnist/tuning-architectures
+
+description = "Wpływ liczby warstw ukrytych (0-3) i ich liczności na klasyfikację MNIST: podzbiór 10000 obrazów uczących, wybór na zbiorze walidacyjnym."
+seeds = [1, 2, 3, 4, 5]
+
+# Shorthand: level names are the layer sizes joined with `-` (`0` = no hidden layer).
+[[axes]]
+name = "architecture"
+key = "model.hidden_layers"
+values = [[], [32], [128], [512], [128, 64], [256, 128], [128, 128, 128]]
+
+[report]
+x = "architecture"
+split = "validation"               # the test set is only for the final evaluation
+
+[report.labels]
+architecture = "Neurony w warstwach ukrytych"
+"0" = "brak"
+
+# Settings not studied here: the base of the tuning with the choices of the earlier studies.
+[base]
+task = "classification"
+
+[base.data]
+train = "data/datasets/mnist/data.mnist.train.60000.csv"
+test = "data/datasets/mnist/data.mnist.test.10000.csv"
+target = "label"
+input_normalization = "min_max"    # tuning-normalization
+target_normalization = "none"
+train_subset = 10000
+validation_fraction = 0.2
+
+[base.model]
+hidden_layers = [128]
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "softmax"
+init = { kind = "he" }
+
+[base.optimizer]
+kind = "adam"
+learning_rate = 0.001
+
+[base.training]
+loss = "cross_entropy"
+epochs = 30
+batch_size = 32
+early_stopping = { patience = 5 }
+
+[base.logging]
+loss_every = 1
+weights_every = 250
+max_weights_per_layer = 64
+
+[base.output]
+grid_resolution = 100
+grid_margin = 0.1

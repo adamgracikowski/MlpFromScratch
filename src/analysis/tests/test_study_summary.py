@@ -57,3 +57,15 @@ def test_labels_in_results_table(make_study) -> None:
     results = summary.split("## Wyniki")[1]
     assert "| Aktywacja | `dataset` |" in results
     assert "| tangens | `a` |" in results
+
+
+def test_names_compared_split(make_study) -> None:
+    default = _summary(make_study())
+    assert "| Porównanie wariantów | zbiór testowy (metryka testowa) |" in default
+
+    study_dir = make_study(validation=True, report='[report]\nsplit = "validation"')
+    summary = _summary(study_dir, {"sigmoid__a": study_dir / "runs/sigmoid__a/seed-2"})
+
+    assert "| Porównanie wariantów | zbiór walidacyjny (metryka walidacyjna) |" in summary
+    assert "Dokładność (walidacyjny)" in summary
+    assert "run, którego metryka walidacyjna jest najbliższa medianie" in summary

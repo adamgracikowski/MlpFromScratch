@@ -138,6 +138,14 @@ def write_experiment(
     _save(weights / "weight_norms.npy", norms)
     _save(weights / "bias_norms.npy", norms / 2 if bias else np.full_like(norms, np.nan))
 
+    model = artifacts / "model"
+    model.mkdir()
+    model_rng = np.random.default_rng(1)
+    for layer, (fan_in, fan_out) in enumerate(zip(layer_sizes, layer_sizes[1:], strict=False)):
+        _save(model / f"layer_{layer}_weights.npy", model_rng.normal(size=(fan_in, fan_out)))
+        if bias:
+            _save(model / f"layer_{layer}_bias.npy", model_rng.normal(size=fan_out))
+
     grid = None
     if features <= 2:
         grid_dir = artifacts / "grid"
@@ -268,12 +276,14 @@ def write_study(
     missing: tuple[str, ...] = (),
     diverged: tuple[str, ...] = (),
     losses: dict[str, str] | None = None,
+    validation: bool = False,
 ) -> Path:
     """Write `study.toml`, `runs/index.csv` and synthetic runs of a study; return its dir.
 
     `missing` and `diverged` list run dirs (`runs/<variant>/seed-<s>`) without artifacts
     or with a diverged run. `losses` maps a level name to the loss of its runs. The
-    metrics grow with the variant number and slightly with the seed.
+    metrics grow with the variant number and slightly with the seed; with `validation`
+    the runs hold out a validation set.
     """
     axes = {"activation": ["sigmoid", "tanh"], "dataset": ["a", "b"]} if axes is None else axes
     study = root / "study"
@@ -308,6 +318,7 @@ def write_study(
                 shift=0.02 * number + 0.001 * seed,
                 diverged=run in diverged,
                 loss_function=loss,
+                validation=validation,
             )
     index = study / "runs" / "index.csv"
     index.parent.mkdir(exist_ok=True)

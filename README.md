@@ -18,7 +18,7 @@ The forward pass, backpropagation, the optimizers and the training loop are impl
 
 - **regression** of a function f: R -> R,
 - **classification** of points in R²,
-- **MNIST digit recognition** (part two, in progress). It needs no new features, only other hyperparameters, so part one already handles high-dimensional inputs and ten classes.
+- **MNIST digit recognition** (part two). It needs no new features, only other hyperparameters, so part one already handles high-dimensional inputs and ten classes.
 
 Part one studied the effect of the activation function, the architecture and the loss function on four datasets, in 2400 training runs. The report (in Polish) is [`docs/report.pdf`](docs/report.pdf).
 
@@ -108,13 +108,24 @@ Besides the study comparisons, every experiment gets plots of its own training: 
   <em>Sampled weights (blue) and biases (orange) of the two hidden layers and the output layer during training on <code>three_gauss</code>.</em>
 </p>
 
+## Results of part two
+
+Five tuning studies chose the configuration for MNIST one factor at a time, on a subset of 10000 training images with 5 seeds, comparing the variants on a validation set held out from the training images. The final configuration then trained on all 60000 training images with 5 seeds; the test set was used only for this final evaluation.
+
+| | Configuration | Test accuracy |
+|---|---|---|
+| final, 5 seeds | 784-512-10, ReLU (He), min-max scaling, Adam 0.001, batch 32, cross-entropy, early stopping | 97.91 % +- 0.15 |
+| submitted network | the same, seed 1 | 97.74 % |
+
+The tuning results, the configuration and how to reproduce the submitted network are described in [`data/experiments/mnist/README.md`](data/experiments/mnist/README.md).
+
 ## Getting started
 
 Prerequisites:
 
 - [rustup](https://rustup.rs/). The toolchain (Rust 1.88.0) is pinned in `src/compute/rust-toolchain.toml` and installed automatically.
 - [uv](https://docs.astral.sh/uv/). It installs Python 3.13 and the locked dependencies.
-- MNIST is not in the repository, see [`data/datasets/mnist/README.md`](data/datasets/mnist/README.md).
+- MNIST is not in the repository. `uv run --project src/analysis src/analysis/main.py mnist` downloads it and converts it to CSV, see [`data/datasets/mnist/README.md`](data/datasets/mnist/README.md).
 
 Run everything from the repository root, since the dataset paths in the configs are relative to the current working directory:
 
@@ -156,6 +167,8 @@ The single-run figures of the report come from the showcase experiments `data/ex
 cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/classification/showcase-simple data/experiments/classification/showcase-three-gauss data/experiments/regression/showcase-activation data/experiments/regression/showcase-cube --jobs 4
 uv run --project src/analysis src/analysis/main.py plot data/experiments/classification/showcase-three-gauss   # and the other three
 ```
+
+The MNIST studies and the submitted network of part two are reproduced as described in [`data/experiments/mnist/README.md`](data/experiments/mnist/README.md#reproducing-the-submitted-network).
 
 The committed `plots/` and `results/` hold PDFs, CSV tables and `summary.md`; PNG copies are written next to them but not committed.
 

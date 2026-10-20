@@ -1,0 +1,61 @@
+# Study: normalization of the input pixels on a subset of MNIST, 5 seeds each.
+# First of the tuning studies; the variants are compared on the validation set.
+# Run from the repo root:
+#   pwsh -File scripts/run-studies.ps1 -Jobs 8 data/experiments/mnist/tuning-normalization
+
+description = "Wpływ normalizacji wejść (pikseli) na klasyfikację MNIST: podzbiór 10000 obrazów uczących, wybór na zbiorze walidacyjnym."
+seeds = [1, 2, 3, 4, 5]
+
+# Both scale every pixel separately, with statistics of the training samples.
+[[axes]]
+name = "normalization"
+key = "data.input_normalization"
+values = ["min_max", "standard"]
+
+[report]
+x = "normalization"
+split = "validation"               # the test set is only for the final evaluation
+
+[report.labels]
+normalization = "Normalizacja wejść"
+min_max = "min-max"
+standard = "standaryzacja"
+
+# Settings not studied here: the base of the tuning (data/experiments/mnist/example-mnist).
+[base]
+task = "classification"
+
+[base.data]
+train = "data/datasets/mnist/data.mnist.train.60000.csv"
+test = "data/datasets/mnist/data.mnist.test.10000.csv"
+target = "label"
+input_normalization = "min_max"
+target_normalization = "none"
+train_subset = 10000
+validation_fraction = 0.2
+
+[base.model]
+hidden_layers = [128]
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "softmax"
+init = { kind = "he" }
+
+[base.optimizer]
+kind = "adam"
+learning_rate = 0.001
+
+[base.training]
+loss = "cross_entropy"
+epochs = 30
+batch_size = 32
+early_stopping = { patience = 5 }
+
+[base.logging]
+loss_every = 1
+weights_every = 250
+max_weights_per_layer = 64
+
+[base.output]
+grid_resolution = 100
+grid_margin = 0.1

@@ -1,0 +1,50 @@
+# Study: the final configuration on the full MNIST training set, 5 seeds.
+# The configuration comes from the tuning studies (tuning-*), which compared the variants
+# on a validation set held out from a subset of the training images. Here the test set is
+# used once, to evaluate the trained networks; seed 1 is the submitted network
+# (data/experiments/mnist/final). Run from the repo root:
+#   pwsh -File scripts/run-studies.ps1 -Jobs 5 data/experiments/mnist/final-seeds
+
+description = "Konfiguracja końcowa na pełnym zbiorze uczącym MNIST (54000 obrazów uczących, 6000 walidacyjnych): dokładność testowa dla 5 ziaren."
+seeds = [1, 2, 3, 4, 5]
+
+[report]
+split = "test"                     # final evaluation of the trained networks
+
+# The configuration chosen by the tuning studies.
+[base]
+task = "classification"
+
+[base.data]
+train = "data/datasets/mnist/data.mnist.train.60000.csv"
+test = "data/datasets/mnist/data.mnist.test.10000.csv"
+target = "label"
+input_normalization = "min_max"    # tuning-normalization
+target_normalization = "none"
+validation_fraction = 0.1          # for early stopping only
+
+[base.model]
+hidden_layers = [512]              # tuning-architectures
+bias = true
+hidden_activation = { kind = "relu" }  # tuning-activations
+output_activation = "softmax"
+init = { kind = "he" }
+
+[base.optimizer]                   # tuning-optimizers
+kind = "adam"
+learning_rate = 0.001
+
+[base.training]
+loss = "cross_entropy"
+epochs = 50
+batch_size = 32                    # tuning-batch-sizes
+early_stopping = { patience = 5 }
+
+[base.logging]
+loss_every = 1
+weights_every = 1688               # one snapshot per epoch (54000 / 32 iterations)
+max_weights_per_layer = 64
+
+[base.output]
+grid_resolution = 100
+grid_margin = 0.1

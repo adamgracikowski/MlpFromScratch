@@ -25,7 +25,7 @@ pub use axis::{Axis, Level, LevelConfig, level_name};
 pub use error::{RunError, StudyError};
 pub use expand::{RunSpec, expand};
 pub use load::{GeneratedRun, Study, load_study};
-pub use study_config::{ReportConfig, StudyConfig};
+pub use study_config::{ReportConfig, Split, StudyConfig};
 pub use validate::validate;
 pub use write::{WriteReport, write_runs};
 

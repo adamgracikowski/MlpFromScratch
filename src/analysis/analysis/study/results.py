@@ -26,6 +26,12 @@ def primary_metric(study: Study) -> str:
     return "accuracy" if study.is_classification else "mse"
 
 
+def primary_column(study: Study) -> str:
+    """Column of the compared metric: the primary metric on the split of `[report]`, e.g.
+    `test_accuracy` or `validation_accuracy`."""
+    return f"{study.split}_{primary_metric(study)}"
+
+
 @dataclass(frozen=True)
 class StudyResults:
     """One row per run of the index (missing runs too) and the loaded run summaries."""
@@ -134,9 +140,10 @@ def variants_table(results: StudyResults) -> pl.DataFrame:
 
 
 def representative_runs(results: StudyResults) -> dict[str, Path]:
-    """Per variant, the finished run whose primary test metric is closest to the median
-    over seeds (the smaller seed on a tie); variants without finished runs are left out."""
-    column = f"test_{primary_metric(results.study)}"
+    """Per variant, the finished run whose compared metric (`primary_column`) is closest to
+    the median over seeds (the smaller seed on a tie); variants without finished runs are
+    left out."""
+    column = primary_column(results.study)
     chosen = {}
     finished = results.runs.filter(pl.col("status").is_in(FINISHED) & pl.col(column).is_not_null())
     for (variant,), runs in finished.group_by("variant", maintain_order=True):

@@ -1,0 +1,45 @@
+# The submitted MNIST network: the final configuration trained on the full training set with
+# seed 1, fixed in advance (not chosen by the test result). Same run as `runs/base/seed-1` of
+# the study data/experiments/mnist/final-seeds. The configuration comes from the tuning studies
+# data/experiments/mnist/tuning-*; see data/experiments/mnist/README.md to reproduce it.
+# Run from the repo root:
+#   uv run --project src/analysis src/analysis/main.py mnist
+#   cargo run --release --manifest-path src/compute/Cargo.toml -- train data/experiments/mnist/final
+#   uv run --project src/analysis src/analysis/main.py plot data/experiments/mnist/final
+
+task = "classification"
+
+[data]
+train = "data/datasets/mnist/data.mnist.train.60000.csv"
+test = "data/datasets/mnist/data.mnist.test.10000.csv"  # only for the final evaluation
+target = "label"
+input_normalization = "min_max"    # per pixel, from the training samples
+target_normalization = "none"
+validation_fraction = 0.1          # 54000 for training, 6000 for early stopping
+
+[model]
+hidden_layers = [512]              # 784 -> 512 -> 10
+bias = true
+hidden_activation = { kind = "relu" }
+output_activation = "softmax"
+init = { kind = "he" }
+
+[optimizer]
+kind = "adam"
+learning_rate = 0.001
+
+[training]
+loss = "cross_entropy"
+epochs = 50
+batch_size = 32
+seed = 1
+early_stopping = { patience = 5 }  # on the validation loss; restores the best epoch
+
+[logging]
+loss_every = 1                     # in iterations (batches); 1688 iterations per epoch
+weights_every = 1688               # one snapshot per epoch
+max_weights_per_layer = 64
+
+[output]
+grid_resolution = 100              # not used: no prediction grid for more than 2 features
+grid_margin = 0.1

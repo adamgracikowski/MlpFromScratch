@@ -96,7 +96,7 @@ def aggregate_study(
     `<study>/results/`, which is removed first.
 
     With `plot_runs`, the representative run of every variant (closest to the median of
-    the test metric) also gets all plots of a single experiment in its `plots/`. Runs
+    the compared metric) also gets all plots of a single experiment in its `plots/`. Runs
     without artifacts are reported as missing; a study without any trained run is an error.
     """
     results = load_results(study)

@@ -5,14 +5,18 @@
 
 use std::collections::HashSet;
 
-use super::StudyConfig;
 use super::axis::{Axis, is_safe_name};
+use super::{Split, StudyConfig, expand};
 use crate::config::Issue;
 
 /// Key set by `seeds`, which no axis and not `[base]` may set.
 const SEED_KEY: &str = "training.seed";
 
-/// Checks seeds, axis and level names, override keys, report roles and labels.
+/// Key of `[data]` that holds out the validation set.
+const VALIDATION_KEY: &str = "validation_fraction";
+
+/// Checks seeds, axis and level names, override keys, report roles, labels
+/// and that every variant has the split compared by the report.
 ///
 /// Returns every problem found, so that all of them can be reported at once.
 pub fn validate(study: &StudyConfig) -> Vec<Issue> {
@@ -42,6 +46,9 @@ pub fn validate(study: &StudyConfig) -> Vec<Issue> {
     }
     validate_conflicts(&study.axes, &mut issues);
     validate_report(study, &mut issues);
+    if !issues.iter().any(Issue::is_error) {
+        validate_split(study, &mut issues);
+    }
     issues
 }
 
@@ -273,6 +280,39 @@ fn validate_report(study: &StudyConfig, issues: &mut Vec<Issue>) {
     }
 }
 
+/// Comparing on the validation set needs one in every variant. Values that
+/// are not numbers are left to the checks of the generated configs.
+fn validate_split(study: &StudyConfig, issues: &mut Vec<Issue>) {
+    if study.report.split != Split::Validation {
+        return;
+    }
+    let mut without: Vec<String> = Vec::new();
+    for run in expand(study) {
+        let fraction = run
+            .config
+            .get("data")
+            .and_then(|data| data.get(VALIDATION_KEY))
+            .and_then(|value| value.as_float().or(value.as_integer().map(|n| n as f64)));
+        if fraction.is_some_and(|fraction| fraction <= 0.0) && !without.contains(&run.variant) {
+            without.push(run.variant);
+        }
+    }
+    if !without.is_empty() {
+        issues.push(
+            Issue::error(
+                &["report", "split"],
+                format!(
+                    "`validation` needs a validation set, but `data.{VALIDATION_KEY}` is 0 in variant(s) {}",
+                    without.join(", ")
+                ),
+            )
+            .with_help(format!(
+                "set `{VALIDATION_KEY}` above 0 in `[base.data]`, or compare on `test`"
+            )),
+        );
+    }
+}
+
 fn axis_issue(index: usize, message: &str) -> Issue {
     Issue::error(&["axes"], message).at_index(index)
 }
@@ -419,5 +459,46 @@ mod tests {
             errors(&text),
             ["`report.labels`: `depth` is not an axis or level of the study"]
         );
+    }
+
+    fn compared_on_validation(text: &str) -> String {
+        text.replace("[report]\n", "[report]\nsplit = \"validation\"\n")
+    }
+
+    #[test]
+    fn validation_split_needs_validation_set() {
+        assert_eq!(
+            errors(&compared_on_validation(STUDY)),
+            ["`report.split`: `validation` needs a validation set, but \
+                 `data.validation_fraction` is 0 in variant(s) sigmoid__0, sigmoid__8-8, \
+                 tanh__0, tanh__8-8"]
+        );
+        let held_out = STUDY.replace("validation_fraction = 0.0", "validation_fraction = 0.25");
+        assert_eq!(
+            errors(&compared_on_validation(&held_out)),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn validation_split_checks_levels() {
+        let text = STUDY
+            .replace("validation_fraction = 0.0", "validation_fraction = 0.25")
+            .replace(
+                "key = \"model.hidden_layers\"\nvalues = [[], [8, 8]]",
+                "levels = [\n  { name = \"held-out\", set = { \"data.validation_fraction\" = 0.5 } },\n  { name = \"all\", set = { \"data.validation_fraction\" = 0 } },\n]",
+            )
+            .replace("panels = [\"layers\"]\nlabels = { layers = \"Hidden layers\" }", "");
+        assert_eq!(
+            errors(&compared_on_validation(&text)),
+            ["`report.split`: `validation` needs a validation set, but \
+                 `data.validation_fraction` is 0 in variant(s) sigmoid__all, tanh__all"]
+        );
+    }
+
+    #[test]
+    fn other_splits_need_no_validation_set() {
+        let text = STUDY.replace("[report]\n", "[report]\nsplit = \"train\"\n");
+        assert_eq!(errors(&text), Vec::<String>::new());
     }
 }

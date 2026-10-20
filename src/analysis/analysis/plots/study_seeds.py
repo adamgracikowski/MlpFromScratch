@@ -1,5 +1,6 @@
-"""Final test metric of every variant: its center and spread over seeds (mean +- standard
-deviation, or median and quartiles for errors) and every seed."""
+"""Final compared metric of every variant (`split` of `[report]`, test by default): its
+center and spread over seeds (mean +- standard deviation, or median and quartiles for
+errors) and every seed."""
 
 import numpy as np
 import polars as pl

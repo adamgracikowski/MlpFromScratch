@@ -70,3 +70,18 @@ def test_labels_replace_names(make_study) -> None:
     assert study.label("a") == "A (100)"
     assert study.label("b") == "b"
     assert study.label(None) is None
+
+
+def test_split_defaults_to_test(make_study) -> None:
+    assert load_study(make_study()).split == "test"
+
+
+def test_reads_split(make_study) -> None:
+    study = load_study(make_study(validation=True, report='[report]\nsplit = "validation"'))
+
+    assert study.split == "validation"
+
+
+def test_rejects_unknown_split(make_study) -> None:
+    with pytest.raises(StudyError, match="report.split"):
+        load_study(make_study(report='[report]\nsplit = "holdout"'))
