@@ -46,10 +46,10 @@ Wpływ funkcji aktywacji warstwy ukrytej na klasyfikację MNIST: sieć 784-512-1
 
 | Funkcja aktywacji | Ukończone | Rozbieżne | Dokładność (uczący) | Dokładność (walidacyjny) | Dokładność (testowy) | Epoki (średnio) | Czas uczenia (średnio) |
 |---|---|---|---|---|---|---|---|
-| `sigmoid` | 5/5 | 0 | 99,69% ± 0,35 | 94,08% ± 0,65 | 94,73% ± 0,29 | 23,8 | 154 s |
-| `tanh` | 5/5 | 0 | 99,77% ± 0,24 | 94,01% ± 0,56 | 94,85% ± 0,25 | 17,0 | 127 s |
-| ReLU | 5/5 | 0 | 99,77% ± 0,13 | 95,16% ± 0,39 | 95,68% ± 0,18 | 11,4 | 65,5 s |
-| leaky ReLU | 5/5 | 0 | 99,76% ± 0,14 | 95,12% ± 0,48 | 95,60% ± 0,13 | 11,4 | 83,4 s |
+| `sigmoid` | 5/5 | 0 | 99,69% ± 0,35 | 94,08% ± 0,65 | 94,73% ± 0,29 | 23,8 | 33,8 s |
+| `tanh` | 5/5 | 0 | 99,77% ± 0,24 | 94,01% ± 0,56 | 94,85% ± 0,25 | 17,0 | 25,5 s |
+| ReLU | 5/5 | 0 | 99,77% ± 0,13 | 95,16% ± 0,39 | 95,68% ± 0,18 | 11,4 | 15,3 s |
+| leaky ReLU | 5/5 | 0 | 99,76% ± 0,14 | 95,12% ± 0,48 | 95,60% ± 0,13 | 11,4 | 15,3 s |
 
 Średnia ± odchylenie standardowe (próbkowe) po ziarnach; tylko runy zakończone normalnie (wszystkie epoki lub early stopping), runy rozbieżne i bez artefaktów są policzone osobno.
 

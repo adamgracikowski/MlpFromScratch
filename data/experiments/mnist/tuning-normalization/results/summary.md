@@ -46,8 +46,8 @@ Wpływ normalizacji wejść (pikseli) na klasyfikację MNIST: podzbiór 10000 ob
 
 | Normalizacja wejść | Ukończone | Rozbieżne | Dokładność (uczący) | Dokładność (walidacyjny) | Dokładność (testowy) | Epoki (średnio) | Czas uczenia (średnio) |
 |---|---|---|---|---|---|---|---|
-| min-max | 5/5 | 0 | 99,47% ± 0,65 | 94,35% ± 0,61 | 95,18% ± 0,27 | 15,2 | 21,7 s |
-| standaryzacja | 5/5 | 0 | 99,64% ± 0,52 | 93,90% ± 0,18 | 94,39% ± 0,26 | 10,4 | 12,7 s |
+| min-max | 5/5 | 0 | 99,47% ± 0,65 | 94,35% ± 0,61 | 95,18% ± 0,27 | 15,2 | 4,26 s |
+| standaryzacja | 5/5 | 0 | 99,64% ± 0,52 | 93,90% ± 0,18 | 94,39% ± 0,26 | 10,4 | 2,9 s |
 
 Średnia ± odchylenie standardowe (próbkowe) po ziarnach; tylko runy zakończone normalnie (wszystkie epoki lub early stopping), runy rozbieżne i bez artefaktów są policzone osobno.
 

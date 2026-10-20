@@ -46,11 +46,11 @@ Wpływ optymalizatora i współczynnika uczenia na klasyfikację MNIST: sieć 78
 
 | Optymalizator | Ukończone | Rozbieżne | Dokładność (uczący) | Dokładność (walidacyjny) | Dokładność (testowy) | Epoki (średnio) | Czas uczenia (średnio) |
 |---|---|---|---|---|---|---|---|
-| SGD (0,1) | 5/5 | 0 | 99,77% ± 0,11 | 94,54% ± 0,66 | 95,30% ± 0,30 | 20,4 | 113 s |
-| momentum (0,01) | 5/5 | 0 | 99,78% ± 0,23 | 94,47% ± 0,79 | 95,34% ± 0,27 | 22,0 | 158 s |
-| Adam (0,0003) | 5/5 | 0 | 99,80% ± 0,22 | 94,59% ± 0,73 | 95,41% ± 0,28 | 20,2 | 161 s |
-| Adam (0,001) | 5/5 | 0 | 99,77% ± 0,13 | 95,16% ± 0,39 | 95,68% ± 0,18 | 11,4 | 113 s |
-| Adam (0,003) | 5/5 | 0 | 98,79% ± 0,66 | 94,71% ± 0,56 | 95,21% ± 0,49 | 8,8 | 89,6 s |
+| SGD (0,1) | 5/5 | 0 | 99,77% ± 0,11 | 94,54% ± 0,66 | 95,30% ± 0,30 | 20,4 | 22 s |
+| momentum (0,01) | 5/5 | 0 | 99,78% ± 0,23 | 94,47% ± 0,79 | 95,34% ± 0,27 | 22,0 | 26 s |
+| Adam (0,0003) | 5/5 | 0 | 99,80% ± 0,22 | 94,59% ± 0,73 | 95,41% ± 0,28 | 20,2 | 26,6 s |
+| Adam (0,001) | 5/5 | 0 | 99,77% ± 0,13 | 95,16% ± 0,39 | 95,68% ± 0,18 | 11,4 | 15,3 s |
+| Adam (0,003) | 5/5 | 0 | 98,79% ± 0,66 | 94,71% ± 0,56 | 95,21% ± 0,49 | 8,8 | 11,9 s |
 
 Średnia ± odchylenie standardowe (próbkowe) po ziarnach; tylko runy zakończone normalnie (wszystkie epoki lub early stopping), runy rozbieżne i bez artefaktów są policzone osobno.
 

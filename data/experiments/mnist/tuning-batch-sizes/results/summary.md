@@ -46,10 +46,10 @@ Wpływ rozmiaru batcha na klasyfikację MNIST: sieć 784-512-10 z ReLU, Adam (0,
 
 | Rozmiar batcha | Ukończone | Rozbieżne | Dokładność (uczący) | Dokładność (walidacyjny) | Dokładność (testowy) | Epoki (średnio) | Czas uczenia (średnio) |
 |---|---|---|---|---|---|---|---|
-| `16` | 5/5 | 0 | 99,10% ± 0,93 | 94,81% ± 0,79 | 95,58% ± 0,45 | 10,2 | 98,3 s |
-| `32` | 5/5 | 0 | 99,77% ± 0,13 | 95,16% ± 0,39 | 95,68% ± 0,18 | 11,4 | 88,3 s |
-| `64` | 5/5 | 0 | 99,78% ± 0,21 | 94,92% ± 0,58 | 95,67% ± 0,22 | 14,0 | 87,7 s |
-| `128` | 5/5 | 0 | 99,91% ± 0,07 | 94,83% ± 0,46 | 95,52% ± 0,09 | 16,8 | 76,2 s |
+| `16` | 5/5 | 0 | 99,10% ± 0,93 | 94,81% ± 0,79 | 95,58% ± 0,45 | 10,2 | 20,2 s |
+| `32` | 5/5 | 0 | 99,77% ± 0,13 | 95,16% ± 0,39 | 95,68% ± 0,18 | 11,4 | 15,4 s |
+| `64` | 5/5 | 0 | 99,78% ± 0,21 | 94,92% ± 0,58 | 95,67% ± 0,22 | 14,0 | 14,3 s |
+| `128` | 5/5 | 0 | 99,91% ± 0,07 | 94,83% ± 0,46 | 95,52% ± 0,09 | 16,8 | 15,2 s |
 
 Średnia ± odchylenie standardowe (próbkowe) po ziarnach; tylko runy zakończone normalnie (wszystkie epoki lub early stopping), runy rozbieżne i bez artefaktów są policzone osobno.
 
