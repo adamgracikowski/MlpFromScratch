@@ -216,7 +216,7 @@ Modules of the library in `src/`, each a `<name>.rs` file with a `<name>/` folde
 |---|---|
 | `cli` | `clap` commands `validate`, `train` and `generate`: discovery of experiments, single and parallel (`rayon`) training, progress and summaries |
 | `config` | serde schema of `config.toml` (one file per section), validation rules, loading with diagnostics at the config line; `examples.rs` trains the example and showcase configs end to end |
-| `study` | `study.toml`: axes, validation at its lines, expansion into variants and seeds, writing `runs/`; `examples.rs` checks that every committed study generates valid configs |
+| `study` | `study.toml`: axes, validation at its lines, expansion into variants and seeds, writing `runs/`; `examples.rs` checks that every committed study generates valid configs (the dataset files of MNIST, which is downloaded, only when present) |
 | `data` | CSV reading, class encoding, training subset and validation split, scalers fitted on the training set |
 | `network` | `Layer`, `Mlp` (forward pass with cache, prediction, backpropagation), activations, losses, initialization; gradient checks against central differences |
 | `training` | the training loop, optimizers, batch order, metrics, early stopping and the `TrainingObserver` trait |

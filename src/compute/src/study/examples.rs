@@ -1,5 +1,5 @@
-//! Checks that every study in `data/experiments/` (examples and the studies of part one)
-//! is valid and that every config it generates is valid, with existing dataset files.
+//! Checks that every study in `data/experiments/` is valid and that every config it
+//! generates is valid, with existing dataset files.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -8,6 +8,10 @@ use miette::Severity;
 
 use super::{STUDY_FILE_NAME, StudyConfig, expand, validate};
 use crate::config::{ExperimentConfig, Issue, check_files};
+
+/// Datasets that are downloaded instead of committed (see the README in this directory).
+/// Their files are checked only when present, e.g. not in CI.
+const DOWNLOADED_DATASETS: &str = "data/datasets/mnist";
 
 /// The repository root; dataset paths in studies are relative to it.
 fn repo_root() -> PathBuf {
@@ -60,11 +64,21 @@ fn studies_generate_valid_configs() {
             let text = toml::to_string(&run.config).unwrap();
             let mut config: ExperimentConfig =
                 toml::from_str(&text).unwrap_or_else(|err| panic!("{name}: {err}"));
+            let missing: Vec<PathBuf> = [&config.data.train, &config.data.test]
+                .into_iter()
+                .filter(|path| !root.join(path).is_file())
+                .cloned()
+                .collect();
+            let downloaded = missing
+                .iter()
+                .all(|path| path.starts_with(DOWNLOADED_DATASETS));
             // Tests run in the crate directory, not in the repository root.
             config.data.train = root.join(&config.data.train);
             config.data.test = root.join(&config.data.test);
             let mut issues = crate::config::validate(&config);
-            issues.extend(check_files(&config.data).issues);
+            if missing.is_empty() || !downloaded {
+                issues.extend(check_files(&config.data).issues);
+            }
             let issues = problems(&issues);
             assert!(issues.is_empty(), "{name}: {issues:?}");
         }
