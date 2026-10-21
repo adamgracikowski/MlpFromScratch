@@ -1,0 +1,182 @@
+\section{Wyniki strojenia}
+\label{sec:tuning}
+
+W rozdziale przedstawiono wyniki pięciu badań strojenia z Tabeli~\ref{tab:tuning-studies} w kolejności ich przeprowadzenia. Tabele podają średnią i odchylenie standardowe dokładności na części uczącej i walidacyjnej po $5$ ziarnach oraz średni numer epoki o najmniejszej stracie walidacyjnej, z której pochodzi sieć zwrócona przez wczesne zatrzymanie. Dokładność walidacyjną odczytuje się w tej epoce, a nie w epoce największej dokładności, więc krzywe dokładności po epokach mogą wychodzić ponad wartości z tabel. Wariant złożony z poziomów wybranych w kolejnych badaniach (sieć 512 z ReLU, Adam z $\eta = \num{0.001}$, paczka 32) występuje w badaniach od drugiego do piątego i za każdym razem daje ten sam wynik, \qty{95.16 +- 0.39}{\percent}.
+
+We wszystkich badaniach średnia dokładność ucząca wariantów z warstwami ukrytymi przekracza \qty{97}{\percent}, a średnia walidacyjna nie przekracza \qty{95.2}{\percent}. Przy \num{8000} obrazach uczących sieci szybko dopasowują się do części uczącej, a strata walidacyjna przestaje maleć po kilku do kilkunastu epokach.
+
+\subsection{Normalizacja wejść}
+\label{sec:tuning-normalization}
+
+Wyniki przedstawiono w Tabeli~\ref{tab:tuning-normalization} i na Rysunku~\ref{fig:tuning-normalization-curves}. Normalizacja min-max daje średnio o \num{0.45} punktu procentowego większą dokładność walidacyjną niż standaryzacja. Różnica jest porównywalna z odchyleniem standardowym między ziarnami, więc efekt jest słaby. Przy standaryzacji strata walidacyjna osiąga minimum wcześniej, średnio w epoce \num{5.4} wobec \num{10.2}, a dokładność walidacyjna przestaje rosnąć na niższym poziomie (Rysunek~\ref{fig:tuning-normalization-curves}).
+
+Standaryzacja dzieli każdy piksel przez jego odchylenie standardowe w części uczącej, które dla pikseli rzadko różnych od zera jest małe. Piksel niezerowy w jednym z \num{8000} obrazów uczących przyjmuje po standaryzacji wartość $\sqrt{7999} \approx \num{89.4}$. W części walidacyjnej od \qty{16}{\percent} do \qty{19}{\percent} obrazów (zależnie od ziarna) ma co najmniej jeden piksel o wartości bezwzględnej większej niż $10$. Przy normalizacji min-max wejścia uczące leżą w przedziale $[0, 1]$, a takich obrazów walidacyjnych jest co najwyżej \qty{0.6}{\percent}. Gorszy wynik standaryzacji jest zgodny z tą różnicą skali wejść. Wybrano normalizację min-max.
+
+\begin{table}[H]
+    \centering
+    \caption{Wyniki badania normalizacji wejść (sieć 128, $5$ ziaren).}
+    \label{tab:tuning-normalization}
+    \begin{tabular}{lccc}
+        \toprule
+        Normalizacja & \multicolumn{2}{c}{Dokładność [\%]} & Najlepsza \\
+        \cmidrule(lr){2-3}
+        & ucząca & walidacyjna & epoka \\
+        \midrule
+        min-max & \num{99.47 +- 0.65} & \num{94.35 +- 0.61} & \num{10.2} \\
+        standaryzacja & \num{99.64 +- 0.52} & \num{93.90 +- 0.18} & \num{5.4} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mnist/tuning-normalization/results/curves.pdf}
+    \caption{Dokładność walidacyjna po kolejnych epokach w badaniu normalizacji wejść: średnia po ziarnach z pasem jednego odchylenia standardowego. Uczenie każdego ziarna kończy się po wczesnym zatrzymaniu, więc w późnych epokach średnia obejmuje tylko trwające jeszcze uczenia.}
+    \label{fig:tuning-normalization-curves}
+\end{figure}
+
+\subsection{Architektura sieci}
+\label{sec:tuning-architectures}
+
+Wyniki przedstawiono w Tabeli~\ref{tab:tuning-architectures} i na Rysunku~\ref{fig:tuning-architectures-seeds}. Sieć bez warstw ukrytych, czyli klasyfikator liniowy, osiąga \qty{90.69}{\percent} i jest wyraźnie najsłabsza. Zwiększanie liczby neuronów jednej warstwy ukrytej poprawia wynik: z \qty{92.70}{\percent} dla $32$ neuronów do \qty{94.35}{\percent} dla $128$ i \qty{95.16}{\percent} dla $512$, a każdy z tych kroków jest większy od odchylenia standardowego między ziarnami. Dodatkowe warstwy nie poprawiają wyniku względem jednej szerokiej warstwy. Sieci 128-64, 256-128 i 128-128-128 mają od \qty{94.26}{\percent} do \qty{94.71}{\percent}, a ich odchylenie standardowe wynosi od \num{0.73} do \num{1.15} punktu procentowego, wobec \num{0.39} dla sieci 512. Różnica między siecią 512 a najlepszą z głębszych, 256-128, wynosi \num{0.45} punktu procentowego i jest mniejsza niż odchylenie standardowe tej drugiej, więc jest słaba. Wybrano jedną warstwę ukrytą z $512$ neuronami.
+
+\begin{table}[H]
+    \centering
+    \caption{Wyniki badania architektury (normalizacja min-max, $5$ ziaren). Architekturę podano jako liczby neuronów kolejnych warstw ukrytych.}
+    \label{tab:tuning-architectures}
+    \begin{tabular}{lccc}
+        \toprule
+        Warstwy ukryte & \multicolumn{2}{c}{Dokładność [\%]} & Najlepsza \\
+        \cmidrule(lr){2-3}
+        & ucząca & walidacyjna & epoka \\
+        \midrule
+        brak & \num{94.17 +- 0.33} & \num{90.69 +- 0.86} & \num{17.8} \\
+        32 & \num{97.81 +- 0.69} & \num{92.70 +- 0.59} & \num{11.4} \\
+        128 & \num{99.47 +- 0.65} & \num{94.35 +- 0.61} & \num{10.2} \\
+        512 & \num{99.77 +- 0.13} & \num{95.16 +- 0.39} & \num{6.4} \\
+        128-64 & \num{98.95 +- 0.95} & \num{94.38 +- 0.73} & \num{6.2} \\
+        256-128 & \num{99.19 +- 0.81} & \num{94.71 +- 1.11} & \num{5.8} \\
+        128-128-128 & \num{98.58 +- 0.93} & \num{94.26 +- 1.15} & \num{4.8} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mnist/tuning-architectures/results/seeds.pdf}
+    \caption{Dokładność walidacyjna każdego ziarna (punkty) oraz średnia z odchyleniem standardowym (odcinki) w badaniu architektury.}
+    \label{fig:tuning-architectures-seeds}
+\end{figure}
+
+\subsection{Funkcja aktywacji}
+\label{sec:tuning-activations}
+
+Wyniki przedstawiono w Tabeli~\ref{tab:tuning-activations} i na Rysunku~\ref{fig:tuning-activations-curves}. Sieci z ReLU i leaky ReLU osiągają od \num{1.04} do \num{1.15} punktu procentowego większą dokładność walidacyjną niż sieci z funkcją sigmoidalną i tanh, czyli więcej niż odchylenie standardowe między ziarnami, więc efekt jest mocny. Osiągają też minimum straty walidacyjnej szybciej, średnio w epoce \num{6.4}, wobec \num{12.0} dla tanh i \num{18.8} dla funkcji sigmoidalnej. Dokładność ucząca wszystkich czterech wariantów jest prawie taka sama (od \qty{99.69}{\percent} do \qty{99.77}{\percent}). ReLU i leaky ReLU różnią się o \num{0.04} punktu procentowego, czyli słabo. Wybrano ReLU.
+
+\begin{table}[H]
+    \centering
+    \caption{Wyniki badania funkcji aktywacji (sieć 512, $5$ ziaren). Funkcja sigmoidalna i tanh z inicjalizacją Xaviera, ReLU i leaky ReLU z inicjalizacją He.}
+    \label{tab:tuning-activations}
+    \begin{tabular}{lccc}
+        \toprule
+        Aktywacja & \multicolumn{2}{c}{Dokładność [\%]} & Najlepsza \\
+        \cmidrule(lr){2-3}
+        & ucząca & walidacyjna & epoka \\
+        \midrule
+        sigmoidalna & \num{99.69 +- 0.35} & \num{94.08 +- 0.65} & \num{18.8} \\
+        tanh & \num{99.77 +- 0.24} & \num{94.01 +- 0.56} & \num{12.0} \\
+        ReLU & \num{99.77 +- 0.13} & \num{95.16 +- 0.39} & \num{6.4} \\
+        leaky ReLU & \num{99.76 +- 0.14} & \num{95.12 +- 0.48} & \num{6.4} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mnist/tuning-activations/results/curves.pdf}
+    \caption{Dokładność walidacyjna po kolejnych epokach w badaniu funkcji aktywacji: średnia po ziarnach z pasem jednego odchylenia standardowego. W późnych epokach średnia obejmuje tylko trwające jeszcze uczenia.}
+    \label{fig:tuning-activations-curves}
+\end{figure}
+
+\subsection{Optymalizator}
+\label{sec:tuning-optimizers}
+
+Wyniki przedstawiono w Tabeli~\ref{tab:tuning-optimizers} i na Rysunku~\ref{fig:tuning-optimizers-curves}. Najlepszy jest Adam z $\eta = \num{0.001}$, o \num{0.45} do \num{0.69} punktu procentowego przed pozostałymi wariantami. Różnice są porównywalne z odchyleniem standardowym między ziarnami, więc efekt jest słaby. SGD, SGD z momentum i Adam z $\eta = \num{0.0003}$ dają podobne wyniki, ale osiągają minimum straty walidacyjnej dopiero średnio w epoce od \num{15.2} do \num{17.0}. Adam z $\eta = \num{0.003}$ osiąga je najwcześniej, w epoce \num{3.8}. Jako jedyny ma też wyraźnie niższą dokładność uczącą, \qty{98.79}{\percent}, wobec co najmniej \qty{99.77}{\percent} dla pozostałych. Na Rysunku~\ref{fig:tuning-optimizers-curves} jego dokładność walidacyjna rośnie najszybciej w pierwszych epokach, a potem przestaje rosnąć. Wybrano Adama z $\eta = \num{0.001}$.
+
+\begin{table}[H]
+    \centering
+    \caption{Wyniki badania optymalizatora (sieć 512 z ReLU, $5$ ziaren). W nawiasach współczynnik uczenia $\eta$, dla SGD z momentum $\mu = \num{0.9}$.}
+    \label{tab:tuning-optimizers}
+    \begin{tabular}{lccc}
+        \toprule
+        Optymalizator & \multicolumn{2}{c}{Dokładność [\%]} & Najlepsza \\
+        \cmidrule(lr){2-3}
+        & ucząca & walidacyjna & epoka \\
+        \midrule
+        SGD (\num{0.1}) & \num{99.77 +- 0.11} & \num{94.54 +- 0.66} & \num{15.4} \\
+        SGD z momentum (\num{0.01}) & \num{99.78 +- 0.23} & \num{94.47 +- 0.79} & \num{17.0} \\
+        Adam (\num{0.0003}) & \num{99.80 +- 0.22} & \num{94.59 +- 0.73} & \num{15.2} \\
+        Adam (\num{0.001}) & \num{99.77 +- 0.13} & \num{95.16 +- 0.39} & \num{6.4} \\
+        Adam (\num{0.003}) & \num{98.79 +- 0.66} & \num{94.71 +- 0.56} & \num{3.8} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mnist/tuning-optimizers/results/curves.pdf}
+    \caption{Dokładność walidacyjna po kolejnych epokach w badaniu optymalizatora: średnia po ziarnach z pasem jednego odchylenia standardowego. W nawiasach współczynnik uczenia. W późnych epokach średnia obejmuje tylko trwające jeszcze uczenia.}
+    \label{fig:tuning-optimizers-curves}
+\end{figure}
+
+\subsection{Rozmiar paczki}
+\label{sec:tuning-batch-sizes}
+
+Wyniki przedstawiono w Tabeli~\ref{tab:tuning-batch-sizes} i na Rysunku~\ref{fig:tuning-batch-sizes-curves}. Paczka 32 daje największą średnią dokładność walidacyjną, ale przewaga nad pozostałymi rozmiarami wynosi od \num{0.24} do \num{0.35} punktu procentowego i jest mniejsza niż odchylenie standardowe między ziarnami, więc efekt jest słaby. Mniejsza paczka oznacza więcej kroków optymalizatora w epoce, więc minimum straty walidacyjnej przypada wcześniej: średnio w epoce \num{5.2} dla paczki 16 i \num{11.8} dla paczki 128. Wybrano paczkę 32.
+
+\begin{table}[H]
+    \centering
+    \caption{Wyniki badania rozmiaru paczki (sieć 512 z ReLU, Adam z $\eta = \num{0.001}$, $5$ ziaren).}
+    \label{tab:tuning-batch-sizes}
+    \begin{tabular}{rccc}
+        \toprule
+        Paczka & \multicolumn{2}{c}{Dokładność [\%]} & Najlepsza \\
+        \cmidrule(lr){2-3}
+        & ucząca & walidacyjna & epoka \\
+        \midrule
+        16 & \num{99.10 +- 0.93} & \num{94.81 +- 0.79} & \num{5.2} \\
+        32 & \num{99.77 +- 0.13} & \num{95.16 +- 0.39} & \num{6.4} \\
+        64 & \num{99.78 +- 0.21} & \num{94.92 +- 0.58} & \num{9.0} \\
+        128 & \num{99.91 +- 0.07} & \num{94.83 +- 0.46} & \num{11.8} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mnist/tuning-batch-sizes/results/curves.pdf}
+    \caption{Dokładność walidacyjna po kolejnych epokach w badaniu rozmiaru paczki: średnia po ziarnach z pasem jednego odchylenia standardowego. W późnych epokach średnia obejmuje tylko trwające jeszcze uczenia.}
+    \label{fig:tuning-batch-sizes-curves}
+\end{figure}
+
+\subsection{Konfiguracja wybrana w strojeniu}
+\label{sec:tuning-summary}
+
+Wybory wszystkich badań zestawiono w Tabeli~\ref{tab:tuning-summary}. Tylko w badaniach architektury i funkcji aktywacji wybrany poziom wyprzedza część pozostałych o więcej niż odchylenie standardowe między ziarnami. W pozostałych badaniach różnice są słabe i inny zestaw ziaren mógłby wskazać inny poziom. Konfiguracja końcowa to sieć \mbox{784-512-10} z ReLU i inicjalizacją He, normalizacja min-max, Adam z $\eta = \num{0.001}$ i paczka 32 (Tabela~\ref{tab:configs}).
+
+\begin{table}[H]
+    \centering
+    \caption{Poziomy wybrane w badaniach strojenia i drugi najlepszy poziom każdego badania. Dokładność walidacyjna jako średnia i odchylenie standardowe po $5$ ziarnach.}
+    \label{tab:tuning-summary}
+    \begin{tabular}{lllll}
+        \toprule
+        Badanie & Wybrany poziom & Dokładność [\%] & Drugi poziom & Dokładność [\%] \\
+        \midrule
+        normalizacja wejść & min-max & \num{94.35 +- 0.61} & standaryzacja & \num{93.90 +- 0.18} \\
+        architektura & 512 & \num{95.16 +- 0.39} & 256-128 & \num{94.71 +- 1.11} \\
+        funkcja aktywacji & ReLU & \num{95.16 +- 0.39} & leaky ReLU & \num{95.12 +- 0.48} \\
+        optymalizator & Adam (\num{0.001}) & \num{95.16 +- 0.39} & Adam (\num{0.003}) & \num{94.71 +- 0.56} \\
+        rozmiar paczki & 32 & \num{95.16 +- 0.39} & 64 & \num{94.92 +- 0.58} \\
+        \bottomrule
+    \end{tabular}
+\end{table}

@@ -1,0 +1,50 @@
+\section{Odtworzenie wyników}
+\label{app:reproduction}
+
+Do odtworzenia wyników potrzebne są kompilator języka Rust w wersji 1.88.0, wskazanej w pliku \texttt{rust-toolchain.toml}, oraz Python w wersji co najmniej 3.13 z menedżerem pakietów \texttt{uv}. Ścieżki w plikach konfiguracyjnych są względne, dlatego polecenia uruchamia się z katalogu głównego repozytorium. Polecenia przedstawiono na Listingu~\ref{lst:reproduction}. Pierwsze z nich pobiera zbiór MNIST i zapisuje go w plikach CSV, kolejne uczą zgłoszoną sieć i tworzą jej wykresy, a ostatnie powtarza wszystkie badania części drugiej.
+
+\begin{code}
+\begin{Verbatim}[fontsize=\small]
+# pobranie zbioru MNIST i zapis w plikach CSV
+uv run --project src/analysis src/analysis/main.py mnist
+
+# zgłoszona sieć: uczenie i wykresy
+cargo run --release --manifest-path src/compute/Cargo.toml -- \
+    train data/experiments/mnist/final
+uv run --project src/analysis src/analysis/main.py \
+    plot data/experiments/mnist/final
+
+# badania strojenia i uczenie końcowe dla pięciu ziaren (PowerShell 7)
+pwsh -File scripts/run-studies.ps1 -Jobs 1 `
+    data/experiments/mnist/tuning-normalization `
+    data/experiments/mnist/tuning-architectures `
+    data/experiments/mnist/tuning-activations `
+    data/experiments/mnist/tuning-optimizers `
+    data/experiments/mnist/tuning-batch-sizes `
+    data/experiments/mnist/final-seeds
+\end{Verbatim}
+    \caption{Polecenia odtwarzające wyniki części drugiej, uruchamiane z katalogu głównego repozytorium.}
+    \label{lst:reproduction}
+\end{code}
+
+\noindent
+Wszystkie parametry uczenia zgłoszonej sieci, łącznie z ziarnem generatora \mbox{\texttt{training.seed = 1}}, zawiera plik \texttt{data/experiments/mnist/final/config.toml}, przedstawiony na Listingu~\ref{lst:final-config}.
+
+\begin{code}
+    \lstinputlisting[style=config, firstline=10]{../data/experiments/mnist/final/config.toml}
+    \caption{Plik \texttt{config.toml} zgłoszonej sieci.}
+    \label{lst:final-config}
+\end{code}
+
+Konfiguracje i wyniki znajdują się w następujących miejscach:
+\begin{itemize}
+    \item konfiguracje badań strojenia:\newline \texttt{data/experiments/mnist/tuning-<czynnik>/study.toml},
+    \item konfiguracja uczenia końcowego dla pięciu ziaren:\newline \texttt{data/experiments/mnist/final-seeds/study.toml},
+    \item zestawienia badań: katalog \texttt{results/} badania,
+    \item wagi i biasy zgłoszonej sieci:\newline \texttt{data/experiments/mnist/final/artifacts/model/},
+    \item metadane zgłoszonej sieci z kopią konfiguracji, wersją kodu i końcowymi metrykami:\newline \texttt{data/experiments/mnist/final/artifacts/metadata.json},
+    \item wykresy zgłoszonej sieci: \texttt{data/experiments/mnist/final/plots/}.
+\end{itemize}
+
+\noindent
+Polecenie \texttt{train} zastępuje zawartość katalogu \texttt{artifacts/}. Ponowne uczenie daje wagi identyczne z zapisanymi, więc wynik można porównać z wersją przechowywaną w repozytorium.

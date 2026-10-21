@@ -1,0 +1,11 @@
+\section*{Streszczenie}
+\phantomsection
+\label{sec:abstract}
+
+Perceptron wielowarstwowy, który został zaimplementowany od podstaw w pierwszej części projektu, zastosowano do rozpoznawania odręcznie pisanych cyfr ze zbioru MNIST. W stosunku do implementacji z pierwszej części projektu nie dodano do niego nowych funkcjonalności. Zmieniono jedynie konfigurację sieci i uczenia.
+
+Konfigurację sieci dobrano w pięciu kolejnych badaniach, z których każde zmieniało jeden czynnik: normalizację wejść, architekturę, funkcję aktywacji, optymalizator ze współczynnikiem uczenia i rozmiar paczki. Każdy wariant uczono dla $5$ ziaren generatora liczb losowych na podzbiorze \num{10000} obrazów uczących z wczesnym zatrzymaniem, a warianty porównywano na wydzielonym z niego zbiorze walidacyjnym. Zbioru testowego użyto tylko do oceny sieci końcowej.
+
+Najsilniej na wynik wpływały liczba neuronów warstwy ukrytej i funkcja aktywacji. Jedna warstwa z $512$ neuronami osiągnęła średnio \qty{95.16}{\percent} dokładności walidacyjnej, wobec \qty{92.70}{\percent} dla $32$ neuronów, a dodatkowe warstwy nie poprawiały wyniku. Funkcje ReLU i leaky ReLU dawały o ponad punkt procentowy wyższą dokładność niż funkcja sigmoidalna i tanh. Pozostałe czynniki zmieniały wynik w granicach rozrzutu między ziarnami.
+
+Sieć \mbox{784-512-10} z ReLU, normalizacją min-max, optymalizatorem Adam i paczką 32, uczona na pełnym zbiorze uczącym, osiągnęła na zbiorze testowym \qty{97.91 +- 0.15}{\percent} dokładności dla $5$ ziaren. Zgłoszona sieć, uczona z ziarnem ustalonym przed uczeniem, osiągnęła \qty{97.74}{\percent}.

@@ -1,0 +1,23 @@
+\section{Sieć i implementacja}
+\label{sec:implementation}
+
+W rozdziale przypomniano budowę sieci i programu z części pierwszej oraz wymieniono zmiany wprowadzone na potrzeby części drugiej.
+
+\subsection{Sieć i uczenie}
+\label{sec:implementation-network}
+
+Do rozpoznawania cyfr użyto perceptronu wielowarstwowego zaimplementowanego od podstaw w części pierwszej projektu. Jego model, funkcje aktywacji i straty, propagację wsteczną, metody optymalizacji i inicjalizacji wag opisano w raporcie z tej części \cite[rozdz.~3]{gracikowski2026}. Warstwy sieci są macierzami wag i wektorami biasów, a uczenie polega na minimalizacji funkcji straty metodą spadku wzdłuż gradientu na losowo tasowanych paczkach (ang. \textit{batch}) próbek. W rozpoznawaniu cyfr wejściem sieci jest $784$ pikseli obrazu, a warstwa wyjściowa ma $10$ neuronów z funkcją softmax i jest uczona z entropią krzyżową.
+
+Wszystkie parametry zmieniane w części drugiej były dostępne w konfiguracji już w części pierwszej: funkcje aktywacji warstw ukrytych (sigmoidalna, tanh, ReLU i leaky ReLU), inicjalizacja wag Xaviera i He, optymalizatory SGD, SGD z momentum i Adam \cite[rozdz.~3.2, 3.5, 3.6]{gracikowski2026}, normalizacja wejść osobno dla każdej kolumny (standaryzacja albo przekształcenie zakresu do przedziału $[0, 1]$, nazywane dalej normalizacją min-max), losowy podzbiór zbioru uczącego, wydzielenie z niego zbioru walidacyjnego oraz wczesne zatrzymanie na stracie walidacyjnej \cite[rozdz.~4.3, 4.4]{gracikowski2026}. Parametry normalizacji wyznacza się tylko na części uczącej, a wczesne zatrzymanie przywraca sieć z epoki o najmniejszej stracie walidacyjnej. Zbiór testowy jest po każdej epoce tylko oceniany i nie wpływa na przebieg uczenia.
+
+Program składa się z warstwy obliczeniowej w języku Rust, która uczy sieć i zapisuje wyniki, oraz warstwy prezentacji w języku Python, która tworzy z nich wykresy i zestawienia. Pojedynczy eksperyment opisuje plik \texttt{config.toml}, a badanie, czyli zbiór eksperymentów różniących się wybranymi parametrami i ziarnem, plik \texttt{study.toml} \cite[rozdz.~4.1, 4.7]{gracikowski2026}. Przebieg uczenia jest w pełni wyznaczony przez konfigurację i ziarno generatora liczb losowych, więc ponowne uczenie daje sieć identyczną co do bitu \cite[rozdz.~4.5]{gracikowski2026}. Polecenia i konfigurację potrzebne do powtórzenia uczenia zgłoszonej sieci podano w dodatku~\ref{app:reproduction}.
+
+\subsection{Zmiany względem części pierwszej}
+\label{sec:implementation-changes}
+
+Kod sieci, uczenia, przygotowania danych i konfiguracji jest taki sam jak w części pierwszej. Wczytywanie plików CSV z dowolną liczbą cech i klasyfikacja do dowolnej liczby klas obsługują zbiór MNIST bez zmian. Dodano jedynie narzędzia wokół sieci, które nie wpływają na przebieg uczenia:
+\begin{itemize}
+    \item polecenie \texttt{mnist} warstwy prezentacji, które pobiera pliki zbioru w oryginalnym formacie binarnym IDX, sprawdza ich sumy kontrolne SHA-256 i zapisuje je jako pliki CSV z surowymi wartościami pikseli od $0$ do $255$ (normalizację określa konfiguracja eksperymentu),
+    \item klucz \texttt{split} w pliku \texttt{study.toml}, który wskazuje zbiór, na którym porównuje się warianty badania. Domyślnie jest to zbiór testowy, a w badaniach części drugiej zbiór walidacyjny,
+    \item dwa wykresy dla wejść będących kwadratowymi obrazami: najpewniejsze błędne klasyfikacje na zbiorze testowym oraz wagi pierwszej warstwy przedstawione jako obrazy.
+\end{itemize}

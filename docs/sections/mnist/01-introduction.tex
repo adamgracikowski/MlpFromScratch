@@ -1,0 +1,16 @@
+\section{Wstęp}
+\label{sec:introduction}
+
+W rozdziale przedstawiono cel i zakres drugiej części projektu oraz strukturę raportu.
+
+\subsection{Cel i zakres}
+\label{sec:introduction-goal}
+
+W pierwszej części projektu zaimplementowano od podstaw, bez bibliotek implementujących sieci neuronowe, perceptron wielowarstwowy uczony propagacją wsteczną błędu i zbadano go w zadaniach regresji i klasyfikacji na prostych zbiorach danych \cite{gracikowski2026}. Celem części drugiej było użycie tej implementacji do rozpoznawania odręcznie pisanych cyfr ze zbioru MNIST \cite{lecun1998}. Implementacji nie wolno było rozszerzać o nowe funkcjonalności, więc dostosowanie sieci do zadania polegało wyłącznie na doborze jej parametrów i parametrów uczenia.
+
+Wnioski z części pierwszej wskazywały, że przy takim zadaniu potrzebne będą zbiór walidacyjny, wczesne zatrzymanie i dobór współczynnika uczenia, a porównania wariantów powinny opierać się na wielu ziarnach generatora liczb losowych \cite[rozdz.~10.2]{gracikowski2026}. Dlatego konfigurację sieci dobrano w badaniach strojenia na podzbiorze zbioru uczącego, porównując warianty na wydzielonym z niego zbiorze walidacyjnym dla kilku ziaren. Wybraną konfigurację nauczono, także dla kilku ziaren, na pełnym zbiorze uczącym, a zbioru testowego użyto tylko do oceny nauczonych sieci. Do oceny zgłoszono jedną z nich, wraz z konfiguracją i ziarnem pozwalającymi powtórzyć jej uczenie.
+
+\subsection{Struktura raportu}
+\label{sec:introduction-outline}
+
+W rozdziale~\ref{sec:problem} opisano zbiór MNIST, miary jakości i wymagania części drugiej. W rozdziale~\ref{sec:implementation} przypomniano budowę sieci i programu z części pierwszej oraz wymieniono wprowadzone zmiany. Rozdział~\ref{sec:methodology} opisuje sposób strojenia i uczenia końcowego, rozdział~\ref{sec:tuning} wyniki badań strojenia, a rozdział~\ref{sec:final} wyniki sieci końcowej na zbiorze testowym. Rozdział~\ref{sec:conclusions} podsumowuje wnioski i ograniczenia badań. W dodatku~\ref{app:reproduction} podano polecenia i konfigurację potrzebne do odtworzenia wyników.
