@@ -1,11 +1,33 @@
 \section{Podsumowanie i wnioski}
 \label{sec:conclusions}
 
+Perceptron wielowarstwowy z części pierwszej projektu zastosowano do rozpoznawania cyfr MNIST, zmieniając wyłącznie jego parametry. Konfigurację dobrano w pięciu badaniach strojenia na podzbiorze zbioru uczącego, a wybraną konfigurację nauczono na pełnym zbiorze uczącym i oceniono na zbiorze testowym. W rozdziale zebrano najważniejsze wnioski oraz ograniczenia przeprowadzonych badań.
+
 \subsection{Wnioski}
 \label{sec:conclusions-findings}
-% Plan (etap 6): wnioski ze strojenia i z uczenia końcowego.
+
+\paragraph{Strojenie}
+\begin{itemize}
+    \item Liczba neuronów jednej warstwy ukrytej wyraźnie wpływa na wynik: dokładność walidacyjna rośnie z \qty{92.70}{\percent} dla $32$ neuronów do \qty{94.35}{\percent} dla $128$ i \qty{95.16}{\percent} dla $512$. Dodatkowe warstwy ukryte nie poprawiają wyniku względem jednej szerokiej warstwy i zwiększają rozrzut między ziarnami, z odchyleniem standardowym do \num{1.15} punktu procentowego wobec \num{0.39} dla sieci 512 (podrozdział~\ref{sec:tuning-architectures}).
+    \item Sieci z ReLU i leaky ReLU osiągają od \num{1.04} do \num{1.15} punktu procentowego większą dokładność walidacyjną niż sieci z funkcją sigmoidalną i tanh, czyli więcej niż rozrzut między ziarnami. Osiągają też minimum straty walidacyjnej w mniejszej liczbie epok (podrozdział~\ref{sec:tuning-activations}).
+    \item Normalizacja wejść, optymalizator i rozmiar paczki dają różnice porównywalne z rozrzutem między ziarnami. Wybrane poziomy, czyli normalizacja min-max, Adam z $\eta = \num{0.001}$ i paczka 32, są najlepsze średnio, ale inny zestaw ziaren mógłby wskazać inne (podrozdział~\ref{sec:tuning-summary}).
+    \item Standaryzacja nadaje rzadko niezerowym pikselom duże wartości wejść, na części uczącej do około $89$, co jest zgodne z jej słabszym wynikiem od normalizacji min-max (podrozdział~\ref{sec:tuning-normalization}).
+\end{itemize}
+
+\paragraph{Sieć końcowa}
+\begin{itemize}
+    \item Sieć \mbox{784-512-10} z ReLU, normalizacją min-max, optymalizatorem Adam z $\eta = \num{0.001}$ i paczką 32, uczona na pełnym zbiorze uczącym, osiąga na zbiorze testowym \qty{97.91 +- 0.15}{\percent} dla $5$ ziaren. Zgłoszona sieć, z ziarnem ustalonym przed uczeniem, osiąga \qty{97.74}{\percent} (podrozdział~\ref{sec:final-seeds}).
+    \item Większy zbiór uczący poprawia wynik tej samej konfiguracji: dokładność walidacyjna rośnie z \qty{95.16}{\percent} przy \num{8000} obrazach uczących do \qty{97.79}{\percent} przy \num{54000}.
+    \item Sieć przeucza się także na pełnym zbiorze: dokładność ucząca wynosi \qty{99.33}{\percent}, a strata walidacyjna przestaje maleć po kilku epokach. Wczesne zatrzymanie kończy uczenie po $8$ do $12$ epokach (podrozdział~\ref{sec:final-network}).
+    \item Najczęstszą pomyłką zgłoszonej sieci jest klasyfikacja czwórki jako dziewiątki ($37$ z $226$ błędów), a najsłabiej rozpoznawane są cyfry $4$ i $8$.
+\end{itemize}
 
 \subsection{Ograniczenia}
 \label{sec:conclusions-limitations}
-% Plan (etap 6): jeden czynnik naraz bez interakcji, strojenie na podzbiorze,
-% skończone siatki poziomów.
+
+Wnioski obowiązują w warunkach, w których przeprowadzono badania:
+\begin{itemize}
+    \item każde badanie zmieniało jeden czynnik, a badania przeprowadzono kolejno, więc wybory zależą od kolejności badań i nie wiadomo, czy czynniki na siebie oddziałują, np. czy sieć z funkcją tanh nie wymagałaby innego współczynnika uczenia,
+    \item strojenie przeprowadzono na \num{8000} obrazach uczących, a sieć końcową uczono na \num{54000}. Nie sprawdzono, czy przy większym zbiorze uczącym byłyby lepsze inne poziomy, np. głębsze sieci, które na podzbiorze nie przewyższały jednej szerokiej warstwy,
+    \item każdy wariant uczono dla $5$ ziaren, a każdy czynnik miał kilka poziomów. Przy różnicach porównywalnych z rozrzutem między ziarnami wybór poziomu jest niepewny, a poziomy spoza badanych siatek, np. inne współczynniki uczenia SGD, nie zostały sprawdzone.
+\end{itemize}
