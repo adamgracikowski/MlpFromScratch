@@ -43,11 +43,11 @@ Miarą jakości klasyfikatora jest dokładność, czyli odsetek poprawnie sklasy
 \subsection{Wymagania}
 \label{sec:problem-requirements}
 
-Część druga projektu polega na użyciu sieci z części pierwszej do rozpoznawania cyfr MNIST. Treść zadania stawia następujące wymagania:
+Treść zadania stawia części drugiej projektu następujące wymagania:
 \begin{itemize}
-    \item implementację z części pierwszej wolno optymalizować, ale nie wolno rozszerzać jej o nowe funkcjonalności, a zmieniać się mogą tylko parametry sieci i uczenia, np. liczba warstw i neuronów albo funkcje aktywacji (rozdział~\ref{sec:implementation}),
-    \item w uczeniu wolno korzystać tylko ze zbioru uczącego, a zbiór testowy służy wyłącznie do oceny już nauczonej sieci, dlatego wszystkie wybory podejmowano na zbiorze walidacyjnym wydzielonym ze zbioru uczącego (rozdział~\ref{sec:methodology}),
-    \item wstępne eksperymenty mogą korzystać z podzbioru danych uczących, a pełne uczenie przeprowadza się po wstępnym rozpoznaniu (podrozdział~\ref{sec:methodology-tuning}),
-    \item uczenie zgłoszonej sieci musi być powtarzalne, więc należy podać wszystkie parametry programu i ziarno generatora liczb losowych (dodatek~\ref{app:reproduction}),
+    \item implementacji z części pierwszej nie wolno rozszerzać o nowe funkcjonalności, a zmieniać się mogą tylko parametry sieci i uczenia (rozdział~\ref{sec:implementation}),
+    \item w uczeniu wolno korzystać tylko ze zbioru uczącego, a zbiór testowy służy wyłącznie do oceny nauczonej sieci (rozdział~\ref{sec:methodology}),
+    \item wstępne eksperymenty mogą korzystać z podzbioru danych uczących (podrozdział~\ref{sec:methodology-tuning}),
+    \item uczenie zgłoszonej sieci musi być powtarzalne, więc należy podać wszystkie parametry programu i ziarno (dodatek~\ref{app:reproduction}),
     \item wynik uczenia zależy od ziarna, więc powtarzalność wyników należy sprawdzić dla wielu ziaren (rozdział~\ref{sec:final}).
 \end{itemize}

@@ -27,6 +27,7 @@ pwsh -File scripts/run-studies.ps1 -Jobs 1 `
     \label{lst:reproduction}
 \end{code}
 
+\noindent
 Wszystkie parametry uczenia zgłoszonej sieci, łącznie z ziarnem generatora \mbox{\texttt{training.seed = 1}}, zawiera plik \texttt{data/experiments/mnist/final/config.toml}, przedstawiony na Listingu~\ref{lst:final-config}.
 
 \begin{code}
@@ -44,4 +45,6 @@ Konfiguracje i wyniki znajdują się w następujących miejscach:
     \item metadane zgłoszonej sieci z kopią konfiguracji, wersją kodu i końcowymi metrykami:\newline \texttt{data/experiments/mnist/final/artifacts/metadata.json},
     \item wykresy zgłoszonej sieci: \texttt{data/experiments/mnist/final/plots/}.
 \end{itemize}
+
+\noindent
 Polecenie \texttt{train} zastępuje zawartość katalogu \texttt{artifacts/}. Ponowne uczenie daje wagi identyczne z zapisanymi, więc wynik można porównać z wersją przechowywaną w repozytorium.
