@@ -20,7 +20,7 @@ The forward pass, backpropagation, the optimizers and the training loop are impl
 - **classification** of points in R²,
 - **MNIST digit recognition** (part two). It needs no new features, only other hyperparameters, so part one already handles high-dimensional inputs and ten classes.
 
-Part one studied the effect of the activation function, the architecture and the loss function on four datasets, in 2400 training runs. The report (in Polish) is [`docs/report.pdf`](docs/report.pdf).
+Part one studied the effect of the activation function, the architecture and the loss function on four datasets, in 2400 training runs. The report (in Polish) is [`docs/report.pdf`](docs/report.pdf). Part two, MNIST, has a separate report (in Polish): [`docs/report-mnist.pdf`](docs/report-mnist.pdf).
 
 ## Features
 
@@ -117,7 +117,7 @@ Five tuning studies chose the configuration for MNIST one factor at a time, on a
 | final, 5 seeds | 784-512-10, ReLU (He), min-max scaling, Adam 0.001, batch 32, cross-entropy, early stopping | 97.91 % +- 0.15 |
 | submitted network | the same, seed 1 | 97.74 % |
 
-The tuning results, the configuration and how to reproduce the submitted network are described in [`data/experiments/mnist/README.md`](data/experiments/mnist/README.md).
+The tuning results, the configuration and how to reproduce the submitted network are described in [`data/experiments/mnist/README.md`](data/experiments/mnist/README.md) and in the report of part two, [`docs/report-mnist.pdf`](docs/report-mnist.pdf).
 
 ## Getting started
 
@@ -181,6 +181,8 @@ data/
 docs/
 ├── report.tex       # report of part one (Polish, LaTeX) with sections/ and references.bib
 ├── report.pdf       # the built report
+├── report-mnist.tex # report of part two (MNIST) with sections/mnist/
+├── report-mnist.pdf # the built report of part two
 └── images/          # figures of this README
 scripts/             # run-studies.ps1, build-tex scripts for the report
 src/
