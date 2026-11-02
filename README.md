@@ -3,13 +3,13 @@
 [![CI](https://github.com/adamgracikowski/MlpFromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/adamgracikowski/MlpFromScratch/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A multilayer perceptron written from scratch, without neural network libraries: a Rust engine that trains the network and a Python layer that turns its output into plots and statistics. Built for the Neural Networks course.
+A multilayer perceptron written from scratch, without neural network libraries: a Rust engine that trains the network and a Python layer that turns its output into plots and statistics. Built for the Neural Networks course. On MNIST the same code reaches 97.91 % test accuracy (mean over 5 seeds).
 
-<!-- source: data/experiments/classification/showcase-three-gauss/plots/decision_boundary.png -->
+<!-- source: data/experiments/mnist/final/plots/misclassified.png -->
 <p align="center">
-  <img src="docs/images/three-gauss-decision-boundary.png" alt="Decision regions of a network trained on three overlapping Gaussian clusters" width="55%">
+  <img src="docs/images/mnist-misclassified.png" alt="Grid of MNIST test digits misclassified by the network, with the true and the predicted class" width="90%">
   <br>
-  <em>Decision regions of a 16-16 tanh network on <code>three_gauss</code>, shaded by confidence, with the test samples and the misclassified ones.</em>
+  <em>MNIST test digits misclassified by the submitted 784-512-10 network, the most confident mistakes first. Each title gives the true and the predicted class ("6 jako 5": a 6 taken for a 5) and the probability of the prediction.</em>
 </p>
 
 ## About
@@ -73,6 +73,13 @@ The base configuration uses tanh, 16-16 (classification) or 32-32 (regression) h
 - Large networks overfit small training sets. On `three_gauss` with 100 samples per class, 64-64, 16-16-16-16 and 64-64-64-64 reach 91.00-91.28 % test accuracy, against 92.85 % for one layer of 16 neurons. The gap between training and test accuracy is up to 8.19 points at 100 samples and at most 0.24 at 10000.
 - Activation and loss functions differ by tenths of a percentage point at most.
 
+<!-- source: data/experiments/classification/showcase-three-gauss/plots/decision_boundary.png -->
+<p align="center">
+  <img src="docs/images/three-gauss-decision-boundary.png" alt="Decision regions of a network trained on three overlapping Gaussian clusters" width="55%">
+  <br>
+  <em>Decision regions of a 16-16 tanh network on <code>three_gauss</code>, shaded by confidence, with the test samples and the misclassified ones.</em>
+</p>
+
 <!-- source: data/experiments/classification/three-gauss-architectures/results/heatmap.png -->
 <p align="center">
   <img src="docs/images/three-gauss-architectures-heatmap.png" alt="Heatmap of test accuracy by architecture and training set size" width="100%">
@@ -116,6 +123,15 @@ Five tuning studies chose the configuration for MNIST one factor at a time, on a
 |---|---|---|
 | final, 5 seeds | 784-512-10, ReLU (He), min-max scaling, Adam 0.001, batch 32, cross-entropy, early stopping | 97.91 % +- 0.15 |
 | submitted network | the same, seed 1 | 97.74 % |
+
+The submitted network misclassifies 226 of the 10000 test images. For 19 of them it gives the wrong class a probability above 0.99. The most frequent mistake is a 4 taken for a 9 (37 times, 3.8 % of the fours). The plots come from the report, so their labels are in Polish.
+
+<!-- source: data/experiments/mnist/final/plots/confusion_test.png -->
+<p align="center">
+  <img src="docs/images/mnist-confusion-test.png" alt="Confusion matrix of the submitted network on the MNIST test set" width="70%">
+  <br>
+  <em>Confusion matrix of the submitted network on the MNIST test set: true class in rows, predicted class in columns, with the count and the share of the true class in each cell.</em>
+</p>
 
 The tuning results, the configuration and how to reproduce the submitted network are described in [`data/experiments/mnist/README.md`](data/experiments/mnist/README.md) and in the report of part two, [`docs/report-mnist.pdf`](docs/report-mnist.pdf).
 
